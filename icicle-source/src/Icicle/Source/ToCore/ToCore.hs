@@ -169,7 +169,7 @@ convertQuery q
     -- The group itself constructs the Map and the group fold perform its aggregate
     -- on the Map.
     --
-    (GroupFold (Annot { annAnnot = ann }) k v e : _ )
+    (GroupFold (Annot { annAnnot = ann }) (PatVariable k) (PatVariable v) e : _ )
      -> do  (tk, tv) <- getGroupFoldType ann e
 
             n'   <- lift fresh
@@ -201,10 +201,17 @@ convertQuery q
 
             return (bs <> p, n')
 
+    -- Group folds with patterns should have been desugared
+    (GroupFold (Annot { annAnnot = ann }) (PatVariable _) pat _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
+
+    (GroupFold (Annot { annAnnot = ann }) pat _ _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
+
     (Distinct _ _ : _)
      -> convertAsFold
 
-    (Let _ b def : _)
+    (Let _ (PatVariable b) def : _)
      -> case getTemporalityOrPure $ annResult $ annotOfExp def of
          TemporalityElement
           -> do t' <- convertValType' $ annResult $ annotOfExp def
@@ -250,10 +257,8 @@ convertQuery q
          _
           -> convertError $ ConvertErrorGroupByHasNonGroupResult (annAnnot $ annotOfExp def) (annResult $ annotOfExp def)
 
-
-    -- Converting fold1s.
-    (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)
-     -> convertError $ ConvertErrorImpossibleFold1 ann
+    (Let (Annot { annAnnot = ann }) pat _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
     -- In comparison, normal folds are quite easy.
     --
@@ -266,7 +271,7 @@ convertQuery q
     -- > 0
     -- > stream
     --
-    (LetFold _ f@Fold{ foldType = FoldTypeFoldl } : _)
+    (LetFold _ f@Fold{ foldType = FoldTypeFoldl, foldBind = PatVariable n } : _)
      -> do  -- Type helpers
             tU <- convertValType' $ annResult $ annotOfExp $ foldWork f
 
@@ -274,7 +279,7 @@ convertQuery q
             -- Current accumulator is only available in worker
             -- Remove binding before converting init and work expressions,
             -- just in case the same name has been used elsewhere
-            n'a <- convertFreshenAdd $ foldBind f
+            n'a <- convertFreshenAdd n
             k   <- convertExp (foldWork f)
 
             -- Bind the fold to the original name
@@ -283,6 +288,14 @@ convertQuery q
             (bs', n'')      <- convertQuery q'
 
             return (bs <> bs', n'')
+
+    -- Converting fold1s.
+    (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)
+     -> convertError $ ConvertErrorImpossibleFold1 ann
+
+    -- Converting folds with patterns.
+    (LetFold (Annot { annAnnot = ann }) Fold{ foldBind = pat } : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
  where
   -- The remaining query after the current context is removed

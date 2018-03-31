@@ -13,6 +13,7 @@ module Icicle.Source.Query.Context (
 
 import           GHC.Generics (Generic)
 
+import           Icicle.Source.Query.Constructor
 import           Icicle.Source.Query.Exp
 import           Icicle.Internal.Pretty
 import           Icicle.Common.Base
@@ -23,19 +24,19 @@ import           P
 data Context' q a n
  = Windowed a WindowUnit (Maybe WindowUnit)
  | Latest a Int
- | GroupBy   a          (Exp' q a n)
- | Distinct  a          (Exp' q a n)
- | Filter    a          (Exp' q a n)
- | LetFold   a          (Fold q a n)
- | Let       a (Name n) (Exp' q a n)
- | GroupFold a (Name n) (Name n) (Exp' q a n)
+ | GroupBy   a             (Exp' q a n)
+ | Distinct  a             (Exp' q a n)
+ | Filter    a             (Exp' q a n)
+ | LetFold   a             (Fold q a n)
+ | Let       a (Pattern n) (Exp' q a n)
+ | GroupFold a (Pattern n) (Pattern n) (Exp' q a n)
  deriving (Show, Eq, Ord, Generic)
 
 instance (NFData q, NFData a, NFData n) => NFData (Context' q a n)
 
 data Fold q a n
  = Fold
- { foldBind :: Name n
+ { foldBind :: Pattern n
  , foldInit :: Exp' q a n
  , foldWork :: Exp' q a n
  , foldType :: FoldType }

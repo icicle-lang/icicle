@@ -27,16 +27,16 @@ renameC f cc = case cc of
   SQ.Windowed  a b c   -> SQ.Windowed  a b c
   SQ.Latest    a b     -> SQ.Latest    a b
   SQ.GroupBy   a e     -> SQ.GroupBy   a (renameX f e)
-  SQ.GroupFold a k v e -> SQ.GroupFold a (renameN f k) (renameN f v) (renameX f e)
+  SQ.GroupFold a k v e -> SQ.GroupFold a (renamePat f k) (renamePat f v) (renameX f e)
   SQ.Distinct  a e     -> SQ.Distinct  a (renameX f e)
   SQ.Filter    a e     -> SQ.Filter    a (renameX f e)
   SQ.LetFold   a x     -> SQ.LetFold   a (renameF f x)
-  SQ.Let       a n e   -> SQ.Let       a (renameN f n) (renameX f e)
+  SQ.Let       a n e   -> SQ.Let       a (renamePat f n) (renameX f e)
 
 renameF :: Hashable m => (n -> m) -> SQ.Fold (SQ.Query a n) a n -> SQ.Fold (SQ.Query a m) a m
 renameF f d
   = SQ.Fold
-    (renameN f $ SQ.foldBind d)
+    (renamePat f $ SQ.foldBind d)
     (renameX f $ SQ.foldInit d)
     (renameX f $ SQ.foldWork d)
     (SQ.foldType d)

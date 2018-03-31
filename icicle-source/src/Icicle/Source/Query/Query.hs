@@ -197,19 +197,21 @@ allvarsC ns c
     Latest a w1
      -> Latest (a,ns) w1
 
-    Let a n x
-     -> let x'  = allvarsX x
+    Let a p x
+     -> let x' = allvarsX x
+            (p',nsX) = goPat p
             ns' = Set.unions
-                [ ns, sgl n, annX x' ]
-        in  Let (a, ns') n x'
+                [ ns, nsX, annX x' ]
+        in  Let (a, ns') p' x'
 
     LetFold a f
      -> let z'  = allvarsX (foldInit f)
             k'  = allvarsX (foldWork f)
+            (p',nsX) = goPat (foldBind f)
             ns' = Set.unions
-                [ ns, sgl (foldBind f)
+                [ ns, nsX
                 , annX z', annX k' ]
-            f'  = f { foldInit = z', foldWork = k' }
+            f'  = f { foldInit = z', foldWork = k', foldBind = p' }
         in  LetFold (a,ns') f'
 
     GroupBy a x
@@ -219,9 +221,11 @@ allvarsC ns c
 
     GroupFold a nk nv x
      -> let x'  = allvarsX x
+            (nk',nkX) = goPat nk
+            (nv',nvX) = goPat nv
             ns' = Set.unions
-                [ ns, sgl nk, sgl nv, annX x' ]
-        in  GroupFold (a,ns') nk nv x'
+                [ ns, nkX, nvX, annX x' ]
+        in  GroupFold (a,ns') nk' nv' x'
 
     Distinct a x
      -> let x'  = allvarsX x
@@ -235,7 +239,6 @@ allvarsC ns c
 
  where
   annX = snd . annotOfExp
-  sgl  = Set.singleton
 
 
 -- | Compute set of value variables of expression
@@ -270,20 +273,24 @@ allvarsX x
          ns''      = Set.unions [ns', np', annX xx']
      in  ((p',xx') : ps', ns'')
 
-  goPat p
-   = case p of
-      PatCon c ps
-       -> let (ps',ns') = goPats ps
-          in  (PatCon c ps', ns')
-      PatDefault
-       -> (PatDefault, Set.empty)
-      PatVariable n
-       -> (PatVariable n, sgl n)
 
-  goPats []
-   = ([], Set.empty)
-  goPats (p:ps)
-   = let (p',n')   = goPat p
-         (ps',ns') = goPats ps
-     in (p' : ps', n' `Set.union` ns')
+goPats :: Eq n => [Pattern n] -> ([Pattern n], Set.Set (Name n))
+goPats []
+  = ([], Set.empty)
+goPats (p:ps)
+  = let
+      (p',n')   = goPat p
+      (ps',ns') = goPats ps
+    in
+      (p' : ps', n' `Set.union` ns')
 
+goPat :: Eq n => Pattern n -> (Pattern n, Set.Set (Name n))
+goPat p
+ = case p of
+  PatCon c ps
+    -> let (ps',ns') = goPats ps
+       in  (PatCon c ps', ns')
+  PatDefault
+    -> (PatDefault, Set.empty)
+  PatVariable n
+    -> (PatVariable n,  Set.singleton n)

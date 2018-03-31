@@ -94,15 +94,16 @@ substQ' s (Query [] x)
 
 substQ' s (Query (c:rest_cs) rest_x)
  = case c of
-    Let a n x
-     -> do x'       <- substX' s x
-           (s', n') <- freshIfNecessary s n (fst a)
-           rest s' (Let a n' x')
+    Let a p x
+     -> do x'        <- substX' s x
+           (s', p')  <- rempatbind s p
+           rest s' (Let a p' x')
+
     LetFold a f
      -> do z'       <- substX' s  (foldInit f)
-           (s', n') <- freshIfNecessary s (foldBind f) (fst a)
+           (s', p') <- rempatbind s (foldBind f)
            k'       <- substX' s' (foldWork f)
-           let f'    = f { foldBind = n', foldInit = z', foldWork = k' }
+           let f'    = f { foldBind = p', foldInit = z', foldWork = k' }
            rest s' (LetFold a f')
     Windowed{}
      -> rest s  c
@@ -113,8 +114,8 @@ substQ' s (Query (c:rest_cs) rest_x)
            rest s (GroupBy a x')
     GroupFold a k v x
      -> do x'       <- substX s x
-           (s', k') <- freshIfNecessary s  k (fst a)
-           (s'',v') <- freshIfNecessary s' v (fst a)
+           (s', k') <- rempatbind s  k
+           (s'',v') <- rempatbind s' v
            rest s'' (GroupFold a k' v' x')
     Distinct a x
      -> do x'       <- substX s x
@@ -127,6 +128,22 @@ substQ' s (Query (c:rest_cs) rest_x)
   q                      = Query rest_cs rest_x
   rest s' cx'            = ins cx' <$> substQ' s' q
 
+  rempatbinds m [] ret
+   = return (m, reverse ret)
+  rempatbinds m (p:ps) ret
+   = do (m',p') <- rempatbind m p
+        rempatbinds m' ps (p' : ret)
+
+  rempatbind m p
+   = case p of
+      PatCon con ps
+       -> do (m',ps') <- rempatbinds m ps []
+             return (m', PatCon con ps')
+      PatDefault
+       -> return (m, p)
+      PatVariable n
+       -> do (m',n') <- freshIfNecessary m n (fst $ annotOfExp rest_x)
+             return (m', PatVariable n')
 
 freshIfNecessary :: (Hashable n, Eq n)
       => (Map.Map (Name n) (Exp (a, Set.Set (Name n)) n))

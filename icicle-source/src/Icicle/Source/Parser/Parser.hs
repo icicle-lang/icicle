@@ -89,7 +89,7 @@ context
         e <- exp
         return $ Q.GroupFold p k v e
   clet
-   = do n <- pVariable                                      <?> "binding name"
+   = do n <- pattern                                        <?> "binding pattern"
         p <- getPosition
         pEq T.TEqual
         x <- exp                                            <?> "let definition expression"
@@ -98,7 +98,7 @@ context
   cletfold
    = do ft <- foldtype                                      <?> "let fold"
         p <- getPosition
-        n <- pVariable
+        n <- pattern
         pEq T.TEqual
         z <- exp                                            <?> "initial value"
         pEq T.TFollowedBy                                   <?> "colon (:)"
@@ -109,8 +109,8 @@ context
   keyval
     = do p <- pattern
          case p of
-           Q.PatCon Q.ConTuple [Q.PatVariable n1, Q.PatVariable n2]
-             -> return (n1, n2)
+           Q.PatCon Q.ConTuple [k, v]
+             -> return (k, v)
            _ -> mzero
 
   foldtype

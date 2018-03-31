@@ -84,9 +84,73 @@ desugarQ
   => Query a n
   -> DesugarM a n (Query a n)
 desugarQ qq
-  = do cs <- mapM desugarC (contexts qq)
+  = do ex <- concat <$> mapM desugarLets (contexts qq)
+       cs <- mapM desugarC ex
        f  <- desugarX (final qq)
        return $ Query cs f
+
+-- | Rewrite let and fold binding such that we only
+--   match on a single PatVariable at a time.
+--   Pairs get rewritten, such that
+--   let (x, _) = (1, 2)
+--   will become
+--   let n = (1,2) ~> let x = fst n
+desugarLets
+  :: (Hashable n, Eq n)
+  => Context a n
+  -> DesugarM a n [Context a n]
+desugarLets cc
+ = case cc of
+    Let _ PatDefault _
+      -> return []
+
+    Let a (PatCon ConTuple [apat, bpat]) x
+      -> do n        <- fresh
+            let nbind = Let a (PatVariable n) x
+            abind    <- Let a apat <$> from n fst
+            bbind    <- Let a bpat <$> from n snd
+            ccs      <- mapM desugarLets [nbind, abind, bbind]
+            return $ concat ccs
+          where
+            from n which = do
+              b@(i,j)  <- (,) <$> fresh <*> fresh
+              let
+                tup   = PatCon ConTuple [PatVariable i, PatVariable j]
+                varn  = (Var a n)
+              return $ Case a varn [(tup, Var a (which b))]
+
+    LetFold a f
+      | PatDefault <- foldBind f
+      -> return []
+      | PatCon {}  <- foldBind f
+      -> do n        <- fresh
+            let nbind = Let a (foldBind f) (Var a n)
+            nnbind   <- desugarLets nbind
+            return $
+              LetFold a f {
+                foldBind = PatVariable n
+              , foldWork = Nested a (Query [nbind] (foldWork f))
+              } : nnbind
+
+    GroupFold a k v m
+      -> let
+           expand PatDefault = do
+             n <- fresh
+             return (PatVariable n, [])
+           expand (PatVariable n) = do
+             return (PatVariable n, [])
+           expand c = do
+             n <- fresh
+             let nbind = Let a c (Var a n)
+             return (PatVariable n, [nbind])
+         in do
+           (k', kx) <- expand k
+           (v', vx) <- expand v
+           lets     <- mapM desugarLets (kx <> vx)
+           return $
+             GroupFold a k' v' m : concat lets
+
+    x -> return [x]
 
 desugarC
   :: (Hashable n, Eq n)
@@ -363,7 +427,7 @@ treeToCase ann patalts tree
    caseStmtsFor (TCase scrut alts)
     = Case ann scrut (fmap (fmap caseStmtsFor) alts)
    caseStmtsFor (TLet n x e)
-    = Nested ann (Query [Let ann n x] (caseStmtsFor e))
+    = Nested ann (Query [Let ann (PatVariable n) x] (caseStmtsFor e))
 
    caseStmtsFor (TLits scrut ((c,x):cs) d)
     = let eq = Prim ann $ Op $ Relation Eq
@@ -389,7 +453,7 @@ treeToCase ann patalts tree
     = left $ DesugarErrorNoAlternative ann p
 
    generateLet (n ,p)
-    = Let ann n <$> patternToExp p
+    = Let ann (PatVariable n) <$> patternToExp p
 
    patternToExp (PatCon c as)
     = do xs <- mapM patternToExp as

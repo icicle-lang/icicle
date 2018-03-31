@@ -5,6 +5,7 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.ToCore.Exp (
     convertExp
@@ -38,8 +39,6 @@ import                  Control.Monad.Trans.Class
 import                  Data.List (zip)
 import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
-
-
 
 -- | Convert an element-level expression.
 -- These are worker functions for folds, filters and so on.
@@ -108,7 +107,8 @@ convertExpQ q
  $ case contexts q of
     []
      -> convertExp $ final q
-    (Let _ b d:cs)
+
+    (Let _ (PatVariable b) d:cs)
      -> do  d' <- convertExp d
             -- NB: because it's non-recursive let, the freshen must be done after the definition
             b' <- convertFreshenAdd b
@@ -117,7 +117,6 @@ convertExpQ q
     _
      -> convertError
       $ ConvertErrorExpNestedQueryNotAllowedHere (annAnnot $ annotOfQuery q) q
-
 
 -- | Enfreshinate the variables in a case pattern and add them to the convert environment.
 --
