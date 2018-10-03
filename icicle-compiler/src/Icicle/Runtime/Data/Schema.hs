@@ -27,7 +27,7 @@ import           Icicle.Common.Type
 import qualified Icicle.Data.Fact as Fact
 import           Icicle.Runtime.Data.Primitive
 
-import           P hiding (Sum)
+import           P
 
 import           X.Data.Vector.Cons (Cons)
 import qualified X.Data.Vector.Cons as Cons

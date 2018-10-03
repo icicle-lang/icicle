@@ -25,7 +25,7 @@ import           Icicle.Data
 import           Icicle.Source.Checker.Base (optionSmallData,optionBigData)
 import           Icicle.Source.Checker.Checker
 import           Icicle.Source.Checker.Error
-import           Icicle.Source.Query
+import           Icicle.Source.Query as Query
 import           Icicle.Source.Type
 import qualified Icicle.Source.Lexer.Token as T
 import           Icicle.Source.ToCore.Context
@@ -524,7 +524,7 @@ instance Arbitrary Prim where
         ]
 
    funs
-    = fmap Fun
+    = fmap Query.Fun
         [ BuiltinMath  Log
         , BuiltinMath  Exp
         , BuiltinMath  Sqrt

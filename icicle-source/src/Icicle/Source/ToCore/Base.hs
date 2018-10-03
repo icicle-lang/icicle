@@ -112,12 +112,13 @@ deferBinds defer0 binds0 = go [] [] defer0 binds0
         then go (b:pres) posts defer bs
         else go pres (b:posts) (Set.insert n defer) bs
 
+instance Semigroup (CoreBinds a n) where
+  (<>) (CoreBinds a b c) (CoreBinds d e f)
+    = CoreBinds (a<>d) (b<>e) (c<>f)
 
 instance Monoid (CoreBinds a n) where
  mempty = CoreBinds [] [] []
- mappend (CoreBinds a b c) (CoreBinds d e f)
-  = CoreBinds (a<>d) (b<>e) (c<>f)
-
+ mappend = (<>)
 
 pre :: Name n -> C.Exp a n -> CoreBinds a n
 pre n x = mempty { precomps = [(n,x)] }

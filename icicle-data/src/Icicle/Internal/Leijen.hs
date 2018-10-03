@@ -25,11 +25,15 @@ import qualified Text.PrettyPrint.Annotated.Leijen as Leijen
 
 infixr <%>
 
+instance Semigroup (Doc a) where
+  (<>) =
+    (Leijen.<>)
+
 instance Monoid (Doc a) where
    mempty =
      Leijen.empty
    mappend =
-     (Leijen.<>)
+     (<>)
 
 renderPlain :: Doc a -> Text
 renderPlain =

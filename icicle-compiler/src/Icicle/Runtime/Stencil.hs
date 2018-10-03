@@ -52,11 +52,14 @@ data EntityStencil =
     , stencilLength :: !(Storable.Vector Int64)
     } deriving (Eq, Ord, Show)
 
+instance Semigroup EntityStencil where
+  EntityStencil x a <> EntityStencil y b =
+    EntityStencil (x <> y) (a <> b)
+
 instance Monoid EntityStencil where
   mempty =
     EntityStencil mempty mempty
-  mappend (EntityStencil x a) (EntityStencil y b) =
-    EntityStencil (x <> y) (a <> b)
+  mappend = (<>)
 
 data Segmented a =
   Segmented {

@@ -35,13 +35,16 @@ data Usage n
  , usageExp :: Set (Name n) -- local names
  }
 
-instance Eq n => Monoid (Usage n) where
- mempty = Usage Set.empty Set.empty
- mappend a b
+instance Eq n => Semigroup (Usage n) where
+ a <> b
   = Usage
   { usageAcc = Set.union (usageAcc a) (usageAcc b)
   , usageExp = Set.union (usageExp a) (usageExp b)
   }
+
+instance Eq n => Monoid (Usage n) where
+ mempty = Usage Set.empty Set.empty
+ mappend = (<>)
 
 type Kill a n p = Map (Name n) (Exp a n p)
 

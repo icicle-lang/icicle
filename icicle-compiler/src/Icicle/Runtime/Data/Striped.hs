@@ -62,7 +62,7 @@ import           Icicle.Runtime.Data.Primitive
 import           Icicle.Runtime.Data.Schema (Schema)
 import qualified Icicle.Runtime.Data.Schema as Schema
 
-import           P hiding (Sum, lefts, rights, empty, length, splitAt)
+import           P hiding (lefts, rights, empty, length, splitAt)
 
 import           System.IO (IO)
 

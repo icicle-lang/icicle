@@ -25,16 +25,20 @@ data Mask =
   | Keep
     deriving (Eq, Ord, Show)
 
+instance Semigroup Mask where
+  x <> y =
+    if isDrop x && isDrop y then
+      Drop
+    else
+      Keep
+  {-# INLINABLE (<>) #-}
+
 instance Monoid Mask where
   mempty =
     Drop
   {-# INLINABLE mempty #-}
 
-  mappend x y =
-    if isDrop x && isDrop y then
-      Drop
-    else
-      Keep
+  mappend = (<>)
   {-# INLINABLE mappend #-}
 
 isDrop :: Mask -> Bool

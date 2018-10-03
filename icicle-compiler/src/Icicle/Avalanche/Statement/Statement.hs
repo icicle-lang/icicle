@@ -72,10 +72,12 @@ data Statement a n p
 
 instance (NFData a, NFData n, NFData p) => NFData (Statement a n p)
 
+instance Semigroup (Statement a n p) where
+ p <> q = Block [p, q]
+
 instance Monoid (Statement a n p) where
  mempty = Block []
- mappend p q
-        = Block [p, q]
+ mappend = (<>)
 
 -- | Construct nested ifs. Use this instead of "If (x && y)", since
 --   A-normalisation will get rid of the short-circuit.

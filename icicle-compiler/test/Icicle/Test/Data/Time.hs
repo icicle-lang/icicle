@@ -19,7 +19,7 @@ import           P
 
 import           System.IO
 
-import           Test.QuickCheck
+import           Test.QuickCheck hiding (function)
 import           Test.QuickCheck.Property
 
 import           X.Control.Monad.Trans.Either

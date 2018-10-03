@@ -42,8 +42,7 @@ import           Data.Typeable (Typeable)
 
 import           GHC.Generics (Generic)
 
-import           P hiding (Alt)
-
+import           P
 
 data Repl a =
     From !a !(VarId a) !(Exp a)

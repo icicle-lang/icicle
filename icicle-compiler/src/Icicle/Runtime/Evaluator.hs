@@ -78,7 +78,7 @@ import qualified Icicle.Sea.IO.Offset as Offset
 
 import qualified Jetski as Jetski
 
-import           P hiding (Any)
+import           P
 
 import           System.IO (IO)
 

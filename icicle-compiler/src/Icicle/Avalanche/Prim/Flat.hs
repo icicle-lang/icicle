@@ -259,11 +259,11 @@ meltType t
 
     SumT    a b
      | ErrorT <- a
-     -> [ErrorT]   <> meltType b
+     -> ErrorT : meltType b
      | otherwise
-     -> rep BoolT  <> meltType a <> meltType b
+     -> BoolT  : meltType a <> meltType b
 
-    OptionT a   -> rep BoolT <> meltType a
+    OptionT a -> BoolT : meltType a
 
     ArrayT a -> fmap ArrayT (meltType a)
     BufT i a -> fmap (BufT i) (meltType a)
@@ -277,6 +277,7 @@ meltType t
      -> concat $ fmap meltType (Map.elems fs)
  where
   rep t' = [t']
+  {-# INLINE rep #-}
 
 
 tryMeltType :: ValType -> Maybe [ValType]

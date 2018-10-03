@@ -140,10 +140,8 @@ summaryInputFactCount :: QuerySummary -> Int
 summaryInputFactCount =
   sum . summaryInputFactCounts
 
-instance Monoid QuerySummary where
-  mempty =
-    QuerySummary 0 Map.empty 0
-  mappend x y =
+instance Semigroup QuerySummary where
+  x <> y =
     QuerySummary {
         summaryInputEntityCount =
           summaryInputEntityCount x + summaryInputEntityCount y
@@ -152,6 +150,11 @@ instance Monoid QuerySummary where
       , summaryOutputRowCount =
           summaryOutputRowCount x + summaryOutputRowCount y
       }
+
+instance Monoid QuerySummary where
+  mempty =
+    QuerySummary 0 Map.empty 0
+  mappend = (<>)
 
 data QueryError =
     QueryRuntimeError !RuntimeError
