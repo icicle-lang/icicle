@@ -51,7 +51,7 @@ import qualified Icicle.Internal.Leijen as Leijen
 import           Icicle.Sorbet.Concrete.Syntax
 import           Icicle.Sorbet.Lexical.Escape
 
-import           P hiding (Alt, exp)
+import           P hiding (exp)
 
 import           System.Console.ANSI (Color(..), ColorIntensity(..))
 import           System.Console.ANSI (ConsoleLayer(..))

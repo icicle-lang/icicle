@@ -48,7 +48,7 @@ data DischargeError n
  | NotANumber  (Type n)
  -- | IsNum String
  | ConflictingLetTemporalities (Type n) (Type n) (Type n)
- | ConflictingJoinTemporalities (Type n) (Type n) 
+ | ConflictingJoinTemporalities (Type n) (Type n)
  deriving (Eq, Ord, Show, Generic)
 
 instance NFData n => NFData (DischargeError n)
@@ -68,7 +68,8 @@ instance Pretty n => Pretty (DischargeError n) where
   <> ", while the body is a " <> pretty body <> "."
  pretty (ConflictingJoinTemporalities a b)
   =  "Cannot join temporalities." <> line
-  <> pretty a <> " with " <> pretty b
+  <> pretty a <> " with " <> pretty b <> "." <> line
+  <> "Chances are the query requires multiple passes over the data."
 
 -- | Discharge a single constraint
 dischargeC :: (Hashable n, Eq n) => Constraint n -> Either (DischargeError n) (DischargeResult n)

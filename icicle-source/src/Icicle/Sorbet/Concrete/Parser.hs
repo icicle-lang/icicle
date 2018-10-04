@@ -26,7 +26,7 @@ import           Icicle.Sorbet.Concrete.Syntax
 import           Icicle.Sorbet.Lexical.Syntax
 import           Icicle.Sorbet.Position
 
-import           P hiding (Alt)
+import           P
 
 import           Text.Megaparsec (Dec, try, sepBy, choice, label)
 import           Text.Megaparsec (ErrorComponent(..), ShowErrorComponent(..))
