@@ -169,8 +169,8 @@ desugarC cc
 
 desugarF
   :: (Hashable n, Eq n)
-  => Fold (Query a n) a n
-  -> DesugarM a n (Fold (Query a n) a n)
+  => Fold Query a n
+  -> DesugarM a n (Fold Query a n)
 desugarF ff
   = do fi' <- desugarX (foldInit ff)
        fw' <- desugarX (foldWork ff)
@@ -331,7 +331,7 @@ addToTy _ (PatVariable _) ty    = return ty
 casesForTy
   :: (Hashable n)
   => a
-  -> Exp' (Query a n) a n
+  -> Exp a n
   -> Ty
   -> DesugarM a n (Tree a n (Pattern n))
 casesForTy ann scrut ty
@@ -399,12 +399,12 @@ casesForTy ann scrut ty
 --
 data Tree a n x
  = Done  x                         -- ^ just use the pattern/alternative/thing.
- | TCase (Exp' (Query a n) a n)
+ | TCase (Exp a n)
          [(Pattern n, Tree a n x)] -- ^ do a case statement
  | TLet  (Name n)
-         (Exp' (Query a n) a n)
+         (Exp a n)
          (Tree a n x)              -- ^ insert a let because we cannot generate pattern variables.
- | TLits (Exp' (Query a n) a n)
+ | TLits (Exp a n)
          [(TyLit, Tree a n x)] (Tree a n x) -- ^ special case for literals
  deriving (Functor, Foldable, Traversable, Show)
 
@@ -427,9 +427,9 @@ instance Monad (Tree a n) where
 treeToCase
   :: (Eq n)
   => a
-  -> [(Pattern n, Exp' (Query a n) a n)]
+  -> [(Pattern n, Exp a n)]
   -> Tree a n (Pattern n)
-  -> DesugarM a n (Exp' (Query a n) a n)
+  -> DesugarM a n (Exp a n)
 treeToCase ann patalts tree
  = lift . fmap (simpDumbX . caseStmtsFor) . sequence
  $ fmap (getAltBody patalts) tree

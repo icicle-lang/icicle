@@ -42,14 +42,13 @@ import           P
 
 data Exp' q a n
  = Var a (Name n)
- | Nested a q
+ | Nested a (q a n)
  | App  a (Exp' q a n) (Exp' q a n)
  | Prim a Prim
  | Case a (Exp' q a n) [(Pattern n, Exp' q a n)]
  deriving (Show, Eq, Ord, Generic)
 
-instance (NFData q, NFData a, NFData n) => NFData (Exp' q a n)
-
+instance (NFData (q a n), NFData a, NFData n) => NFData (Exp' q a n)
 
 takeApps :: Exp' q a n -> (Exp' q a n, [Exp' q a n])
 takeApps xx
@@ -93,7 +92,7 @@ instance NFData Prim
 -- | Built-in Source functions
 type Fun = BuiltinFun
 
-instance (Pretty n, Pretty q) => Pretty (Exp' q a n) where
+instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
   prettyPrec outer_prec xx =
     wrap $
       case xx of

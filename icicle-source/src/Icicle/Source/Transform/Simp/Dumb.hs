@@ -57,18 +57,18 @@ simpDumbC cc
     Windowed{}        -> cc
     Latest{}          -> cc
 
-simpDumbF :: Eq n => Fold (Query a n) a n -> Fold (Query a n) a n
+simpDumbF :: Eq n => Fold Query a n -> Fold Query a n
 simpDumbF ff
  = ff { foldInit = simpDumbX (foldInit ff)
       , foldWork = simpDumbX (foldWork ff) }
 
-simpDumbX :: Eq n => Exp' (Query a n) a n -> Exp' (Query a n) a n
+simpDumbX :: Eq n => Exp a n -> Exp a n
 simpDumbX = simpDumbCases . simpDumbLets
 
 -- | Simplify cases with a single default/variable pattern.
 --
 simpDumbCases
- :: Exp' (Query a n) a n -> Exp' (Query a n) a n
+ :: Exp a n -> Exp a n
 simpDumbCases xx
  = case xx of
     Case _ _ [(PatDefault, x)]
@@ -118,7 +118,7 @@ simpDumbCases xx
 -- | Simplify nested bindings from variables to variables, e.g. `let x = y ~>..`
 --   This recurses into nested queries so it's not a traditional beta-reduction.
 --
-simpDumbLets :: (Eq n) => Exp' (Query a n) a n -> Exp' (Query a n) a n
+simpDumbLets :: (Eq n) => Exp a n -> Exp a n
 simpDumbLets xx
  = case xx of
     Nested _ q

@@ -32,7 +32,7 @@ data Context' q a n
  | GroupFold a (Pattern n) (Pattern n) (Exp' q a n)
  deriving (Show, Eq, Ord, Generic)
 
-instance (NFData q, NFData a, NFData n) => NFData (Context' q a n)
+instance (NFData (q a n), NFData a, NFData n) => NFData (Context' q a n)
 
 data Fold q a n
  = Fold
@@ -42,7 +42,7 @@ data Fold q a n
  , foldType :: FoldType }
  deriving (Show, Eq, Ord, Generic)
 
-instance (NFData q, NFData a, NFData n) => NFData (Fold q a n)
+instance (NFData (q a n), NFData a, NFData n) => NFData (Fold q a n)
 
 data FoldType
  = FoldTypeFoldl1
@@ -63,7 +63,7 @@ annotOfContext c
     LetFold   a _     -> a
     Let       a _ _   -> a
 
-instance (Pretty n, Pretty q) => Pretty (Context' q a n) where
+instance (Pretty n, Pretty (q a n)) => Pretty (Context' q a n) where
   pretty = \case
     Windowed _ newer Nothing ->
       prettyKeyword "windowed" <+> pretty newer
