@@ -101,7 +101,6 @@ data Keyword =
  -- expressions
  | Case
  | End
- | By
 
  -- Builtin
  -- math
