@@ -176,7 +176,7 @@ decodeDictionary table = do
   schemas <- decodeInputSchemas table
   inputs <- sequence $ Map.mapWithKey mkDictionaryInput schemas
   pure $
-    Dictionary inputs Map.empty []
+    emptyDictionary { dictionaryInputs = inputs }
 
 ------------------------------------------------------------------------
 -- Schema: Icicle -> Zebra

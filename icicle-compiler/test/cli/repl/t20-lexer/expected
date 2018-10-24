@@ -1,6 +1,6 @@
 Queries will no longer be evaluated using the C evaluator.
 Snapshot mode activated with a snapshot date of 2017-01-01.
-Loaded dictionary with 5 inputs, 0 outputs, 41 functions.
+Loaded dictionary with 5 inputs, 0 outputs, 71 functions.
 Selected psv file as input: test/cli/repl/data.psv
 
   ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
@@ -54,6 +54,8 @@ Error
          Element a
       -> Aggregate (Possibly a)
     
+    tan : Double -> Possibly Double
+    
     mean :
          Num a
       => Element a
@@ -61,9 +63,7 @@ Error
     
     exp : Double -> Possibly Double
     
-    tan : Double -> Possibly Double
-    
-    day : Time -> Int
+    fst : (b, a) -> b
 
 λ λ -- Expect a parse error on unterminated string
 λ                  ^

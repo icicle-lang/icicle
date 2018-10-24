@@ -239,7 +239,7 @@ instance (IsString n, Pretty n, Hashable n, Eq n) => Pretty (ErrorSuggestion a n
     AvailableBindings n' bs ->
       let
         inb =
-          grabInbuilt <$> listOfBuiltinFuns
+          grabInbuilt <$> listOfWiredFuns
 
         bs' =
           take 5 $ flip sortBy (fmap (first nameBase) bs <> inb) $ on compare $ (editDistance $ pretty n') . pretty . fst

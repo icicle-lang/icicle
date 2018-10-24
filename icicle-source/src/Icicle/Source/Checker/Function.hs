@@ -28,9 +28,7 @@ import                  Data.Hashable           (Hashable)
 import                  X.Control.Monad.Trans.Either
 
 type Funs a n = [((a, Name n), Function a n)]
-type FunEnvT a n = [ ( Name n
-                   , ( FunctionType n
-                     , Function (Annot a n) n ) ) ]
+type FunEnvT a n = [ ResolvedFunction a n ]
 
 
 checkFs :: (Hashable n, Eq n, Pretty n)
@@ -44,10 +42,11 @@ checkFs env functions
  where
   go (env0,logs0) (name,fun)
    = do
-    ((annotfun, funtype),logs') <- checkF (fst <$> Map.fromList env0) fun
-    if List.elem (snd name) (fmap fst env0)
+    let envMap = Map.fromList $ fmap ((,) <$> functionName <*> functionType) env0
+    ((annotfun, funtype),logs') <- checkF envMap fun
+    if List.elem (snd name) (fmap functionName env0)
     then hoistEither $ Left $ CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) []
-    else pure (env0 <> [(snd name , (funtype, annotfun))], logs0 <> [logs'])
+    else pure (env0 <> [ResolvedFunction (snd name) funtype annotfun], logs0 <> [logs'])
 
 checkF  :: (Hashable n, Eq n, Pretty n)
         => Map.Map (Name n) (FunctionType n)

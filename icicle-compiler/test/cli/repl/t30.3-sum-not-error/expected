@@ -1,6 +1,6 @@
 Queries will no longer be evaluated using the C evaluator.
 Snapshot mode activated with a snapshot date of 2017-01-01.
-Loaded dictionary with 5 inputs, 0 outputs, 41 functions.
+Loaded dictionary with 5 inputs, 0 outputs, 71 functions.
 Selected psv file as input: test/cli/repl/data.psv
 
   ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
@@ -54,46 +54,46 @@ iint_t size_of_icluster_0 ()
 #line 1 "kernel function #0 - default:salary icluster_0_kernel_0"
 void icluster_0_kernel_0(icluster_0_t *s)
 {
-    ierror_t         perhapszmconvzm4zmavalzm0zmsimpflatzm9;
-    ibool_t          perhapszmconvzm4zmsimpflatzm42;
-    iint_t           perhapszmconvzm4zmsimpflatzm43;
-    ierror_t         perhapszmconvzm4zmsimpflatzm41;
-    idouble_t        perhapszmconvzm4zmsimpflatzm44;
-    idouble_t        perhapszmconvzm4zmavalzm0zmsimpflatzm12;
-    iint_t           perhapszmconvzm4zmavalzm0zmsimpflatzm11;
     ibool_t          perhapszmconvzm4zmavalzm0zmsimpflatzm10;
-    idouble_t        flatzm0zmsimpflatzm40;
-    ibool_t          flatzm0zmsimpflatzm38;
-    iint_t           flatzm0zmsimpflatzm39;
-    ierror_t         flatzm0zmsimpflatzm37;
-    ibool_t          flatzm7zmsimpflatzm30;
-    iint_t           flatzm7zmsimpflatzm31;
-    idouble_t        flatzm7zmsimpflatzm32;
-    ierror_t         flatzm3zmsimpflatzm33;
-    ibool_t          flatzm3zmsimpflatzm34;
-    iint_t           flatzm3zmsimpflatzm35;
-    idouble_t        flatzm3zmsimpflatzm36;
-    ierror_t         acczmperhapszmconvzm4zmsimpflatzm5;
-    iint_t           acczmperhapszmconvzm4zmsimpflatzm7;
-    ibool_t          acczmperhapszmconvzm4zmsimpflatzm6;
-    idouble_t        acczmperhapszmconvzm4zmsimpflatzm8;
-    iint_t           flatzm0zmsimpflatzm15;
-    ibool_t          flatzm0zmsimpflatzm14;
-    ierror_t         flatzm0zmsimpflatzm13;
-    idouble_t        flatzm0zmsimpflatzm16;
+    iint_t           perhapszmconvzm4zmavalzm0zmsimpflatzm11;
+    idouble_t        perhapszmconvzm4zmavalzm0zmsimpflatzm12;
+    ierror_t         flatzm3zmsimpflatzm17;
     ibool_t          flatzm3zmsimpflatzm18;
     iint_t           flatzm3zmsimpflatzm19;
-    ierror_t         flatzm3zmsimpflatzm17;
+    ierror_t         flatzm3zmsimpflatzm33;
+    idouble_t        flatzm3zmsimpflatzm36;
+    ibool_t          flatzm3zmsimpflatzm34;
+    iint_t           flatzm3zmsimpflatzm35;
+    iint_t           flatzm0zmsimpflatzm39;
+    ibool_t          flatzm0zmsimpflatzm38;
+    ierror_t         flatzm0zmsimpflatzm37;
     idouble_t        flatzm3zmsimpflatzm20;
+    ierror_t         flatzm0zmsimpflatzm13;
+    idouble_t        flatzm0zmsimpflatzm16;
+    iint_t           flatzm0zmsimpflatzm15;
+    ibool_t          flatzm0zmsimpflatzm14;
+    idouble_t        flatzm7zmsimpflatzm32;
+    ibool_t          flatzm7zmsimpflatzm30;
+    iint_t           flatzm7zmsimpflatzm31;
+    idouble_t        flatzm0zmsimpflatzm40;
+    ierror_t         flatzm7zmsimpflatzm29;
+    idouble_t        flatzm7zmsimpflatzm28;
+    iint_t           flatzm7zmsimpflatzm27;
+    ibool_t          flatzm7zmsimpflatzm26;
+    ierror_t         flatzm7zmsimpflatzm25;
+    idouble_t        acczmperhapszmconvzm4zmsimpflatzm8;
+    iint_t           acczmperhapszmconvzm4zmsimpflatzm7;
+    ibool_t          acczmperhapszmconvzm4zmsimpflatzm6;
+    ierror_t         acczmperhapszmconvzm4zmsimpflatzm5;
+    idouble_t        perhapszmconvzm4zmsimpflatzm44;
+    ierror_t         perhapszmconvzm4zmsimpflatzm41;
+    iint_t           perhapszmconvzm4zmsimpflatzm43;
+    ibool_t          perhapszmconvzm4zmsimpflatzm42;
+    ierror_t         perhapszmconvzm4zmavalzm0zmsimpflatzm9;
+    idouble_t        flatzm6zmsimpflatzm24;
     idouble_t        flatzm6zmsimpflatzm22;
     ierror_t         flatzm6zmsimpflatzm23;
     ierror_t         flatzm6zmsimpflatzm21;
-    idouble_t        flatzm6zmsimpflatzm24;
-    ierror_t         flatzm7zmsimpflatzm29;
-    idouble_t        flatzm7zmsimpflatzm28;
-    ierror_t         flatzm7zmsimpflatzm25;
-    iint_t           flatzm7zmsimpflatzm27;
-    ibool_t          flatzm7zmsimpflatzm26;
 
     anemone_mempool_t *mempool                = s->mempool;
     itime_t          convzm2                  = s->input.convzm2;

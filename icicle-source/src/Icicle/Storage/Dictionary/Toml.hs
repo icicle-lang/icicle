@@ -11,8 +11,6 @@ module Icicle.Storage.Dictionary.Toml (
   , loadDictionary
   , loadDenseDictionary
   , prelude
-  , fromFunEnv
-  , toFunEnv
   ) where
 
 import           Icicle.Common.Base
@@ -28,7 +26,6 @@ import           Icicle.Source.Checker                         (CheckOptions (..
 import qualified Icicle.Source.Parser                          as SP
 import           Icicle.Source.Query                           (QueryTop (..), Query (..), Exp)
 import qualified Icicle.Source.Query                           as SQ
-import qualified Icicle.Source.Type                            as ST
 
 import           Icicle.Storage.Dictionary.Toml.Dense
 import           Icicle.Storage.Dictionary.Toml.Toml
@@ -67,9 +64,7 @@ data DictionaryImportError
   deriving (Show)
 
 type Funs a  = [((a, Name SP.Variable), SQ.Function a SP.Variable)]
-type FunEnvT = [ ( Name SP.Variable
-                 , ( ST.FunctionType SP.Variable
-                   , SQ.Function (ST.Annot Parsec.SourcePos SP.Variable) SP.Variable ) ) ]
+type FunEnvT = [ ResolvedFunction Parsec.SourcePos SP.Variable ]
 
 data ImplicitPrelude = ImplicitPrelude | NoImplicitPrelude
   deriving (Eq, Ord, Show)
@@ -77,7 +72,7 @@ data ImplicitPrelude = ImplicitPrelude | NoImplicitPrelude
 -- Top level IO function which loads all dictionaries and imports
 loadDictionary :: CheckOptions -> ImplicitPrelude -> FilePath -> EitherT DictionaryImportError IO Dictionary
 loadDictionary checkOpts impPrelude dictionary
- = loadDictionary' checkOpts impPrelude [] mempty [] dictionary
+ = loadDictionary' checkOpts impPrelude (dictionaryFunctions emptyDictionary) mempty [] dictionary
 
 loadDenseDictionary
   :: CheckOptions
@@ -174,11 +169,10 @@ parseImport :: FilePath -> Text -> Either DictionaryImportError (Funs Parsec.Sou
 parseImport path src
  = first DictionaryErrorCompilation (P.sourceParseF path src)
 
-loadImports :: [DictionaryFunction] -> [Funs Parsec.SourcePos] -> EitherT DictionaryImportError IO [DictionaryFunction]
+loadImports :: FunEnvT -> [Funs Parsec.SourcePos] -> EitherT DictionaryImportError IO FunEnvT
 loadImports parentFuncs parsedImports
  = hoistEither . first DictionaryErrorCompilation
- $ fmap fromFunEnv
- $ foldlM (go (toFunEnv parentFuncs)) [] parsedImports
+ $ foldlM (go parentFuncs) [] parsedImports
  where
   go env acc f
    = do -- Run desugar to ensure pattern matches are complete.
@@ -187,16 +181,6 @@ loadImports parentFuncs parsedImports
         f' <- P.sourceCheckF (env <> acc) f
         -- Return these functions at the end of the accumulator.
         return $ acc <> f'
-
-toFunEnv :: [DictionaryFunction] -> FunEnvT
-toFunEnv =
-  fmap $ \(DictionaryFunction n t f) ->
-    (n, (t, f))
-
-fromFunEnv :: FunEnvT -> [DictionaryFunction]
-fromFunEnv =
-  fmap $ \(n, (t, f)) ->
-    DictionaryFunction n t f
 
 checkDefs :: CheckOptions
           -> Dictionary

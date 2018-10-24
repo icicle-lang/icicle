@@ -18,10 +18,19 @@ data BuiltinFun
  | BuiltinMap   !BuiltinMap
  deriving (Show, Eq, Ord, Generic)
 
-listOfBuiltinFuns :: [BuiltinFun]
-listOfBuiltinFuns = concat
+-- | Functions wired into the Parser
+--   these can't be introduced into
+--   the environment as they are made
+--   with KeyWords, and are instead
+--   directly written in by the Parser.
+listOfWiredFuns :: [BuiltinFun]
+listOfWiredFuns = concat
+  [ fmap BuiltinTime    [minBound..maxBound]
+  ]
+
+listOfIntroducedFuns :: [BuiltinFun]
+listOfIntroducedFuns = concat
   [ fmap BuiltinMath    [minBound..maxBound]
-  , fmap BuiltinTime    [minBound..maxBound]
   , fmap BuiltinData    [minBound..maxBound]
   , fmap BuiltinArray   [minBound..maxBound]
   , fmap BuiltinMap     [minBound..maxBound]
@@ -121,9 +130,9 @@ instance Pretty BuiltinTime where
  pretty DaysJulianEpoch    = "days"
  pretty SecondsBetween     = "seconds between"
  pretty SecondsJulianEpoch = "seconds"
- pretty ProjectDay         = "day"
- pretty ProjectMonth       = "month"
- pretty ProjectYear        = "year"
+ pretty ProjectDay         = "day_of"
+ pretty ProjectMonth       = "month_of"
+ pretty ProjectYear        = "year_of"
 
 instance Pretty BuiltinData where
  pretty Seq         = "seq"

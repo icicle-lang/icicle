@@ -139,8 +139,9 @@ genQueryWithFeatureTypedGen tableflipPercent
       let nm  = make "featurename"
       let iid = [inputid|ns:id|]
       let tm  = make "timename"
+      let ads = [(now, TTAgg), (nm, TTElt), (tm, TTElt)]
       let tgi = TypedGenInfo
-              { tgiVars = Map.fromList [(now, TTAgg), (nm, TTElt), (tm, TTElt)]
+              { tgiVars = Map.fromList ads
               , tgiTemp = TTAgg
               , tgiTableflipPercent = tableflipPercent }
       q   <- genQuery tgi
@@ -524,29 +525,7 @@ instance Arbitrary Prim where
         ]
 
    funs
-    = fmap Query.Fun
-        [ BuiltinMath  Log
-        , BuiltinMath  Exp
-        , BuiltinMath  Sqrt
-        , BuiltinMath  ToDouble
-        , BuiltinMath  Abs
-        , BuiltinMath  Floor
-        , BuiltinMath  Ceiling
-        , BuiltinMath  Round
-        , BuiltinMath  Truncate
-        , BuiltinTime  DaysBetween
-        , BuiltinTime  DaysJulianEpoch
-        , BuiltinTime  SecondsBetween
-        , BuiltinTime  SecondsJulianEpoch
-        , BuiltinData  Seq
-        , BuiltinData  Box
-        , BuiltinMap   MapKeys
-        , BuiltinMap   MapValues
-        , BuiltinMap   MapCreate
-        , BuiltinMap   MapInsert
-        , BuiltinMap   MapDelete
-        , BuiltinMap   MapLookup
-        , BuiltinArray ArraySort ]
+    = fmap Query.Fun listOfWiredFuns
 
    cons
     = fmap PrimCon

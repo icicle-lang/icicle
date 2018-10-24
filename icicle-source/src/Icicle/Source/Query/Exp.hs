@@ -26,7 +26,8 @@ module Icicle.Source.Query.Exp (
   , annotOfExp
   , mkApp
   , precedenceOfX
-  , listOfBuiltinFuns
+  , listOfIntroducedFuns
+  , listOfWiredFuns
   ) where
 
 import           GHC.Generics (Generic)

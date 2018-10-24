@@ -7,7 +7,8 @@ module Icicle.Dictionary.Data (
     Dictionary(..)
   , DictionaryInput(..)
   , DictionaryOutput(..)
-  , DictionaryFunction(..)
+  , DictionaryFunction
+  , ResolvedFunction(..)
   , InputKey(..)
   , AnnotSource
   , emptyDictionary
@@ -29,7 +30,7 @@ import qualified Icicle.Core                        as X
 import           Icicle.Common.Base
 import           Icicle.Common.Type (ValType(..), StructType(..))
 
-import           Icicle.Source.Query (Function (..), QueryTop (..))
+import           Icicle.Source.Query (QueryTop (..), ResolvedFunction (..))
 import qualified Icicle.Source.Query                as SQ
 import           Icicle.Source.Lexer.Token
 import qualified Icicle.Source.Type                 as ST
@@ -46,10 +47,12 @@ import qualified Data.Map as Map
 import           Data.Set (Set)
 import           Data.String
 
-import           Text.Parsec.Pos ()
+import           Text.Parsec.Pos (newPos)
 
 import           P
 
+type DictionaryFunction
+  = ResolvedFunction SourcePos Variable
 
 data Dictionary =
   Dictionary {
@@ -72,13 +75,6 @@ data DictionaryOutput =
     , outputQuery :: QueryTop (ST.Annot SourcePos Variable) Variable
     } deriving (Eq, Show)
 
-data DictionaryFunction =
- DictionaryFunction {
-     functionName :: Name Variable
-   , functionType :: ST.FunctionType Variable
-   , functionDefinition :: Function (ST.Annot SourcePos Variable) Variable
-   } deriving (Eq, Show)
-
 -- | The query is keyed by this "virtual key". Facts (for one entity) are nubbed by this key.
 newtype InputKey a n =
   InputKey {
@@ -96,7 +92,16 @@ tombstonesOfDictionary =
 
 emptyDictionary :: Dictionary
 emptyDictionary =
-  Dictionary Map.empty Map.empty []
+  Dictionary Map.empty Map.empty builtinFunctions
+  where
+    builtinFunctions
+      = snd
+      $ Fresh.runFresh
+        (SQ.builtinDefinitions (newPos "builtin" 0 0))
+        freshNamer
+
+    freshNamer
+      = Fresh.counterPrefixNameState (fromString . show) "builtin"
 
 mapOfInputs :: [DictionaryInput] -> Map InputId DictionaryInput
 mapOfInputs =
@@ -240,7 +245,7 @@ prettyDictionarySummary dict =
       prettyH2 "Functions"
     , mempty
     , indent 2 . pprList $
-        (pprInbuilt <$> SQ.listOfBuiltinFuns) <>
+        (pprInbuilt <$> SQ.listOfWiredFuns) <>
         (pprFun <$> dictionaryFunctions dict)
     , mempty
     , prettyH2 "Inputs"
@@ -279,7 +284,7 @@ prettyDictionarySummary dict =
   pprOutput (DictionaryOutput attr q)
    = prettyBinding (pretty attr) $ pretty q
 
-  pprFun (DictionaryFunction f t _)
+  pprFun (ResolvedFunction f t _)
    = prettyTypedFun (pretty f) (ST.prettyFunWithLetters t)
 
   pprInbuilt f

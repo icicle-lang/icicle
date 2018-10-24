@@ -98,48 +98,11 @@ data Keyword =
  | Group
  | Latest
  | Let
+
  -- expressions
  | Case
  | End
-
- -- Builtin
- -- math
- | Log
- | Exp
- | Sqrt
- | Acos
- | Asin
- | Atan
- | Atan2
- | Cos
- | Cosh
- | Sin
- | Sinh
- | Tan
- | Tanh
- | Abs
- | Double
- | Floor
- | Ceil
- | Round
- | Trunc
- -- data
- | Seq
- | Box
- -- grouping
- | Keys
- | Vals
- -- arrays
- | Sort
- | Length
- | Index
- -- user maps
- | Map_Create
- | Map_Insert
- | Map_Delete
- | Map_Lookup
  deriving (Eq, Ord, Show, Enum, Bounded)
-
 
 
 data Literal

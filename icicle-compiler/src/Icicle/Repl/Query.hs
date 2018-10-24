@@ -59,7 +59,6 @@ import qualified Icicle.Sea.Preamble as Sea
 import qualified Icicle.Serial as Serial
 import qualified Icicle.Source.PrettyAnnot as Source
 import qualified Icicle.Source.Query.Query as Source
-import qualified Icicle.Storage.Dictionary.Toml as Toml
 
 import           P
 
@@ -204,8 +203,7 @@ defineFunction function =
 
       -- Remove the old bindings with these names
       funEnv =
-        List.filter (not . flip Set.member names . fst) .
-        Toml.toFunEnv $
+        List.filter (not . flip Set.member names . functionName) $
         dictionaryFunctions dictionary
 
     (funEnv', logs) <-
@@ -214,9 +212,9 @@ defineFunction function =
 
     let
       fundefs =
-        List.filter (flip Set.member names . fst) funEnv'
+        List.filter (flip Set.member names . functionName) funEnv'
 
-    for_ (List.zip fundefs logs) $ \((nm, (typ, annot)), log0) -> do
+    for_ (List.zip fundefs logs) $ \((ResolvedFunction nm typ annot), log0) -> do
       whenSet FlagType $
         putSection "Type" $
           Pretty.prettyTypedBest
@@ -232,7 +230,7 @@ defineFunction function =
         liftIO $ IO.putStrLn ""
 
     modify $ \s ->
-      s { stateDictionary = dictionary { dictionaryFunctions = Toml.fromFunEnv funEnv' } }
+      s { stateDictionary = dictionary { dictionaryFunctions = funEnv' } }
 
 compileQuery :: String -> EitherT QueryError Repl CompiledQuery
 compileQuery query = do

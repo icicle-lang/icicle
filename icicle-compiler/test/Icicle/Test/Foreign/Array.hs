@@ -255,7 +255,7 @@ runProp input fun args = do
   -- Cache the output, because we're likely to reuse the same type in another test 
   bracketEitherT' (compileLibrary CacheLibrary opts fs) releaseLibrary $ \lib -> runRight $ do
     ptr   <- liftIO $ allocInput pool input
-    f     <- function lib fun retBool
+    f     <- Jetski.function lib fun retBool
     args' <- liftIO $ args pool ptr
     r     <- liftIO $ f args'
     return $ property r

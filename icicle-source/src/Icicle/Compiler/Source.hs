@@ -95,9 +95,7 @@ type Var         = Parse.Variable
 type TypeAnnot a = Type.Annot a Var
 
 type Funs a b = [((a, Name b), Query.Function a b)]
-type FunEnvT a b = [ ( Name b
-                   , ( Type.FunctionType b
-                     , Query.Function (TypeAnnot a) b )) ]
+type FunEnvT a b = [ Query.ResolvedFunction a b ]
 
 type QueryUntyped v = Query.QueryTop            Parsec.SourcePos  v
 type QueryTyped   v = Query.QueryTop (TypeAnnot Parsec.SourcePos) v
@@ -294,11 +292,10 @@ sourceInline opt d q
                 (freshNamer "inline")
 
 readIcicleLibrary :: Var -> Parsec.SourceName -> Text -> Either Error (FunEnvT Parsec.SourcePos Var)
-readIcicleLibrary name source input
+readIcicleLibrary _name source input
  = do input' <- first ErrorSourceParse $ Parse.parseFunctions source input
-      first ErrorSourceCheck
-             $ second fst
-             $ snd
-             $ flip Fresh.runFresh (freshNamer name)
-             $ runEitherT
-             $ Check.checkFs [] input'
+      let
+        env
+          = Dict.dictionaryFunctions Dict.emptyDictionary
+
+      sourceCheckF env input'

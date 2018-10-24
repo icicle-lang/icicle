@@ -130,9 +130,9 @@ exp
 
 exp1 :: Parser (Q.Exp T.SourcePos Var)
 exp1
- =   (flip Q.Var     <$> var        <*> getPosition)
- <|> (flip Q.Prim    <$> primitives <*> getPosition)
- <|> (flip simpNested<$> parens     <*> getPosition)
+ =   (flip Q.Var      <$> var        <*> getPosition)
+ <|> (flip Q.Prim     <$> primitives <*> getPosition)
+ <|> (flip simpNested <$> parens     <*> getPosition)
  <|> parseCase
  <?> "expression"
  where
@@ -174,7 +174,7 @@ windowUnit
 
 primitives :: Parser Q.Prim
 primitives
- =   builtins
+ =   timePrimitives
  <|> ((Q.Lit . Q.LitInt)    <$> pLitInt)
  <|> ((Q.Lit . Q.LitDouble) <$> pLitDouble)
  <|> ((Q.Lit . Q.LitString) <$> pLitString)
@@ -182,56 +182,25 @@ primitives
  <|> (Q.PrimCon             <$> constructor)
  <?> "primitive"
 
-builtins :: Parser Q.Prim
-builtins
- =   asum (fmap (\(k,q) -> pKeyword k *> return q) simpleBuiltins)
+timePrimitives :: Parser Q.Prim
+timePrimitives
+ =   asum (fmap (\(k,q) -> pKeyword k *> return q) simpleTime)
  <|> try  (Q.Fun (Q.BuiltinTime Q.DaysBetween)
-            <$  pKeyword T.Days
+            <$ pKeyword T.Days
             <* pKeyword T.Between)
  <|> try  (Q.Fun (Q.BuiltinTime Q.DaysJulianEpoch)
-             <$  pKeyword T.Days
+             <$ pKeyword T.Days
              <* notFollowedBy (pKeyword T.Before <|> pKeyword T.After))
  <|> try  (Q.Fun (Q.BuiltinTime Q.SecondsBetween)
-            <$  pKeyword T.Seconds
+            <$ pKeyword T.Seconds
             <* pKeyword T.Between)
  <|> try  (Q.Fun (Q.BuiltinTime Q.SecondsJulianEpoch)
-             <$  pKeyword T.Seconds
+             <$ pKeyword T.Seconds
              <* notFollowedBy (pKeyword T.Before <|> pKeyword T.After))
 
-simpleBuiltins :: [(T.Keyword, Q.Prim)]
-simpleBuiltins
- = [ (T.Log,         Q.Fun (Q.BuiltinMath  Q.Log        ))
-   , (T.Exp,         Q.Fun (Q.BuiltinMath  Q.Exp        ))
-   , (T.Sqrt,        Q.Fun (Q.BuiltinMath  Q.Sqrt       ))
-   , (T.Acos,        Q.Fun (Q.BuiltinMath  Q.Acos       ))
-   , (T.Asin,        Q.Fun (Q.BuiltinMath  Q.Asin       ))
-   , (T.Atan,        Q.Fun (Q.BuiltinMath  Q.Atan       ))
-   , (T.Atan2,       Q.Fun (Q.BuiltinMath  Q.Atan2      ))
-   , (T.Cos,         Q.Fun (Q.BuiltinMath  Q.Cos        ))
-   , (T.Cosh,        Q.Fun (Q.BuiltinMath  Q.Cosh       ))
-   , (T.Sin,         Q.Fun (Q.BuiltinMath  Q.Sin        ))
-   , (T.Sinh,        Q.Fun (Q.BuiltinMath  Q.Sinh       ))
-   , (T.Tan,         Q.Fun (Q.BuiltinMath  Q.Tan        ))
-   , (T.Tanh,        Q.Fun (Q.BuiltinMath  Q.Tanh       ))
-   , (T.Abs,         Q.Fun (Q.BuiltinMath  Q.Abs        ))
-   , (T.Double,      Q.Fun (Q.BuiltinMath  Q.ToDouble   ))
-   , (T.Floor,       Q.Fun (Q.BuiltinMath  Q.Floor      ))
-   , (T.Ceil,        Q.Fun (Q.BuiltinMath  Q.Ceiling    ))
-   , (T.Round,       Q.Fun (Q.BuiltinMath  Q.Round      ))
-   , (T.Trunc,       Q.Fun (Q.BuiltinMath  Q.Truncate   ))
-   , (T.Seq,         Q.Fun (Q.BuiltinData  Q.Seq        ))
-   , (T.Box,         Q.Fun (Q.BuiltinData  Q.Box        ))
-   , (T.Keys,        Q.Fun (Q.BuiltinMap   Q.MapKeys    ))
-   , (T.Vals,        Q.Fun (Q.BuiltinMap   Q.MapValues  ))
-   , (T.Sort,        Q.Fun (Q.BuiltinArray Q.ArraySort  ))
-   , (T.Length,      Q.Fun (Q.BuiltinArray Q.ArrayLength))
-   , (T.Index,       Q.Fun (Q.BuiltinArray Q.ArrayIndex ))
-   , (T.Map_Create,  Q.Fun (Q.BuiltinMap   Q.MapCreate  ))
-   , (T.Map_Insert,  Q.Fun (Q.BuiltinMap   Q.MapInsert  ))
-   , (T.Map_Delete,  Q.Fun (Q.BuiltinMap   Q.MapDelete  ))
-   , (T.Map_Lookup,  Q.Fun (Q.BuiltinMap   Q.MapLookup  ))
-   , (T.Day_Of,      Q.Fun (Q.BuiltinTime  Q.ProjectDay ))
+simpleTime :: [(T.Keyword, Q.Prim)]
+simpleTime
+ = [ (T.Day_Of,      Q.Fun (Q.BuiltinTime  Q.ProjectDay ))
    , (T.Month_Of,    Q.Fun (Q.BuiltinTime  Q.ProjectMonth ))
    , (T.Year_Of,     Q.Fun (Q.BuiltinTime  Q.ProjectYear ))
    ]
-

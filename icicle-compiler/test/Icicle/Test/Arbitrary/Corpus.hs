@@ -202,7 +202,7 @@ testAllCorpus prop =
 
 prelude :: Either Savage.String [DictionaryFunction]
 prelude =
-  DictionaryLoad.fromFunEnv . mconcat <$>
+  mconcat <$>
     nobodyCares (mapM (uncurry $ Source.readIcicleLibrary "check") DictionaryLoad.prelude)
 
 inputDictionary :: Either Savage.String Dictionary

@@ -115,7 +115,7 @@ loadFunctionsFrom path src = do
      let
        functions =
          List.nubBy ((==) `on` functionName) $
-           Toml.fromFunEnv functions0 <>
+           functions0 <>
            dictionaryFunctions dictionary
 
      modify $ \s ->
