@@ -214,14 +214,14 @@ discharge annotOf sub (q, s, conset)
 
       case dischargeCS cs of
        Left errs -> do
-        checkLog (CheckLogDischargeError log_ppr log_info0 errs) 
+        checkLog (CheckLogDischargeError log_ppr log_info0 errs)
         genHoistEither $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot annot) errs)
        Right (s', cs') -> do
         let s'' = compose s s'
         let q'  = sub s'' q
         let annot' = annotOf q'
         let log_info1 = DischargeInfo (annResult annot') cs' s''
-        checkLog (CheckLogDischargeOk log_ppr log_info0 log_info1) 
+        checkLog (CheckLogDischargeOk log_ppr log_info0 log_info1)
         return (q', s'', cs')
 
 fresh :: Hashable n => Gen a n (Name n)

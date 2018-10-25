@@ -21,6 +21,8 @@ Selected psv file as input: test/cli/repl/data.psv
 λ Dictionary load error:
   ## Parse error
   
-    "bad.icicle" (line 1, column 13):
-unexpected (TVariable (Variable "s"),"bad.icicle" (line 1, column 17))
+    "bad.icicle" (line 1, column 17):
+    unexpected (TEqual,"bad.icicle" (line 1, column 19))
+    expecting expression, operator or pattern
+    unable to parse application as a pattern
 λ 

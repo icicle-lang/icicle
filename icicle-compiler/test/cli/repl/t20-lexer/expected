@@ -73,7 +73,7 @@ Error
 ## Parse error
 
   (line 1, column 16):
-unexpected (TUnexpected "\"no end",(line 1, column 19))
-expecting query
+  unexpected (TUnexpected "\"no end",(line 1, column 19))
+  expecting query
 
 λ λ 

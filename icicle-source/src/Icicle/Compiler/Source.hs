@@ -158,7 +158,7 @@ instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) wher
       vsep [
           reannotate AnnErrorHeading $ prettyH2 "Parse error"
         , mempty
-        , indent 2 . text $ show p
+        , indent 2 . vsep . fmap text . lines . show $ p
         ]
 
     ErrorSourceDesugar d ->

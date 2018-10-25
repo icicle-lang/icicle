@@ -117,6 +117,11 @@ context
     =   pKeyword T.Fold1 *> return Q.FoldTypeFoldl1
     <|> pKeyword T.Fold  *> return Q.FoldTypeFoldl
 
+pattern :: Parser (Q.Pattern Var)
+pattern
+ = do e <- exp
+      checkPat e                                            <?> "pattern"
+
 exp :: Parser (Q.Exp T.SourcePos Var)
 exp
  = do   xs <- many1 ((Left <$> exp1) <|> op)                <?> "expression"

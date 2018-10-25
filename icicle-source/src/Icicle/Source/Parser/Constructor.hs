@@ -4,7 +4,7 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Parser.Constructor (
     constructor
-  , pattern
+  , checkPat
   ) where
 
 import qualified        Icicle.Source.Lexer.Token  as T
@@ -44,54 +44,70 @@ constructors
    ]
 
 
-pattern :: Parser (Q.Pattern Var)
-pattern
- = pat
+-- | Convert an expression to a pattern.
+--
+--   Obviously, not all expressions can be converted
+--   in this way, but all valid patterns can be parsed
+--   as an expression.
+--
+--   Going from an expression to a pattern instead of
+--   using a separate parser for patterns has the benefit
+--   that quite tricky things like tuple comma fixity is
+--   handled the same in the patterns as the expressions
+--   they match.
+checkPat :: Q.Exp T.SourcePos Var -> Parser (Q.Pattern Var)
+checkPat exp =
+  case exp of
+    -- Variables are simple, just underscore default
+    -- to a default pattern if required, and leave all
+    -- the rest alone
+    Q.Var _ v
+      | nameBase v == NameBase (T.Variable "_")
+      -> return Q.PatDefault
+      | otherwise
+      -> return $ Q.PatVariable v
 
- where
-  -- TODO:
-  -- Having pat separate to exp means we miss a few
-  -- a few niceties. For example:
-  -- - Tuple bindings aren't defixed here, meaning
-  --   their assosciativity isn't what it should be
-  --   and we need extra brackets.
-  -- - Negative literals don't work as they should.
-  --
-  -- We could instead have a function
-  -- > checkPat :: Q.Exp T.SourcePos Var -> Parser (Q.Pattern Var)
-  -- and have pattern as
-  -- > exp >>= checkPat
-  pat
-   = do p <- patNeg <|> patLit <|> patVar <|> patCon <|> patParens
-        tup p <|> return p
+    -- Applications
+    Q.App {}
+      -- Simple contructors are easy
+      | Just (p, _, xs) <- Q.takePrimApps exp
+      , Q.PrimCon con  <- p
+      -> Q.PatCon con <$> traverse checkPat xs
 
-  tup p
-   = do pEq (T.TOperator $ T.Operator ",")
-        r <- pat
-        return (Q.PatCon Q.ConTuple [p, r])
+      -- Tuple commas are parsed as the operator,
+      -- need to change it to the constructor.
+      | Just (p, _, xs) <- Q.takePrimApps exp
+      , Q.Op Q.TupleComma <- p
+      -> Q.PatCon Q.ConTuple <$> traverse checkPat xs
 
-  patVar
-   = do v <- pVariable
-        return $ if   nameBase v == NameBase (T.Variable "_")
-                 then Q.PatDefault
-                 else Q.PatVariable v
+      -- Negative literals are trickier.
+      -- We need to ensure that the rest of the
+      -- pattern is a number literal.
+      -- Matching on False as well ensures that
+      -- '-(-4)' won't be regarded as a correct
+      -- pattern.
+      | Just (p, _, xs) <- Q.takePrimApps exp
+      , Q.Op (Q.ArithUnary Q.Negate) <- p
+      -> traverse checkPat xs >>= \case
+           [Q.PatLit l@(Q.LitInt _) False] -> return $ Q.PatLit l True
+           [Q.PatLit l@(Q.LitDouble _) False] -> return $ Q.PatLit l True
+           _ -> fail "unable to parse pattern, non numeric literals can't be negative"
 
-  patCon
-   = Q.PatCon <$> constructor <*> many patNested
+      | otherwise
+      -> fail "unable to parse application as a pattern"
 
-  patNested
-   = patLit <|> patVar <|> patParens <|> (flip Q.PatCon [] <$> constructor)
+    -- Primitives can be empty constructors
+    -- and literals.
+    Q.Prim _ p
+      | Q.PrimCon con  <- p
+      -> return $ Q.PatCon con []
+      | Q.Lit lit <- p
+      -> return $ Q.PatLit lit False
+      | otherwise
+      -> fail "unable to parse pattern"
 
-  patNeg
-   = do pTok (\tok -> if tok == T.TOperator (T.Operator "-") then Just () else Nothing)
-        fmap (flip Q.PatLit True) $ fmap Q.LitInt pLitInt <|> fmap Q.LitDouble pLitDouble
+    Q.Nested {}
+      -> fail "unable to parse nested queries as a pattern"
 
-  patLit
-   =   fmap (flip Q.PatLit False)
-   $   (Q.LitInt <$> pLitInt)
-   <|> (Q.LitDouble <$> pLitDouble)
-   <|> (Q.LitString <$> pLitString)
-   <|> (Q.LitTime <$> pLitTime)
-
-  patParens
-   = pParenL *> pat <* pParenR
+    Q.Case {}
+      -> fail "unable to parse case expressions as a pattern"
