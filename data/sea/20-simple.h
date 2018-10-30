@@ -52,7 +52,7 @@ static idouble_t INLINE idouble_cos   (idouble_t x)              { return cos(x)
 static idouble_t INLINE idouble_cosh  (idouble_t x)              { return cosh(x); }
 static idouble_t INLINE idouble_div   (idouble_t x, idouble_t y) { return x / y; }
 static idouble_t INLINE idouble_exp   (idouble_t x)              { return exp(x); }
-static idouble_t INLINE idouble_is_valid(idouble_t x)            { return isfinite(x); }
+static ibool_t   INLINE idouble_is_valid(idouble_t x)            { return isfinite(x); }
 static idouble_t INLINE idouble_log   (idouble_t x)              { return log(x); }
 static idouble_t INLINE idouble_mul   (idouble_t x, idouble_t y) { return x * y; }
 static idouble_t INLINE idouble_neg   (idouble_t x)              { return -x; }

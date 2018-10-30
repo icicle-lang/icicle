@@ -12,14 +12,15 @@ import           P
 
 data BuiltinFun
  = BuiltinMath  !BuiltinMath
+ | BuiltinText  !BuiltinText
  | BuiltinTime  !BuiltinTime
  | BuiltinData  !BuiltinData
  | BuiltinArray !BuiltinArray
  | BuiltinMap   !BuiltinMap
  deriving (Show, Eq, Ord, Generic)
 
--- | Functions wired into the Parser
---   these can't be introduced into
+-- | Functions wired into the Parser.
+--   These can't be introduced into
 --   the environment as they are made
 --   with KeyWords, and are instead
 --   directly written in by the Parser.
@@ -28,9 +29,14 @@ listOfWiredFuns = concat
   [ fmap BuiltinTime    [minBound..maxBound]
   ]
 
+-- | Functions wired in through the type
+--   checker. These are parsed normally,
+--   but their definitions are wired in
+--   to their primitives.
 listOfIntroducedFuns :: [BuiltinFun]
 listOfIntroducedFuns = concat
   [ fmap BuiltinMath    [minBound..maxBound]
+  , fmap BuiltinText    [minBound..maxBound]
   , fmap BuiltinData    [minBound..maxBound]
   , fmap BuiltinArray   [minBound..maxBound]
   , fmap BuiltinMap     [minBound..maxBound]
@@ -56,6 +62,12 @@ data BuiltinMath
  | Ceiling
  | Round
  | Truncate
+ deriving (Show, Eq, Ord, Enum, Bounded, Generic)
+
+data BuiltinText
+ = StrLen
+ | ToLower
+ | ToUpper
  deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 
 data BuiltinTime
@@ -94,11 +106,13 @@ instance NFData BuiltinTime
 instance NFData BuiltinData
 instance NFData BuiltinMap
 instance NFData BuiltinArray
+instance NFData BuiltinText
 
 --------------------------------------------------------------------------------
 
 instance Pretty BuiltinFun where
  pretty (BuiltinMath  b) = pretty b
+ pretty (BuiltinText  b) = pretty b
  pretty (BuiltinTime  b) = pretty b
  pretty (BuiltinData  b) = pretty b
  pretty (BuiltinArray b) = pretty b
@@ -124,6 +138,11 @@ instance Pretty BuiltinMath where
  pretty Ceiling     = "ceil"
  pretty Round       = "round"
  pretty Truncate    = "trunc"
+
+instance Pretty BuiltinText where
+  pretty StrLen     = "strlen"
+  pretty ToLower    = "tolower"
+  pretty ToUpper    = "toupper"
 
 instance Pretty BuiltinTime where
  pretty DaysBetween        = "days between"

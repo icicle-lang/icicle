@@ -47,7 +47,8 @@ builtinDefinitions :: (IsString n, Hashable n, Eq n) => a -> Fresh.Fresh n [Reso
 builtinDefinitions a_fresh = do
   traverse (buildResolved a_fresh) listOfIntroducedFuns
 
--- | Build an individual function from the its primitive definition.
+-- | Build an individual function from its primitive definition.
+--
 --   This is a little bit tricky, as we can't under apply function
 --   definitions, so we need to create the arguments to the function
 --   as well. It's as if we wrote something like this in the prelude

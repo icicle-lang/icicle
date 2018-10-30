@@ -88,6 +88,7 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
      Lit{} -> False
      Fun f -> case f of
       BuiltinMath{}   -> False
+      BuiltinText{}   -> False
       BuiltinTime{}   -> False
       BuiltinData{}   -> True
       BuiltinArray{}  -> True

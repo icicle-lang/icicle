@@ -109,6 +109,8 @@ convertPrim p ann resT xts = go p
 
   go (Fun (BuiltinMath f))
    = gomath f
+  go (Fun (BuiltinText f))
+   = gotext f
   go (Fun (BuiltinTime f))
    = gotime f
   go (Fun (BuiltinData f))
@@ -214,6 +216,12 @@ convertPrim p ann resT xts = go p
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
 
+  gotext StrLen
+   = return $ primmin $ Min.PrimText Min.PrimStrLen
+  gotext ToLower
+   = return $ primmin $ Min.PrimText Min.PrimStrToLower
+  gotext ToUpper
+   = return $ primmin $ Min.PrimText Min.PrimStrToUpper
 
   -- Source built-in primitives supported by other language fragments
   gotime DaysBetween

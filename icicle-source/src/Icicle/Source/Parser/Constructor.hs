@@ -46,6 +46,10 @@ constructors
 
 -- | Convert an expression to a pattern.
 --
+--   This is used in the parsing stage when a pattern
+--   is required, we parse as an expression, then coerce
+--   to a pattern.
+--
 --   Obviously, not all expressions can be converted
 --   in this way, but all valid patterns can be parsed
 --   as an expression.
@@ -54,8 +58,9 @@ constructors
 --   using a separate parser for patterns has the benefit
 --   that quite tricky things like tuple comma fixity is
 --   handled the same in the patterns as the expressions
---   they match.
-checkPat :: Q.Exp T.SourcePos Var -> Parser (Q.Pattern Var)
+--   they match, and we don't have to duplicate parser
+--   logic.
+checkPat :: Monad m => Q.Exp T.SourcePos Var -> m (Q.Pattern Var)
 checkPat exp =
   case exp of
     -- Variables are simple, just underscore default

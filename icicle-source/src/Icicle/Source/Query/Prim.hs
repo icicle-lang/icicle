@@ -111,6 +111,14 @@ primLookup' prim
     Fun (BuiltinMath Truncate)
      -> fNumDefinitely $ \at -> ([at], IntT)
 
+
+    Fun (BuiltinText StrLen)
+     -> f0 [StringT] IntT
+    Fun (BuiltinText ToLower)
+     -> f0 [StringT] StringT
+    Fun (BuiltinText ToUpper)
+     -> f0 [StringT] StringT
+
     Fun (BuiltinTime DaysBetween)
      -> f0 [TimeT, TimeT] IntT
     Fun (BuiltinTime DaysJulianEpoch)

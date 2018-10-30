@@ -60,6 +60,9 @@ seaOfXPrim p
      PrimMinimal (M.PrimBuiltinFun (M.PrimBuiltinMath fun))
       -> PDFun (seaOfPrimBuiltinMath fun) Nothing
 
+     PrimMinimal (M.PrimText op)
+      -> seaOfPrimText op
+
      PrimMinimal (M.PrimTime op)
       -> PDFun
        ( prefixOfValType TimeT <> seaOfPrimTime op ) Nothing
@@ -162,6 +165,18 @@ seaOfPrimProject p
       -> prefixOfValType (ArrayT t) <> "length"
      _
       -> seaError "seaOfPrimProject" p
+
+
+seaOfPrimText :: M.PrimText -> PrimDoc
+seaOfPrimText p
+ = case p of
+     M.PrimStrLen ->
+       PDFun   ( prefixOfValType StringT <> "length" ) Nothing
+     M.PrimStrToLower ->
+       PDAlloc ( prefixOfValType StringT <> "to_lower") Nothing
+     M.PrimStrToUpper ->
+       PDAlloc ( prefixOfValType StringT <> "to_upper") Nothing
+
 
 seaOfPrimUnsafe :: PrimUnsafe -> PrimDoc
 seaOfPrimUnsafe p

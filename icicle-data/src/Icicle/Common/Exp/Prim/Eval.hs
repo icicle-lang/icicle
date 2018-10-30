@@ -15,6 +15,7 @@ import              P
 
 import qualified    Data.Map                        as Map
 import qualified    Data.List                       as List
+import qualified    Data.Text                       as Text
 
 
 -- | Evaluate a primitive, given list of argument values
@@ -299,7 +300,23 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+     PrimText PrimStrLen
+      | [VBase (VString x)] <- vs
+      -> return $ VBase $ VInt $ Text.length x
+      | otherwise
+      -> primError
 
+     PrimText PrimStrToLower
+      | [VBase (VString x)] <- vs
+      -> return $ VBase $ VString $ Text.toLower x
+      | otherwise
+      -> primError
+
+     PrimText PrimStrToUpper
+      | [VBase (VString x)] <- vs
+      -> return $ VBase $ VString $ Text.toUpper x
+      | otherwise
+      -> primError
      -- Time stuff
      PrimTime PrimTimeDaysDifference
       | [VBase (VTime a), VBase (VTime b)] <- vs

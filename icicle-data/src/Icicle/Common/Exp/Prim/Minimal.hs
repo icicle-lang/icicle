@@ -9,6 +9,7 @@ module Icicle.Common.Exp.Prim.Minimal (
     , PrimRelation    (..)
     , PrimLogical     (..)
     , PrimConst       (..)
+    , PrimText        (..)
     , PrimTime        (..)
     , PrimPair        (..)
     , PrimStruct      (..)
@@ -42,6 +43,7 @@ data Prim
  | PrimConst       !PrimConst                   -- ^ Literal value constructors
  | PrimPair        !PrimPair                    -- ^ Pair projections
  | PrimStruct      !PrimStruct                  -- ^ Struct projections
+ | PrimText        !PrimText                    -- ^ Text primitives
  | PrimTime        !PrimTime                    -- ^ Time/date primitives
  | PrimBuiltinFun  !PrimBuiltinFun
  deriving (Eq, Ord, Show, Generic, NanEq)
@@ -86,6 +88,13 @@ data PrimConst
  | PrimConstRight !ValType !ValType
  deriving (Eq, Ord, Show, Generic, NanEq)
 
+-- | Text primitives
+data PrimText
+  = PrimStrLen
+  | PrimStrToLower
+  | PrimStrToUpper
+  deriving (Eq, Ord, Show, Enum, Bounded, Generic, NanEq)
+
 -- | Time primitives
 data PrimTime
  = PrimTimeDaysDifference
@@ -116,6 +125,7 @@ instance NFData PrimArithBinary
 instance NFData PrimRelation
 instance NFData PrimLogical
 instance NFData PrimConst
+instance NFData PrimText
 instance NFData PrimTime
 instance NFData PrimStruct
 instance NFData Prim
@@ -210,6 +220,15 @@ typeOfPrim p
     PrimConst (PrimConstRight a b)
      -> FunT [funOfVal b] (SumT a b)
 
+    -- Text
+    PrimText PrimStrLen
+     -> FunT [funOfVal StringT] IntT
+    PrimText PrimStrToLower
+     -> FunT [funOfVal StringT] StringT
+    PrimText PrimStrToUpper
+     -> FunT [funOfVal StringT] StringT
+
+    -- Time
     PrimTime PrimTimeDaysDifference
      -> FunT [funOfVal TimeT, funOfVal TimeT] IntT
     PrimTime PrimTimeDaysJulianEpoch
@@ -269,6 +288,11 @@ instance Pretty PrimConst where
  pretty (PrimConstLeft  _a _b) = "left#"
  pretty (PrimConstRight _a _b) = "right#"
 
+instance Pretty PrimText where
+ pretty PrimStrLen = "strlen#"
+ pretty PrimStrToLower = "tolower#"
+ pretty PrimStrToUpper = "toupper#"
+
 instance Pretty PrimTime where
  pretty PrimTimeDaysDifference     = "Time_daysDifference#"
  pretty PrimTimeDaysJulianEpoch    = "Time_daysJulianEpoch#"
@@ -294,6 +318,7 @@ instance Pretty Prim where
  pretty (PrimRelation    p _t) = pretty p
  pretty (PrimLogical     p)   = pretty p
  pretty (PrimConst       p)   = pretty p
+ pretty (PrimText        p)   = pretty p
  pretty (PrimTime        p)   = pretty p
  pretty (PrimPair        p)   = pretty p
  pretty (PrimStruct      p)   = pretty p

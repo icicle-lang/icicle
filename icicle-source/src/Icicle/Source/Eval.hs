@@ -29,6 +29,7 @@ import qualified        Icicle.Data.Time                as DT
 import                  P
 import                  Data.List (zip, nubBy, groupBy, take)
 import qualified        Data.List as List
+import qualified        Data.Text as Text
 import qualified        Data.Map  as Map
 
 data EvalError a n
@@ -340,6 +341,21 @@ evalP ann p xs vs env
             BuiltinMath Truncate
              | [VDouble i] <- args
              -> return $ VDouble $ fromIntegral (truncate i :: Int)
+             | otherwise -> err
+
+            BuiltinText StrLen
+             | [VString s] <- args
+             -> return $ VInt $ fromIntegral (Text.length s)
+             | otherwise -> err
+
+            BuiltinText ToLower
+             | [VString s] <- args
+             -> return $ VString $ Text.toLower s
+             | otherwise -> err
+
+            BuiltinText ToUpper
+             | [VString s] <- args
+             -> return $ VString $ Text.toUpper s
              | otherwise -> err
 
             BuiltinTime DaysBetween
