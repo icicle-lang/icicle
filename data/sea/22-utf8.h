@@ -82,7 +82,7 @@ static ibool_t istring_is_valid(const istring_t str) {
 }
 
 // Calculate the length of a string. This counts
-// code points, so modifiers *will* be counted. as
+// code points, so modifiers *will* be counted as
 // characters.
 static iint_t istring_length(const istring_t str) {
   const unsigned char *s = (const unsigned char *)str;
@@ -103,7 +103,7 @@ static iint_t istring_length(const istring_t str) {
       s += 1;
     }
 
-    // no matter the bytes we marched s forward by, it was
+    // no matter the bytes we marched forward by, it was
     // only 1 utf8 codepoint
     length++;
   }
@@ -355,22 +355,28 @@ static int32_t utf8uprcodepoint(int32_t cp) {
 
 // Create a new icicle string with the case requested.
 static istring_t INLINE istring_to_case(anemone_mempool_t *into, int32_t (*change_codepoint)(int32_t), istring_t val) {
-  // String pointers
-  istring_t ret, watch, next;
-  // String pointers use in the slow path (see below).
-  istring_t slowret, slowwatch;
-
-  // pointer to the write location
+  // Fast path and slow path return variables
+  istring_t ret, slowret;
+  // String pointers into the input (fast and slow).
+  istring_t watch, slowwatch;
+  // Pointer to where to move watch pointers
+  // to after processing current code point.
+  istring_t next;
+  // pointer to our write location
   char* work;
-
-  // current code point
+  // current code point value
   int32_t cp;
-
-  // Size variables.
+  // Size variables for expected output size, how much
+  // has been written, and (in the slow case) how much
+  // we need to write beyond our expected size.
   size_t val_size, written, remaining;
 
+
+  // Allocate what we plan on returning (can be overridden in the slow path)
   val_size = strlen(val);
   ret      = (istring_t) anemone_mempool_alloc (into, val_size + 1);
+
+  // We've so far written nothing
   written  = 0;
   work     = (char*) ret;
   watch    = val;
