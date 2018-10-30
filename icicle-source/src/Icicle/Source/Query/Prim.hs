@@ -113,11 +113,11 @@ primLookup' prim
 
 
     Fun (BuiltinText StrLen)
-     -> f0 [StringT] IntT
+     -> f0 [StringT] (Possibility PossibilityPossibly IntT)
     Fun (BuiltinText ToLower)
-     -> f0 [StringT] StringT
+     -> f0 [StringT] (Possibility PossibilityPossibly StringT)
     Fun (BuiltinText ToUpper)
-     -> f0 [StringT] StringT
+     -> f0 [StringT] (Possibility PossibilityPossibly StringT)
 
     Fun (BuiltinTime DaysBetween)
      -> f0 [TimeT, TimeT] IntT
@@ -223,6 +223,7 @@ primReturnsPossibly :: Prim -> Type n -> Bool
 primReturnsPossibly (Fun (BuiltinData  Box))        _ = True
 primReturnsPossibly (Fun (BuiltinMap   MapInsert))  _ = True
 primReturnsPossibly (Fun (BuiltinArray ArrayIndex)) _ = True
+primReturnsPossibly (Fun (BuiltinText  _))          _ = True
 primReturnsPossibly p ty
  | (_, pos, dat)       <- decomposeT ty
  , DoubleT             <- dat

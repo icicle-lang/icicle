@@ -170,6 +170,8 @@ seaOfPrimProject p
 seaOfPrimText :: M.PrimText -> PrimDoc
 seaOfPrimText p
  = case p of
+     M.PrimStrIsValid ->
+       PDFun   ( prefixOfValType StringT <> "is_valid" ) Nothing
      M.PrimStrLen ->
        PDFun   ( prefixOfValType StringT <> "length" ) Nothing
      M.PrimStrToLower ->

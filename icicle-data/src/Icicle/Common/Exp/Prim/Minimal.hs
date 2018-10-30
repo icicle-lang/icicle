@@ -90,7 +90,8 @@ data PrimConst
 
 -- | Text primitives
 data PrimText
-  = PrimStrLen
+  = PrimStrIsValid
+  | PrimStrLen
   | PrimStrToLower
   | PrimStrToUpper
   deriving (Eq, Ord, Show, Enum, Bounded, Generic, NanEq)
@@ -221,6 +222,8 @@ typeOfPrim p
      -> FunT [funOfVal b] (SumT a b)
 
     -- Text
+    PrimText PrimStrIsValid
+     -> FunT [funOfVal StringT] BoolT
     PrimText PrimStrLen
      -> FunT [funOfVal StringT] IntT
     PrimText PrimStrToLower
@@ -289,6 +292,7 @@ instance Pretty PrimConst where
  pretty (PrimConstRight _a _b) = "right#"
 
 instance Pretty PrimText where
+ pretty PrimStrIsValid = "strisvalid#"
  pretty PrimStrLen = "strlen#"
  pretty PrimStrToLower = "tolower#"
  pretty PrimStrToUpper = "toupper#"

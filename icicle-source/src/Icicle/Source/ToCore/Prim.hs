@@ -217,11 +217,25 @@ convertPrim p ann resT xts = go p
    $ ConvertErrorPrimNoArguments ann 2 p
 
   gotext StrLen
-   = return $ primmin $ Min.PrimText Min.PrimStrLen
+   | [(a,_)] <- xts
+   = primCheckString T.IntT (primmin $ Min.PrimText Min.PrimStrLen) a
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
+
   gotext ToLower
-   = return $ primmin $ Min.PrimText Min.PrimStrToLower
+   | [(a,_)] <- xts
+   = primCheckString T.StringT (primmin $ Min.PrimText Min.PrimStrToLower) a
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
+
   gotext ToUpper
-   = return $ primmin $ Min.PrimText Min.PrimStrToUpper
+   | [(a,_)] <- xts
+   = primCheckString T.StringT (primmin $ Min.PrimText Min.PrimStrToUpper) a
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
 
   -- Source built-in primitives supported by other language fragments
   gotime DaysBetween
@@ -455,6 +469,8 @@ primInsertOrUpdate tk tv xm xk xvz xvu = do
   apps f xs = CE.makeApps () (CE.XPrim () f) xs
   bf = C.PrimMinimal . Min.PrimBuiltinFun
 
+-- Checks that the output double from a function is valid
+-- and wraps the result in a sum type accordingly
 primCheckDouble :: Hashable n => C.Exp () n -> ConvertM a n (C.Exp () n)
 primCheckDouble fx = do
   n'x <- lift F.fresh
@@ -476,3 +492,27 @@ primCheckDouble fx = do
  where
   apps f xs = CE.makeApps () (CE.XPrim () f) xs
   bf = C.PrimMinimal . Min.PrimBuiltinFun
+
+-- Checks that the input string is a valid utf8 string.
+-- This is different to the primCheckDouble function which
+-- ensures the output is a valid double.
+primCheckString :: Hashable n => T.ValType -> C.Exp () n -> C.Exp () n -> ConvertM a n (C.Exp () n)
+primCheckString return'typ fx over = do
+  n'x       <- lift F.fresh
+  n'unit    <- lift F.fresh
+  let v'x    = CE.XVar () n'x
+  let tsum   = T.SumT T.ErrorT return'typ
+
+  let xvalid = apps (C.PrimMinimal $ Min.PrimText $ Min.PrimStrIsValid) [ over ]
+
+  let verr   = CE.XValue () (T.SumT T.ErrorT return'typ)
+             $ V.VLeft $ V.VError V.ExceptNotANumber
+  let vright = CE.makeLets () [(n'x, fx)]
+             $ apps (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT return'typ)
+             [ v'x ]
+
+  return $ apps (C.PrimFold C.PrimFoldBool tsum)
+         [ CE.xLam n'unit T.UnitT vright, CE.xLam n'unit T.UnitT verr, xvalid ]
+
+ where
+  apps f xs = CE.makeApps () (CE.XPrim () f) xs

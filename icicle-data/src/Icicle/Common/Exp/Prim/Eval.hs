@@ -306,6 +306,15 @@ evalPrim p originalP vs
       | otherwise
       -> primError
 
+     -- Invalid results don't appear
+     -- in the haskell version, so this
+     -- is always true.
+     PrimText PrimStrIsValid
+      | [VBase (VString _)] <- vs
+      -> return $ VBase $ VBool True
+      | otherwise
+      -> primError
+
      PrimText PrimStrToLower
       | [VBase (VString x)] <- vs
       -> return $ VBase $ VString $ Text.toLower x
@@ -317,6 +326,7 @@ evalPrim p originalP vs
       -> return $ VBase $ VString $ Text.toUpper x
       | otherwise
       -> primError
+
      -- Time stuff
      PrimTime PrimTimeDaysDifference
       | [VBase (VTime a), VBase (VTime b)] <- vs

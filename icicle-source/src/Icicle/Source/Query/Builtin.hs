@@ -140,9 +140,9 @@ instance Pretty BuiltinMath where
  pretty Truncate    = "trunc"
 
 instance Pretty BuiltinText where
-  pretty StrLen     = "strlen"
-  pretty ToLower    = "tolower"
-  pretty ToUpper    = "toupper"
+ pretty StrLen     = "strlen"
+ pretty ToLower    = "tolower"
+ pretty ToUpper    = "toupper"
 
 instance Pretty BuiltinTime where
  pretty DaysBetween        = "days between"
