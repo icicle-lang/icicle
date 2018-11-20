@@ -24,6 +24,7 @@ module Icicle.Source.Checker.Base (
 
   , CheckLog(..)
   , DischargeInfo(..)
+  , checkLog
 
   , require
   , discharge

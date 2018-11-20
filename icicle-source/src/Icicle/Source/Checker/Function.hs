@@ -16,7 +16,7 @@ import                  Icicle.Source.Type
 
 import                  Icicle.Common.Base
 import qualified        Icicle.Common.Fresh     as Fresh
-import                  Icicle.Internal.Pretty (Pretty)
+import                  Icicle.Internal.Pretty (Pretty, pretty)
 
 import                  P
 
@@ -68,20 +68,26 @@ checkF' fun env
  = do -- Give each argument a fresh type variable
       env' <- foldM bindArg env $ arguments fun
       -- Get the annotated body
-      (q, subs', cons')  <- generateQ (body fun) env'
+      (q', subs', cons')  <- generateQ (body fun) env'
 
       -- Perform top-level discharge of any silly
       -- leftover Possibility or Temporality joins
       -- This will reduce the complexity of the our
       -- prelude functions (and user defined ones)
       -- considerably.
-      (subs, cons) <-
+      (q, subs, cons) <-
         case dischargeCS' dischargeC'toplevel cons' of
           Left errs
            -> genHoistEither
-            $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot (annotOfQuery q)) errs)
+            $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot (annotOfQuery q')) errs)
           Right (sub', cons)
-           -> return (sub' <> subs', cons)
+           -> do let all_subs  = compose subs' sub'
+                 let q         = substTQ all_subs q'
+                 let log_ppr   = pretty fun
+                 let log_info0 = DischargeInfo (annResult (annotOfQuery q')) cons' subs'
+                 let log_info1 = DischargeInfo (annResult (annotOfQuery q)) cons all_subs
+                 checkLog (CheckLogDischargeOk log_ppr log_info0 log_info1)
+                 return (q, all_subs, cons)
 
       -- Look up the argument types after solving all constraints.
       -- Because they started as fresh unification variables,
