@@ -67,34 +67,22 @@ checkF' :: (Hashable n, Eq n, Pretty n)
 checkF' fun env
  = do -- Give each argument a fresh type variable
       env' <- foldM bindArg env $ arguments fun
-      -- Get the annotated body
-      (q', subs', cons')  <- generateQ (body fun) env'
+      -- Get the type annotated body
+      (q', subs', cons') <- generateQ (body fun) env'
 
       -- Perform top-level discharge of any silly
       -- leftover Possibility or Temporality joins
       -- This will reduce the complexity of the our
-      -- prelude functions (and user defined ones)
+      -- prelude and user defined function types
       -- considerably.
-      (q, subs, cons) <-
-        case dischargeCS' dischargeC'toplevel cons' of
-          Left errs
-           -> genHoistEither
-            $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot (annotOfQuery q')) errs)
-          Right (sub', cons)
-           -> do let all_subs  = compose subs' sub'
-                 let q         = substTQ all_subs q'
-                 let log_ppr   = pretty fun
-                 let log_info0 = DischargeInfo (annResult (annotOfQuery q')) cons' subs'
-                 let log_info1 = DischargeInfo (annResult (annotOfQuery q)) cons all_subs
-                 checkLog (CheckLogDischargeOk log_ppr log_info0 log_info1)
-                 return (q, all_subs, cons)
+      (q, subs, cons) <- dischargeF q' subs' cons'
 
       -- Look up the argument types after solving all constraints.
       -- Because they started as fresh unification variables,
       -- they will end up being unified to the actual types.
       args <- mapM (lookupArg subs env') (arguments fun)
 
-      -- Find all leftover constraints and nub them
+      -- Find all leftover constraints
       let constrs = fmap snd cons
 
       -- We want to remove any modes (temporalities or possibilities)
@@ -177,4 +165,19 @@ checkF' fun env
    = do (_,_,t,_) <- lookup a n e
         return (Annot a (substT subs t) [], n)
 
+  dischargeInfo q cons subs =
+    DischargeInfo (annResult (annotOfQuery q)) cons subs
 
+  dischargeF q subs cons =
+    case dischargeCS' dischargeC'toplevel cons of
+      Left errs
+        -> genHoistEither
+        $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot (annotOfQuery q)) errs)
+      Right (sub, cons')
+       -> do let subs'     = compose subs sub
+             let q'        = substTQ sub q
+             let log_ppr   = pretty fun
+             let log_info0 = dischargeInfo q cons subs
+             let log_info1 = dischargeInfo q' cons' subs'
+             checkLog $ CheckLogDischargeOk log_ppr log_info0 log_info1
+             return (q', subs', cons')
