@@ -16,7 +16,7 @@ import           Data.Hashable (Hashable)
 
 
 simp :: (Hashable n, Eq n) => a -> C.Exp a n -> Fresh n (C.Exp a n)
-simp a_fresh = S.simp a_fresh
+simp = S.simp
 
 -- | Simplifies individual exps in the Core prorgam.
 --
@@ -37,7 +37,7 @@ simpProgram a_fresh p
                 , streams   = ss
                 , postcomps = poss
                 , returns   = rets }
-  where forall f = sequenceA . fmap (sequenceA . fmap (f a_fresh))
+  where forall f = traverse (traverse (f a_fresh))
 
 
 -- | Simp the exps in stream
