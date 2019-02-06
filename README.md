@@ -1,9 +1,7 @@
 Icicle
 ======
 
-Icicle == I(cicle) S(treaming) Q(query) L(language).
-
-A streaming query language.
+The Icicle Streaming Query Language.
 
 Purpose
 -------
