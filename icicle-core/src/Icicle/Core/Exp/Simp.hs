@@ -39,6 +39,7 @@ allSimp a_fresh
   =   simpX a_fresh
   >=> caseOfCase a_fresh
   >=> caseConstants a_fresh
+  >=> caseOfScrutinisedCase a_fresh
   >=> unshuffleLets a_fresh
 
 -- | Core Simplifier:
@@ -193,15 +194,24 @@ caseOfCase a_fresh = go
 --   By itself this doesn't do much, but it does
 --   permit the case of case optimisation and has
 --   no real cost itself.
+--
+--   If the scrutinee is irrefutable, we also replace
+--   it with a let binding.
 caseConstants :: (Monad m, Hashable n, Eq n)
               => a -> C.Exp a n -> FixT m (C.Exp a n)
 caseConstants a_fresh = go
   where
     go xx = goApp xx >>= \x' -> case takePrimApps x' of
-      Just (primitive, as)
-        | PrimFold a (SumT ret'l ret'r) <- primitive
-        , [XLam _ l'n l'typ l'exp, XLam _ r'n r'typ r'exp, scrut] <- as
-        , Just (l'side, r'side) <- (,) <$> takeIrrefutable l'exp <*> takeIrrefutable r'exp
+      Just (PrimFold a (SumT ret'l ret'r), [XLam _ l'n l'typ l'exp, XLam _ r'n r'typ r'exp, scrut])
+        | Just scrut' <- takeIrrefutable scrut
+        -> case scrut' of
+             Left x ->
+              progress $
+                xlet l'n x l'exp
+             Right x ->
+              progress $
+                xlet r'n x r'exp
+        | Just (l'side, r'side) <- (,) <$> takeIrrefutable l'exp <*> takeIrrefutable r'exp
         -> case (l'side, r'side) of
              (Left x, Left y) ->
                progress $
@@ -224,6 +234,7 @@ caseConstants a_fresh = go
     xapp = XApp a_fresh
     xprim = XPrim a_fresh
     xlam = XLam a_fresh
+    xlet = XLet a_fresh
     xleft l r = xprim $ PrimMinimal (Min.PrimConst (Min.PrimConstLeft l r))
     xright l r = xprim $ PrimMinimal (Min.PrimConst (Min.PrimConstRight l r))
 
@@ -298,3 +309,53 @@ unshuffleLets _ = go
       XVar{}   -> return xx
       XPrim{}  -> return xx
       XValue{} -> return xx
+
+
+-- | If we've already scrutinised an expression, don't check it
+--   again in either of its branches.
+caseOfScrutinisedCase :: (Monad m, Hashable n, Eq n) => a -> C.Exp a n -> FixT m (C.Exp a n)
+caseOfScrutinisedCase a_fresh = go []
+  where
+    go seen x = case x of
+      XApp a p q
+        | Just (PrimFold xx s@(SumT {}), [XLam la lname ltyp lexp, XLam lb rname rtyp rexp, scrut]) <- takePrimApps x
+        -> do lexp'  <- go ((scrut, Left lname) : seen) lexp
+              rexp'  <- go ((scrut, Right rname) : seen) rexp
+              scrut' <- go seen scrut
+              case filter (\(e,_) -> e `simpleEquality` scrut) seen of
+                ((_,replacement):_) ->
+                  progress
+                  $ either
+                    (\n -> subsNameInExp lname n lexp')
+                    (\n -> subsNameInExp rname n rexp')
+                    replacement
+
+                _ ->
+                  return
+                  $ xprim (PrimFold xx s)
+                    `xapp` XLam la lname ltyp lexp'
+                    `xapp` XLam lb rname rtyp rexp'
+                    `xapp` scrut'
+
+        | otherwise
+        -> XApp a <$> go seen p <*> go seen q
+
+      XLam a n t p
+        -> XLam a n t <$> go seen p
+
+      XLet a n p q ->
+        XLet a n <$> go seen p <*> go seen q
+
+      XVar {}   -> pure x
+      XPrim {}  -> pure x
+      XValue {} -> pure x
+
+    xapp = XApp a_fresh
+    xprim = XPrim a_fresh
+
+
+subsNameInExp :: Eq n => Name n -> Name n -> Exp a n p -> Exp a n p
+subsNameInExp old new =
+  let worker m | m == old  = new
+                | otherwise = m
+  in renameExp worker
