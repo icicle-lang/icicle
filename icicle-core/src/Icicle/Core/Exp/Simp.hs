@@ -265,6 +265,9 @@ takeIrrefutable xx = case xx of
           | PrimMinimal (Min.PrimConst Min.PrimConstLeft {}) <- prim
           , [lhs] <- as
           -> Just (Left lhs)
+          | PrimMinimal (Min.PrimConst Min.PrimConstSome {}) <- prim
+          , [real] <- as
+          -> Just (Left real)
         _ -> Nothing
 
   XLam a n t x1
@@ -273,8 +276,11 @@ takeIrrefutable xx = case xx of
   XLet a n p q
     -> XLet a n p <%> takeIrrefutable q
 
-  XValue a (SumT t _ ) (VLeft x)  -> Just (Left (XValue a t x))
+  XValue a (SumT t _ ) (VLeft x)  -> Just (Left  (XValue a t x))
   XValue a (SumT _ t ) (VRight x) -> Just (Right (XValue a t x))
+  XValue a (OptionT t ) (VSome x) -> Just (Left  (XValue a t x))
+  XValue a BoolT (VBool True)     -> Just (Left  (XValue a UnitT VUnit))
+  XValue a BoolT (VBool False)    -> Just (Right (XValue a UnitT VUnit))
   XValue{} -> Nothing
   XVar{}   -> Nothing
   XPrim{}  -> Nothing
@@ -318,24 +324,24 @@ caseOfScrutinisedCase a_fresh = go []
   where
     go seen x = case x of
       XApp a p q
-        | Just (PrimFold xx s@(SumT {}), [XLam la lname ltyp lexp, XLam lb rname rtyp rexp, scrut]) <- takePrimApps x
+        | Just (fld@(PrimFold _ _), [XLam la lname ltyp lexp, XLam lb rname rtyp rexp, scrut]) <- takePrimApps x
         -> do lexp'  <- go ((scrut, Left lname) : seen) lexp
               rexp'  <- go ((scrut, Right rname) : seen) rexp
-              scrut' <- go seen scrut
-              case filter (\(e,_) -> e `simpleEquality` scrut) seen of
-                ((_,replacement):_) ->
+              case find (\(e,_) -> e `simpleEquality` scrut) seen of
+                Just (_,replacement) ->
                   progress
                   $ either
                     (\n -> subsNameInExp lname n lexp')
                     (\n -> subsNameInExp rname n rexp')
                     replacement
 
-                _ ->
+                Nothing -> do
+                  scrut' <- go seen scrut
                   return
-                  $ xprim (PrimFold xx s)
-                    `xapp` XLam la lname ltyp lexp'
-                    `xapp` XLam lb rname rtyp rexp'
-                    `xapp` scrut'
+                    $ xprim fld
+                     `xapp` XLam la lname ltyp lexp'
+                     `xapp` XLam lb rname rtyp rexp'
+                     `xapp` scrut'
 
         | otherwise
         -> XApp a <$> go seen p <*> go seen q

@@ -491,7 +491,7 @@ decodeEntityId nested =
   fmap EntityId <$> decodeUtf8 nested
 
 decodeEntityKeyFields :: [Zebra.Field Zebra.Column] -> Either ZebraStripedError (Boxed.Vector EntityKey)
-decodeEntityKeyFields fields = do
+decodeEntityKeyFields fields =
   case fields of
     [Zebra.Field "entity_hash" ehash, Zebra.Field "entity_id" eid] ->
       Boxed.zipWith EntityKey
