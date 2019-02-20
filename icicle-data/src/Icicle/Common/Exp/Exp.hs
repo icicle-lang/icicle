@@ -20,6 +20,7 @@ import           Icicle.Internal.Pretty
 
 import           P
 
+import           Control.Lens.Plated (Plated (..))
 import           Data.Set (Set)
 
 
@@ -52,6 +53,14 @@ data Exp a n p
 instance (NFData a, NFData n, NFData p) => NFData (Exp a n p)
 
 instance (NanEq a, NanEq n, NanEq p) => NanEq (Exp a n p)
+
+instance Plated (Exp a n p) where
+  plate _ x@XVar {} = pure x
+  plate _ x@XPrim {} = pure x
+  plate _ x@XValue {} = pure x
+  plate f (XApp a x y) = XApp a <$> f x <*> f y
+  plate f (XLam a n t x) = XLam a n t <$> f x
+  plate f (XLet a n x y) = XLet a n <$> f x <*> f y
 
 renameExp :: (Name n -> Name n') -> Exp a n p -> Exp a n' p
 renameExp f (XVar a n)     = XVar a (f n)

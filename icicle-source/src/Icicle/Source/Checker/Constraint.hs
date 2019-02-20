@@ -147,7 +147,7 @@ constraintsQ
   -> Query a n
   -> EitherT (CheckError a n) (Fresh.Fresh n) (Query'C a n)
 constraintsQ env q
- = do (x, cons) <- evalGenNoLog $ top
+ = do (x, cons) <- evalGenNoLog top
       -- We must have been able to solve all constraints except numeric requirements.
       if   all (isNumConstraint . snd) cons
       then right x

@@ -24,6 +24,7 @@ import qualified Icicle.Core.Eval.Exp           as CE
 
 import           P
 
+import           Control.Lens.Plated            (transformM)
 import           Control.Monad.Trans.Class      (lift)
 
 import qualified Data.Set                       as Set
@@ -48,32 +49,16 @@ allSimp a_fresh
 --   * constant folding for some primitives
 simpX :: (Monad m, Hashable n, Eq n)
       => a -> C.Exp a n -> FixT m (C.Exp a n)
-simpX a_fresh = go . B.beta
+simpX a_fresh = transformM go . B.beta
   where
     -- * constant folding for some primitives
-    go xx = case xx of
-      XApp a p q
-       -> do p' <- go p
-             q' <- go q
-             let x' = XApp a p' q'
-             case takePrimApps x' of
-               Just (prim, as)
-                 | Just args <- mapM takeValue as
-                 -> case simpP a_fresh prim args of
-                      Just x''
-                        -> progress x''
-                      _ -> return x'
-               _ -> return x'
-
-      XLam a n t x1
-        -> XLam a n t <$> go x1
-
-      XLet a n p q
-        -> XLet a n <$> go p <*> go q
-
-      XVar{}   -> return xx
-      XPrim{}  -> return xx
-      XValue{} -> return xx
+    go xx
+      | Just (prim, as) <- takePrimApps xx
+      , Just args       <- mapM takeValue as
+      , Just simplified <- simpP a_fresh prim args
+      = progress simplified
+      | otherwise
+      = return xx
 
 -- | Primitive Simplifier
 simpP :: (Hashable n, Eq n) => a -> Prim -> [Value a n Prim] -> Maybe (C.Exp a n)
@@ -115,78 +100,60 @@ deadX = fst . go
                else (             x2',              f2)
 
       b@(XVar _ n) -> (b, Set.singleton n)
-      b@(XPrim{})  -> (b, Set.empty)
-      b@(XValue{}) -> (b, Set.empty)
+      b@XPrim {}   -> (b, Set.empty)
+      b@XValue {}  -> (b, Set.empty)
 
 -- | Case of Irrefutable Case.
 caseOfCase :: (Hashable n, Eq n)
            => a -> C.Exp a n -> FixT (Fresh n) (C.Exp a n)
-caseOfCase a_fresh = go
+caseOfCase a_fresh = transformM go
   where
-    go xx = goApp xx >>= \x' -> case takePrimApps x' of
-      Just (primitive, as)
-        | PrimFold _ ret'typ <- primitive
-        , [XLam _ l'n _ l'exp, XLam _ r'n _ r'exp, scrut] <- as
-        -> case takePrimApps scrut of
-            Just (primitive', ass)
-              | PrimFold fld _ <- primitive'
-              , [XLam _ i'l'n i'l'typ i'l'exp, XLam _ i'r'n i'r'typ i'r'exp, scrutinee] <- ass
-              , Just (l'case, r'case) <- (,) <$> takeIrrefutable i'l'exp <*> takeIrrefutable i'r'exp
-              -> do
-                   n'l <- lift fresh
-                   n'r <- lift fresh
+    go xx
+      | Just (primitive, as) <- takePrimApps xx
+      , PrimFold _ ret'typ <- primitive
+      , [XLam _ l'n _ l'exp, XLam _ r'n _ r'exp, scrut] <- as
+      , Just (primitive', ass) <- takePrimApps scrut
+      , PrimFold fld _ <- primitive'
+      , [XLam _ i'l'n i'l'typ i'l'exp, XLam _ i'r'n i'r'typ i'r'exp, scrutinee] <- ass
+      , Just (l'case, r'case) <- (,) <$> takeIrrefutable i'l'exp <*> takeIrrefutable i'r'exp
+      = do
+          n'l <- lift fresh
+          n'r <- lift fresh
 
-                   let
-                    renameLeftWorker m
-                      | m == i'l'n = n'l
-                      | otherwise  = m
-                    renameLeft
-                      = renameExp renameLeftWorker
+          let
+            renameLeftWorker m
+              | m == i'l'n = n'l
+              | otherwise  = m
+            renameLeft
+              = renameExp renameLeftWorker
 
-                    renameRightWorker m
-                      | m == i'r'n = n'r
-                      | otherwise  = m
-                    renameRight
-                      = renameExp renameRightWorker
+            renameRightWorker m
+              | m == i'r'n = n'r
+              | otherwise  = m
+            renameRight
+              = renameExp renameRightWorker
 
-                    n'l'lam
-                     = xlam n'l i'l'typ
-                     $ xlet l'n (either renameLeft renameLeft l'case) (either (const l'exp) (const r'exp) l'case)
+            n'l'lam
+              = xlam n'l i'l'typ
+              $ xlet l'n (either renameLeft renameLeft l'case) (either (const l'exp) (const r'exp) l'case)
 
-                    n'r'lam
-                     = xlam n'r i'r'typ
-                     $ xlet r'n (either renameRight renameRight r'case) (either (const l'exp) (const r'exp) r'case)
+            n'r'lam
+              = xlam n'r i'r'typ
+              $ xlet r'n (either renameRight renameRight r'case) (either (const l'exp) (const r'exp) r'case)
 
-                   progress
-                     $ xprim (PrimFold fld ret'typ)
-                      `xapp` n'l'lam
-                      `xapp` n'r'lam
-                      `xapp` scrutinee
+          progress
+            $ xprim (PrimFold fld ret'typ)
+            `xapp` n'l'lam
+            `xapp` n'r'lam
+            `xapp` scrutinee
 
-            _ -> return x'
-      _ -> return x'
-
+      | otherwise
+      = return xx
 
     xapp = XApp a_fresh
     xprim = XPrim a_fresh
     xlet = XLet a_fresh
     xlam = XLam a_fresh
-
-    goApp xx = case xx of
-      XApp _ p q
-       -> do p' <- go p
-             q' <- go q
-             return $ XApp a_fresh p' q'
-
-      XLam a n t x1
-        -> XLam a n t <$> go x1
-
-      XLet a n p q
-        -> XLet a n <$> go p <*> go q
-
-      XVar{}   -> return xx
-      XPrim{}  -> return xx
-      XValue{} -> return xx
 
 -- | Simplification when both sides of a fold
 --   are wrapped with the same constructor.
@@ -199,9 +166,9 @@ caseOfCase a_fresh = go
 --   it with a let binding.
 caseConstants :: (Monad m, Hashable n, Eq n)
               => a -> C.Exp a n -> FixT m (C.Exp a n)
-caseConstants a_fresh = go
+caseConstants a_fresh = transformM go
   where
-    go xx = goApp xx >>= \x' -> case takePrimApps x' of
+    go xx = case takePrimApps xx of
       Just (PrimFold a (SumT ret'l ret'r), [XLam _ l'n l'typ l'exp, XLam _ r'n r'typ r'exp, scrut])
         | Just scrut' <- takeIrrefutable scrut
         -> case scrut' of
@@ -227,9 +194,8 @@ caseConstants a_fresh = go
                    `xapp` xlam l'n l'typ x
                    `xapp` xlam r'n r'typ y
                    `xapp` scrut
-             _ -> return x'
-
-      _ -> return x'
+             _ -> return xx
+      _ -> return xx
 
     xapp = XApp a_fresh
     xprim = XPrim a_fresh
@@ -237,22 +203,6 @@ caseConstants a_fresh = go
     xlet = XLet a_fresh
     xleft l r = xprim $ PrimMinimal (Min.PrimConst (Min.PrimConstLeft l r))
     xright l r = xprim $ PrimMinimal (Min.PrimConst (Min.PrimConstRight l r))
-
-    goApp xx = case xx of
-      XApp _ p q
-       -> do p' <- go p
-             q' <- go q
-             return $ XApp a_fresh p' q'
-
-      XLam a n t x1
-        -> XLam a n t <$> go x1
-
-      XLet a n p q
-        -> XLet a n <$> go p <*> go q
-
-      XVar{}   -> return xx
-      XPrim{}  -> return xx
-      XValue{} -> return xx
 
 takeIrrefutable :: Exp a n Prim -> Maybe (Either (Exp a n Prim) (Exp a n Prim))
 takeIrrefutable xx = case xx of
@@ -289,33 +239,17 @@ takeIrrefutable xx = case xx of
 
 unshuffleLets :: (Monad m, Hashable n, Eq n)
               => a -> C.Exp a n -> FixT m (C.Exp a n)
-unshuffleLets _ = go
+unshuffleLets _ = transformM go
   where
-    go xx = case xx of
-      XApp a p q
-        -> do px <- go p
-              qx <- go q
-              return (XApp a px qx)
+    go xx
+      | XLet a n b q <- xx
+      , XLet a1 n1 b1 x1 <- b
+      = progress
+        $ XLet a1 n1 b1
+        $ XLet a n x1 q
 
-      XLet a n b q
-        -> do bx <- go b
-              qx <- go q
-              case bx of
-                XLet a1 n1 b1 x1
-                  -> progress
-                     $ XLet a1 n1 b1
-                     $ XLet a n x1 qx
-                _ -> return
-                     $ XLet a n bx qx
-
-      XLam a n t x
-        -> do x1 <- go x
-              return $ XLam a n t x1
-
-      XVar{}   -> return xx
-      XPrim{}  -> return xx
-      XValue{} -> return xx
-
+      | otherwise
+      = return xx
 
 -- | If we've already scrutinised an expression, don't check it
 --   again in either of its branches.

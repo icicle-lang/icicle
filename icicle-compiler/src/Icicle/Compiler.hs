@@ -294,9 +294,9 @@ coreOfSource1 opt dict virtual = do
   desugared      <- first ErrorSource $ Source.sourceDesugarQT  inlined
   (checked, _)   <- first ErrorSource $ Source.sourceCheckQT   (Source.icicleBigData opt) dict desugared
   let reified     = Source.sourceReifyQT checked
-  core           <- sourceConvert dict reified
+  core           <- coreSimp <$> sourceConvert dict reified
   _              <- checkCore virtual core
-  return $ coreSimp core
+  return core
 
 checkCore      :: IsName v
                => Source.QueryTyped v
@@ -353,11 +353,8 @@ avalancheOfDictionaryM updateUI opts dict = do
 
 avalancheOfCore ::               Source.CoreProgramUntyped Source.Var
                 -> Either Error (AvalProgramTyped   Source.Var Flat.Prim)
-avalancheOfCore core = do
-  flat    <- coreFlatten core
-  checked <- checkAvalanche flat
-  return checked
-
+avalancheOfCore =
+  checkAvalanche <=< coreFlatten
 
 coreFlatten :: IsName v
             => Source.CoreProgramUntyped v

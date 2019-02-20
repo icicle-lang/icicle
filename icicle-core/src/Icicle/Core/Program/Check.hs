@@ -33,7 +33,7 @@ checkProgram p
         pres    <- checkExps ProgramErrorPre env0 (P.precomps     p)
 
         let ins k v env = insertOrDie ProgramErrorNameNotUnique env k v
-        
+
         -- "Kons" environment: only available in kons of folds
         kenv    <- ins (factValName  p) (funOfVal $ PairT (inputType p) TimeT) Map.empty
                >>= ins (factTimeName p) (funOfVal $ TimeT)
