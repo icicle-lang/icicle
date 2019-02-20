@@ -1,7 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE PatternGuards     #-}
-{-# LANGUAGE LambdaCase        #-}
 module Icicle.Core.Exp.Simp
      ( simp
      , simpX
@@ -31,14 +30,26 @@ import qualified Data.Set                       as Set
 import           Data.Hashable                  (Hashable)
 
 -- | Core Simplifier:
+--   * a normal
+--   * beta reduction
+--   * constant folding fully applied primitives
+--   * case of irrefutable case
+--   * let unwinding
+--   * irrefutable case reduction
+--   * irrefutable case branches abstraction
 simp :: (Hashable n, Eq n) => a -> C.Exp a n -> Fresh n (C.Exp a n)
-simp a_fresh = anormal a_fresh <=< fmap deadX . fixpoint (allSimp a_fresh)
+simp a_fresh
+  =   anormal a_fresh
+  <=< fmap deadX
+  .   fixpoint (allSimp a_fresh)
 
+-- | Core Simplifier FixT loop.
 allSimp :: (Hashable n, Eq n)
         => a -> C.Exp a n -> FixT (Fresh n) (C.Exp a n)
 allSimp a_fresh
   =   caseOfScrutinisedCase a_fresh
-  <=< transformM transformations . B.beta
+  <=< transformM transformations
+  .   B.beta
 
   where
     transformations
@@ -48,22 +59,16 @@ allSimp a_fresh
       >=> caseConstants a_fresh
       >=> unshuffleLets a_fresh
 
--- | Core Simplifier:
---   * a normal
---   * beta reduction
---   * constant folding for some primitives
+-- | Constant folding for some primitives
 simpX :: (Monad m, Hashable n, Eq n)
-      => a -> C.Exp a n -> FixT m (C.Exp a n)
-simpX a_fresh = go
-  where
-    -- * constant folding for some primitives
-    go xx
-      | Just (prim, as) <- takePrimApps xx
-      , Just args       <- mapM takeValue as
-      , Just simplified <- simpP a_fresh prim args
-      = progress simplified
-      | otherwise
-      = return xx
+             => a -> C.Exp a n -> FixT m (C.Exp a n)
+simpX a_fresh xx
+  | Just (prim, as) <- takePrimApps xx
+  , Just args       <- mapM takeValue as
+  , Just simplified <- simpP a_fresh prim args
+  = progress simplified
+  | otherwise
+  = return xx
 
 -- | Primitive Simplifier
 simpP :: (Hashable n, Eq n) => a -> Prim -> [Value a n Prim] -> Maybe (C.Exp a n)
@@ -111,74 +116,70 @@ deadX = fst . go
 -- | Case of Irrefutable Case.
 caseOfCase :: (Hashable n, Eq n)
            => a -> C.Exp a n -> FixT (Fresh n) (C.Exp a n)
-caseOfCase a_fresh = go
-  where
-    go xx
-      | Just (primitive, as) <- takePrimApps xx
-      , PrimFold _ ret'typ <- primitive
-      , [XLam _ l'n _ l'exp, XLam _ r'n _ r'exp, scrut] <- as
-      , Just (primitive', ass) <- takePrimApps scrut
-      , PrimFold fld _ <- primitive'
-      , [XLam _ i'l'n i'l'typ i'l'exp, XLam _ i'r'n i'r'typ i'r'exp, scrutinee] <- ass
-      , Just (l'case, r'case) <- (,) <$> takeIrrefutable i'l'exp <*> takeIrrefutable i'r'exp
-      = do
-          n'l <- lift fresh
-          n'r <- lift fresh
+caseOfCase a_fresh xx
+  | Just (primitive, as) <- takePrimApps xx
+  , PrimFold _ ret'typ <- primitive
+  , [XLam _ l'n _ l'exp, XLam _ r'n _ r'exp, scrut] <- as
+  , Just (primitive', ass) <- takePrimApps scrut
+  , PrimFold fld _ <- primitive'
+  , [XLam _ i'l'n i'l'typ i'l'exp, XLam _ i'r'n i'r'typ i'r'exp, scrutinee] <- ass
+  , Just (l'case, r'case) <- (,) <$> takeIrrefutable i'l'exp <*> takeIrrefutable i'r'exp
+  = do
+      n'l <- lift fresh
+      n'r <- lift fresh
 
-          let
-            renameInLeft
-              = subsNameInExp i'l'n n'l
+      let
+        renameInLeft
+          = subsNameInExp i'l'n n'l
 
-            renameInRight
-              = subsNameInExp i'r'n n'r
+        renameInRight
+          = subsNameInExp i'r'n n'r
 
-            replaceIn
-              = either (const l'exp) (const r'exp)
+        replaceIn
+          = either (const l'exp) (const r'exp)
 
-            n'l'lam
-              = xlam n'l i'l'typ
-              $ xlet l'n (join either renameInLeft l'case) (replaceIn l'case)
+        newLeftLam
+          = xlam n'l i'l'typ
+          $ xlet l'n (join either renameInLeft l'case) (replaceIn l'case)
 
-            n'r'lam
-              = xlam n'r i'r'typ
-              $ xlet r'n (join either renameInRight r'case) (replaceIn r'case)
+        newRightLam
+          = xlam n'r i'r'typ
+          $ xlet r'n (join either renameInRight r'case) (replaceIn r'case)
 
-          progress
-            $ xprim (PrimFold fld ret'typ)
-             `xapp` n'l'lam
-             `xapp` n'r'lam
-             `xapp` scrutinee
+      progress
+        $ xprim (PrimFold fld ret'typ)
+          `xapp` newLeftLam
+          `xapp` newRightLam
+          `xapp` scrutinee
 
-      | otherwise
-      = return xx
-
-    xapp = XApp a_fresh
-    xprim = XPrim a_fresh
-    xlet = XLet a_fresh
-    xlam = XLam a_fresh
+  | otherwise
+  = return xx
+    where
+  xapp = XApp a_fresh
+  xprim = XPrim a_fresh
+  xlet = XLet a_fresh
+  xlam = XLam a_fresh
 
 -- | If the case scrutinee is irrefutable,
 --   replace the case expression with a let
 --   binding.
 caseOfIrrefutable :: (Monad m, Hashable n, Eq n)
                   => a -> C.Exp a n -> FixT m (C.Exp a n)
-caseOfIrrefutable a_fresh = go
-  where
-    go xx
-      | Just (PrimFold _ _, [XLam _ l'n _ l'exp, XLam _ r'n _ r'exp, scrut]) <- takePrimApps xx
-      , Just scrut' <- takeIrrefutable scrut
-      = case scrut' of
-          Left x ->
-            progress $
-              xlet l'n x l'exp
-          Right x ->
-            progress $
-              xlet r'n x r'exp
+caseOfIrrefutable a_fresh xx
+  | Just (PrimFold _ _, [XLam _ l'n _ l'exp, XLam _ r'n _ r'exp, scrut]) <- takePrimApps xx
+  , Just scrut' <- takeIrrefutable scrut
+  = case scrut' of
+      Left x ->
+        progress $
+          xlet l'n x l'exp
+      Right x ->
+        progress $
+          xlet r'n x r'exp
 
-      | otherwise
-      = return xx
-
-    xlet = XLet a_fresh
+  | otherwise
+  = return xx
+    where
+  xlet = XLet a_fresh
 
 -- | Simplification when both sides of a fold
 --   are wrapped with the same constructor.
@@ -188,35 +189,33 @@ caseOfIrrefutable a_fresh = go
 --   no real cost itself.
 caseConstants :: (Monad m, Hashable n, Eq n)
               => a -> C.Exp a n -> FixT m (C.Exp a n)
-caseConstants a_fresh = go
-  where
-    go xx
-      | Just (PrimFold a (SumT ret'l ret'r), [XLam _ l'n l'typ l'exp, XLam _ r'n r'typ r'exp, scrut]) <- takePrimApps xx
-      , Just (l'side, r'side) <- (,) <$> takeIrrefutable l'exp <*> takeIrrefutable r'exp
-      = case (l'side, r'side) of
-          (Left x, Left y) ->
-            progress $
-              xapp (xleft ret'l ret'r)
-              $ xprim (PrimFold a ret'l)
-                `xapp` xlam l'n l'typ x
-                `xapp` xlam r'n r'typ y
-                `xapp` scrut
-          (Right x, Right y) ->
-            progress $
-              xapp (xright ret'l ret'r)
-              $ xprim (PrimFold a ret'r)
-                `xapp` xlam l'n l'typ x
-                `xapp` xlam r'n r'typ y
-                `xapp` scrut
-          _ -> return xx
-      | otherwise
-      = return xx
-
-    xapp = XApp a_fresh
-    xprim = XPrim a_fresh
-    xlam = XLam a_fresh
-    xleft l r = xprim $ PrimMinimal (Min.PrimConst (Min.PrimConstLeft l r))
-    xright l r = xprim $ PrimMinimal (Min.PrimConst (Min.PrimConstRight l r))
+caseConstants a_fresh xx
+  | Just (PrimFold a (SumT ret'l ret'r), [XLam _ l'n l'typ l'exp, XLam _ r'n r'typ r'exp, scrut]) <- takePrimApps xx
+  , Just (l'side, r'side) <- (,) <$> takeIrrefutable l'exp <*> takeIrrefutable r'exp
+  = case (l'side, r'side) of
+      (Left x, Left y) ->
+        progress $
+          xapp (xleft ret'l ret'r)
+          $ xprim (PrimFold a ret'l)
+            `xapp` xlam l'n l'typ x
+            `xapp` xlam r'n r'typ y
+            `xapp` scrut
+      (Right x, Right y) ->
+        progress $
+          xapp (xright ret'l ret'r)
+          $ xprim (PrimFold a ret'r)
+            `xapp` xlam l'n l'typ x
+            `xapp` xlam r'n r'typ y
+            `xapp` scrut
+      _ -> return xx
+  | otherwise
+  = return xx
+    where
+  xapp = XApp a_fresh
+  xprim = XPrim a_fresh
+  xlam = XLam a_fresh
+  xleft l r = xprim $ PrimMinimal (Min.PrimConst (Min.PrimConstLeft l r))
+  xright l r = xprim $ PrimMinimal (Min.PrimConst (Min.PrimConstRight l r))
 
 takeIrrefutable :: Exp a n Prim -> Maybe (Either (Exp a n Prim) (Exp a n Prim))
 takeIrrefutable xx = case xx of
@@ -253,17 +252,15 @@ takeIrrefutable xx = case xx of
 
 unshuffleLets :: (Monad m, Hashable n, Eq n)
               => a -> C.Exp a n -> FixT m (C.Exp a n)
-unshuffleLets _ = go
-  where
-    go xx
-      | XLet a n b q <- xx
-      , XLet a1 n1 b1 x1 <- b
-      = progress
-        $ XLet a1 n1 b1
-        $ XLet a n x1 q
+unshuffleLets _ xx
+  | XLet a n b q <- xx
+  , XLet a1 n1 b1 x1 <- b
+  = progress
+    $ XLet a1 n1 b1
+    $ XLet a n x1 q
 
-      | otherwise
-      = return xx
+  | otherwise
+  = return xx
 
 -- | If we've already scrutinised an expression, don't check it
 --   again in either of its branches.
