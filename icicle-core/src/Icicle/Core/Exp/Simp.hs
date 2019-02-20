@@ -37,11 +37,16 @@ simp a_fresh = anormal a_fresh <=< fmap deadX . fixpoint (allSimp a_fresh)
 allSimp :: (Hashable n, Eq n)
         => a -> C.Exp a n -> FixT (Fresh n) (C.Exp a n)
 allSimp a_fresh
-  =   simpX a_fresh
-  >=> caseOfCase a_fresh
-  >=> caseConstants a_fresh
-  >=> caseOfScrutinisedCase a_fresh
-  >=> unshuffleLets a_fresh
+  =   caseOfScrutinisedCase a_fresh
+  <=< transformM transformations . B.beta
+
+  where
+    transformations
+      =   simpX a_fresh
+      >=> caseOfCase a_fresh
+      >=> caseOfIrrefutable a_fresh
+      >=> caseConstants a_fresh
+      >=> unshuffleLets a_fresh
 
 -- | Core Simplifier:
 --   * a normal
@@ -49,7 +54,7 @@ allSimp a_fresh
 --   * constant folding for some primitives
 simpX :: (Monad m, Hashable n, Eq n)
       => a -> C.Exp a n -> FixT m (C.Exp a n)
-simpX a_fresh = transformM go . B.beta
+simpX a_fresh = go
   where
     -- * constant folding for some primitives
     go xx
@@ -106,7 +111,7 @@ deadX = fst . go
 -- | Case of Irrefutable Case.
 caseOfCase :: (Hashable n, Eq n)
            => a -> C.Exp a n -> FixT (Fresh n) (C.Exp a n)
-caseOfCase a_fresh = transformM go
+caseOfCase a_fresh = go
   where
     go xx
       | Just (primitive, as) <- takePrimApps xx
@@ -121,31 +126,28 @@ caseOfCase a_fresh = transformM go
           n'r <- lift fresh
 
           let
-            renameLeftWorker m
-              | m == i'l'n = n'l
-              | otherwise  = m
-            renameLeft
-              = renameExp renameLeftWorker
+            renameInLeft
+              = subsNameInExp i'l'n n'l
 
-            renameRightWorker m
-              | m == i'r'n = n'r
-              | otherwise  = m
-            renameRight
-              = renameExp renameRightWorker
+            renameInRight
+              = subsNameInExp i'r'n n'r
+
+            replaceIn
+              = either (const l'exp) (const r'exp)
 
             n'l'lam
               = xlam n'l i'l'typ
-              $ xlet l'n (either renameLeft renameLeft l'case) (either (const l'exp) (const r'exp) l'case)
+              $ xlet l'n (join either renameInLeft l'case) (replaceIn l'case)
 
             n'r'lam
               = xlam n'r i'r'typ
-              $ xlet r'n (either renameRight renameRight r'case) (either (const l'exp) (const r'exp) r'case)
+              $ xlet r'n (join either renameInRight r'case) (replaceIn r'case)
 
           progress
             $ xprim (PrimFold fld ret'typ)
-            `xapp` n'l'lam
-            `xapp` n'r'lam
-            `xapp` scrutinee
+             `xapp` n'l'lam
+             `xapp` n'r'lam
+             `xapp` scrutinee
 
       | otherwise
       = return xx
@@ -155,52 +157,64 @@ caseOfCase a_fresh = transformM go
     xlet = XLet a_fresh
     xlam = XLam a_fresh
 
+-- | If the case scrutinee is irrefutable,
+--   replace the case expression with a let
+--   binding.
+caseOfIrrefutable :: (Monad m, Hashable n, Eq n)
+                  => a -> C.Exp a n -> FixT m (C.Exp a n)
+caseOfIrrefutable a_fresh = go
+  where
+    go xx
+      | Just (PrimFold _ _, [XLam _ l'n _ l'exp, XLam _ r'n _ r'exp, scrut]) <- takePrimApps xx
+      , Just scrut' <- takeIrrefutable scrut
+      = case scrut' of
+          Left x ->
+            progress $
+              xlet l'n x l'exp
+          Right x ->
+            progress $
+              xlet r'n x r'exp
+
+      | otherwise
+      = return xx
+
+    xlet = XLet a_fresh
+
 -- | Simplification when both sides of a fold
 --   are wrapped with the same constructor.
 --
 --   By itself this doesn't do much, but it does
 --   permit the case of case optimisation and has
 --   no real cost itself.
---
---   If the scrutinee is irrefutable, we also replace
---   it with a let binding.
 caseConstants :: (Monad m, Hashable n, Eq n)
               => a -> C.Exp a n -> FixT m (C.Exp a n)
-caseConstants a_fresh = transformM go
+caseConstants a_fresh = go
   where
-    go xx = case takePrimApps xx of
-      Just (PrimFold a (SumT ret'l ret'r), [XLam _ l'n l'typ l'exp, XLam _ r'n r'typ r'exp, scrut])
-        | Just scrut' <- takeIrrefutable scrut
-        -> case scrut' of
-             Left x ->
-              progress $
-                xlet l'n x l'exp
-             Right x ->
-              progress $
-                xlet r'n x r'exp
-        | Just (l'side, r'side) <- (,) <$> takeIrrefutable l'exp <*> takeIrrefutable r'exp
-        -> case (l'side, r'side) of
-             (Left x, Left y) ->
-               progress $
-                 xapp (xleft ret'l ret'r)
-                  $ xprim (PrimFold a ret'l)
-                   `xapp` xlam l'n l'typ x
-                   `xapp` xlam r'n r'typ y
-                   `xapp` scrut
-             (Right x, Right y) ->
-               progress $
-                 xapp (xright ret'l ret'r)
-                  $ xprim (PrimFold a ret'r)
-                   `xapp` xlam l'n l'typ x
-                   `xapp` xlam r'n r'typ y
-                   `xapp` scrut
-             _ -> return xx
-      _ -> return xx
+    go xx
+      | Just (PrimFold a (SumT ret'l ret'r), [XLam _ l'n l'typ l'exp, XLam _ r'n r'typ r'exp, scrut]) <- takePrimApps xx
+      , Just (l'side, r'side) <- (,) <$> takeIrrefutable l'exp <*> takeIrrefutable r'exp
+      = case (l'side, r'side) of
+          (Left x, Left y) ->
+            progress $
+              xapp (xleft ret'l ret'r)
+              $ xprim (PrimFold a ret'l)
+                `xapp` xlam l'n l'typ x
+                `xapp` xlam r'n r'typ y
+                `xapp` scrut
+          (Right x, Right y) ->
+            progress $
+              xapp (xright ret'l ret'r)
+              $ xprim (PrimFold a ret'r)
+                `xapp` xlam l'n l'typ x
+                `xapp` xlam r'n r'typ y
+                `xapp` scrut
+          _ -> return xx
+      | otherwise
+      = return xx
 
     xapp = XApp a_fresh
     xprim = XPrim a_fresh
     xlam = XLam a_fresh
-    xlet = XLet a_fresh
     xleft l r = xprim $ PrimMinimal (Min.PrimConst (Min.PrimConstLeft l r))
     xright l r = xprim $ PrimMinimal (Min.PrimConst (Min.PrimConstRight l r))
 
@@ -239,7 +253,7 @@ takeIrrefutable xx = case xx of
 
 unshuffleLets :: (Monad m, Hashable n, Eq n)
               => a -> C.Exp a n -> FixT m (C.Exp a n)
-unshuffleLets _ = transformM go
+unshuffleLets _ = go
   where
     go xx
       | XLet a n b q <- xx
@@ -297,5 +311,5 @@ caseOfScrutinisedCase a_fresh = go []
 subsNameInExp :: Eq n => Name n -> Name n -> Exp a n p -> Exp a n p
 subsNameInExp old new =
   let worker m | m == old  = new
-                | otherwise = m
+               | otherwise = m
   in renameExp worker
