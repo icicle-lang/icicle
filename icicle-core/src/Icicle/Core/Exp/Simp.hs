@@ -26,6 +26,7 @@ import           P
 import           Control.Lens.Plated            (transformM)
 import           Control.Monad.Trans.Class      (lift)
 
+import           Data.Monoid                    (Sum (..))
 import qualified Data.Set                       as Set
 import           Data.Hashable                  (Hashable)
 
@@ -58,6 +59,7 @@ allSimp a_fresh
       >=> caseOfIrrefutable a_fresh
       >=> caseConstants a_fresh
       >=> unshuffleLets a_fresh
+      >=> inlineLets a_fresh
 
 -- | Constant folding for some primitives
 simpX :: (Monad m, Hashable n, Eq n)
@@ -304,9 +306,42 @@ caseOfScrutinisedCase a_fresh = go []
     xapp = XApp a_fresh
     xprim = XPrim a_fresh
 
+-- | Inline let bindings which only have
+--   a single use, and are likely to be
+--   able to be optimised away.
+--
+--   If the binding is irrefutible, or could
+--   be part of the case in case optimisation,
+--   inline it instead.
+inlineLets :: (Hashable n, Eq n)
+                  => a -> C.Exp a n -> FixT (Fresh n) (C.Exp a n)
+inlineLets _ xx
+  | XLet a n p q <- xx
+  , casesIrrefutable p
+  , varCount n q == 1
+  = do new <- lift $ subst1 a n p q
+       progress new
+  | otherwise
+  = return xx
+ where
+  casesIrrefutable scrut
+    | Just _ <- takeIrrefutable scrut
+    = True
+    | Just (primitive, ass) <- takePrimApps scrut
+    , PrimFold _ _ <- primitive
+    , [XLam _ _ _ l, XLam _ _ _ r, _] <- ass
+    , Just _ <- (,) <$> takeIrrefutable l <*> takeIrrefutable r
+    = True
+    | otherwise
+    = False
 
 subsNameInExp :: Eq n => Name n -> Name n -> Exp a n p -> Exp a n p
 subsNameInExp old new =
   let worker m | m == old  = new
                | otherwise = m
   in renameExp worker
+
+varCount :: Eq n => Name n -> Exp a n p -> Sum Int
+varCount i (XVar _ j)
+  | i == j   = Sum 1
+varCount i x = foldExp (varCount i) x

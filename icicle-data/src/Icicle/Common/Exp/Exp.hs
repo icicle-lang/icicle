@@ -8,6 +8,7 @@ module Icicle.Common.Exp.Exp (
     , Ann
     , renameExp
     , annotOfExp
+    , foldExp
     , TransformX(..)
     ) where
 
@@ -20,6 +21,7 @@ import           Icicle.Internal.Pretty
 
 import           P
 
+import           Control.Lens.Fold   (foldMapOf)
 import           Control.Lens.Plated (Plated (..))
 import           Data.Set (Set)
 
@@ -61,6 +63,11 @@ instance Plated (Exp a n p) where
   plate f (XApp a x y) = XApp a <$> f x <*> f y
   plate f (XLam a n t x) = XLam a n t <$> f x
   plate f (XLet a n x y) = XLet a n <$> f x <*> f y
+
+-- Fold over immediate children
+foldExp :: Monoid x => (Exp a n p -> x) -> (Exp a n p -> x)
+foldExp =
+  foldMapOf plate
 
 renameExp :: (Name n -> Name n') -> Exp a n p -> Exp a n' p
 renameExp f (XVar a n)     = XVar a (f n)
