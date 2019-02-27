@@ -45,10 +45,12 @@ import                  Icicle.Data.Name
 
 import                  P
 
+import                  Control.Monad.Trans.Either (runEitherT, hoistEither)
 import                  Control.Monad.Morph
 import                  Control.Monad.Trans.State.Lazy
-import                  Data.List (zip, unzip)
 
+import                  Data.List (zip, unzip)
+import                  Data.Functor.Identity (runIdentity)
 import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
 
@@ -234,6 +236,23 @@ convertQuery q
     (Distinct _ _ : _)
      -> convertAsFold
 
+    (LetScan _ (PatVariable b) def : _)
+     -> do res        <- convertFold $ Query [] def
+           n'red      <- lift fresh
+           b'fresh    <- convertFreshenAdd b
+
+           let k'      = beta
+                       ( foldKons res CE.@~ CE.xVar n'red)
+
+           let y'      = beta
+                       ( mapExtract res CE.@~ CE.xVar n'red)
+
+           let b'red   = sfold n'red (typeFold res) (foldZero res) k'
+           let b'ret   = sfold b'fresh (typeExtract res) y' y'
+
+           (bs',n'')  <- convertQuery q'
+           return (b'red <> b'ret <> bs', n'')
+
     (Let _ (PatVariable b) def : _)
      -> case getTemporalityOrPure $ annResult $ annotOfExp def of
          TemporalityElement
@@ -272,13 +291,17 @@ convertQuery q
                 return (bs <> bs', n')
 
          TemporalityAggregate
-          -> do (bs,n')      <- convertReduce    def
+          -> do (bs,n')      <- convertReduce def
                 b'           <- convertFreshenAdd b
                 (bs',n'')    <- convertQuery q'
                 return (bs <> post b' (CE.xVar n') <> bs', n'')
 
          _
           -> convertError $ ConvertErrorGroupByHasNonGroupResult (annAnnot $ annotOfExp def) (annResult $ annotOfExp def)
+
+
+    (LetScan (Annot { annAnnot = ann }) pat _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
     (Let (Annot { annAnnot = ann }) pat _ : _)
      -> convertError $ ConvertErrorPatternUnconvertable ann pat
@@ -542,8 +565,8 @@ convertKey env (InputKey (Just k)) (core, ret) = do
 
   -- Synthesise a type for the key expression.
   t'k       <- lift . lift
-             . first  (ConvertErrorCannotCheckKey (annAnnot (annotOfExp k)) k')
-             . second (T.functionReturns)
+             . bimap  (ConvertErrorCannotCheckKey (annAnnot (annotOfExp k)) k')
+                      T.functionReturns
              $ CE.typeExp C.coreFragmentWorkerFun env k'
   let t'key  = T.OptionT t'k
 

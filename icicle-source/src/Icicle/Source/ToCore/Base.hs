@@ -52,8 +52,9 @@ import                  Icicle.Internal.Pretty
 
 import                  P hiding (with)
 
-import                  Control.Monad.Trans.State.Lazy
 import                  Control.Monad.Trans.Class
+import                  Control.Monad.Trans.State.Lazy
+
 
 import qualified        Data.Map as Map
 import qualified        Data.Set as Set
@@ -339,7 +340,6 @@ convertValType ann ty
 
 convertError :: ConvertError a n -> ConvertM a n r
 convertError = lift . lift . Left
-
 
 
 windowEdge :: C.Exp () n -> WindowUnit -> C.Exp () n

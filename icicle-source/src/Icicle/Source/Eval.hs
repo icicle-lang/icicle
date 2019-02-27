@@ -165,6 +165,9 @@ evalQ q vs env
                          (Left _, Left _)
                           -> Left $ EvalErrorExpNeitherSort a x
 
+                LetScan a _ x
+                 -> Left $ EvalErrorExpNeitherSort a x
+
 
 evalX   :: Ord n
         => Exp (Annot a n) n

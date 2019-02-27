@@ -104,6 +104,7 @@ defaults topq
          fv x = fa <> defaultOfAllX x
      in case c of
           Let _ _ x -> fv x
+          LetScan _ _ x -> fv x
           LetFold _ f
            -> fa                      <>
               defaultOfAllX (foldInit f) <>
@@ -460,6 +461,26 @@ generateQ qq@(Query (c:_) _) env
 
             let ss  = compose sx sq
             let q'' = with cons' q' t' $ \a' -> Let a' n x'
+            return (q'', ss, cons')
+
+    -- >   let n = ( |- Aggregate def'p def'd )
+    -- >    ~> ( n : def't Element def'd |- body't body'p body'd )
+    -- > : body't body'p body'd
+    LetScan ann n x
+     -> do  (x', sx, consd)  <- generateX x env
+            let x'typ         = annResult $ annotOfExp x'
+            let (_,mp,x'can)  = decomposeT x'typ
+
+            consI            <- requireAgg x'typ
+
+            let x'typ'elem    = recomposeT (Just TemporalityElement, mp, x'can)
+
+            (q',sq,tq,consr) <- rest =<< goPat ann n x'typ'elem (substE sx env)
+
+            let cons' = concat [consI, consd, consr]
+
+            let ss  = compose sx sq
+            let q'' = with cons' q' tq $ \a' -> LetScan a' n x'
             return (q'', ss, cons')
 
  where

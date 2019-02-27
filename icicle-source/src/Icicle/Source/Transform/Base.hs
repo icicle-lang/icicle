@@ -111,7 +111,9 @@ transformC t cc
         --       not the internal one.
         -> do  x' <- transformX t x
                return (s, Let a n x')
-
+       LetScan a n x
+        -> do  x' <- goX x
+               return (s, LetScan a n x')
 
 transformX
     :: (Monad m)

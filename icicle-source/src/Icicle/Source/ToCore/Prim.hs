@@ -5,6 +5,8 @@ module Icicle.Source.ToCore.Prim (
     convertPrim
   , primInsert
   , primInsertOrUpdate
+  , primInsertNoCheck
+  , primInsertOrUpdateNoCheck
   ) where
 
 import                  Icicle.Source.Query
@@ -492,6 +494,37 @@ primInsertOrUpdate tk tv xm xk xvz xvu = do
  where
   apps f xs = CE.makeApps () (CE.XPrim () f) xs
   bf = C.PrimMinimal . Min.PrimBuiltinFun
+
+
+primInsertNoCheck
+        :: (Hashable n)
+        => T.ValType
+        -> T.ValType
+        -> C.Exp () n
+        -> C.Exp () n
+        -> C.Exp () n
+        -> ConvertM a n (C.Exp () n)
+primInsertNoCheck tk tv xm xk xv = primInsertOrUpdateNoCheck tk tv xm xk xv (const xv)
+
+
+primInsertOrUpdateNoCheck
+        :: (Hashable n)
+        => T.ValType
+        -> T.ValType
+        -> C.Exp () n
+        -> C.Exp () n
+        -> C.Exp () n
+        -> (C.Exp () n -> C.Exp () n)
+        -> ConvertM a n (C.Exp () n)
+primInsertOrUpdateNoCheck tk tv xm xk xvz xvu = do
+  -- insertOrUpdateNoLengthCheck (\n. vu n) vz k m
+  n <- lift F.fresh
+  return $
+    apps (C.PrimMap $ C.PrimMapInsertOrUpdate tk tv)
+         [ CE.XLam () n tv $ xvu $ CE.XVar () n, xvz, xk, xm ]
+
+ where
+  apps f xs = CE.makeApps () (CE.XPrim () f) xs
 
 -- Checks that the output double from a function is valid
 -- and wraps the result in a sum type accordingly

@@ -109,7 +109,8 @@ simplifyNestedC c
     Filter   a x -> Filter   a $ simplifyNestedX x
     LetFold  a f -> LetFold a f { foldInit = simplifyNestedX $ foldInit f
                                 , foldWork = simplifyNestedX $ foldWork f }
-    Let a n  x -> Let a n  $ simplifyNestedX x
+    Let a n  x   -> Let a n  $ simplifyNestedX x
+    LetScan a n x -> LetScan a n  $ simplifyNestedX x
 
 
 simplifyNestedX :: Exp a n -> Exp a n
@@ -199,6 +200,13 @@ allvarsC ns c
             ns' = Set.unions
                 [ ns, nsX, annX x' ]
         in  Let (a, ns') p' x'
+
+    LetScan a p x
+     -> let x' = allvarsX x
+            (p',nsX) = allvarsP p
+            ns' = Set.unions
+                [ ns, nsX, annX x' ]
+        in  LetScan (a, ns') p' x'
 
     LetFold a f
      -> let z'  = allvarsX (foldInit f)

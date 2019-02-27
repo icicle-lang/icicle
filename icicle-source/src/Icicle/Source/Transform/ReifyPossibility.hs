@@ -293,6 +293,8 @@ reifyPossibilityQ (Query (c:cs) final_x)
      -> add' (Filter    (wrapAnnot a)     <$> reifyPossibilityX x)
     Let a n x
      -> add' (Let       (wrapAnnot a) n   <$> reifyPossibilityX x)
+    LetScan a n x
+     -> add' (LetScan   (wrapAnnot a) n   <$> reifyPossibilityX x)
     GroupFold a k v grp
      | grpa                <- annotOfExp grp
      , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult grpa

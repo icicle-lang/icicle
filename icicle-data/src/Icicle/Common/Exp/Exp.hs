@@ -64,7 +64,7 @@ instance Plated (Exp a n p) where
   plate f (XLam a n t x) = XLam a n t <$> f x
   plate f (XLet a n x y) = XLet a n <$> f x <*> f y
 
--- Fold over immediate children
+-- | Fold over immediate children
 foldExp :: Monoid x => (Exp a n p -> x) -> (Exp a n p -> x)
 foldExp =
   foldMapOf plate

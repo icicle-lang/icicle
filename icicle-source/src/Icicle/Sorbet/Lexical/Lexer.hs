@@ -148,6 +148,7 @@ reservedIdentifiers =
     , ("from", Tok_From)
     , ("in", Tok_In)
     , ("let", Tok_Let)
+    , ("scan", Tok_Scan)
     , ("fold", Tok_Fold)
     , ("fold1", Tok_Fold1)
     , ("windowed", Tok_Windowed)

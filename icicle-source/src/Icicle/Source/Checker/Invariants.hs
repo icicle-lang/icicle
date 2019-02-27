@@ -59,22 +59,27 @@ invariantQ ctx (Query (c:cs) xfinal)
     Filter _ x
      -> goX x >> go
     LetFold _ f
-     -> goX (foldInit f) >> goX (foldWork f) >> go
+     -> goF (foldInit f) >> goF (foldWork f) >> go
     Let _ _ x
+     -> goF x >> go
+    LetScan _ _ x
+     | allowLetScan inv
      -> goX x >> go
+     | otherwise
+     -> errBanLetScan
 
  where
   inv = checkInvariants ctx
   q' = Query cs xfinal
   go = invariantQ ctx q'
   goX = invariantX ctx
+  goF = invariantX ctx { checkInvariants = inv { allowLetScan = False }}
 
   goBanAll
      = flip invariantQ q'
      $ ctx { checkInvariants = inv { allowLatest = False
                                    , allowWindows = False
                                    , allowGroupFolds = False }}
-
   errBanLatest
    = errorSuggestions
       (ErrorContextNotAllowedHere (annotOfContext c) c)
@@ -92,6 +97,13 @@ invariantQ ctx (Query (c:cs) xfinal)
    = errorSuggestions
       (ErrorContextNotAllowedHere (annotOfContext c) c)
       [ Suggest "Group folds are unsupported inside other group folds." ]
+
+  errBanLetScan
+   = errorSuggestions
+      (ErrorContextNotAllowedHere (annotOfContext c) c)
+      [ Suggest "Running aggregations (let scan) are unsupported inside group, nested let bindings, and fold worker functions"
+      , Suggest "For folds and lets, try pulling the let scan to the top of the query." ]
+
 
 invariantX
         :: (Hashable n, Eq n)

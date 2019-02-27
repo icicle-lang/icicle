@@ -78,6 +78,10 @@ checkResumableQ ctx q@(Query (c:cs) xfinal)
     Let _ _ x
      -> goX x >> go
 
+    -- Lets can be anything, so must be checked
+    LetScan _ _ x
+     -> goX x >> go
+
     -- A let here is an error!
     LetFold a _
      -> errorSuggestions

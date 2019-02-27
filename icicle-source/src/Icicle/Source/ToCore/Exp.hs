@@ -60,7 +60,6 @@ convertExp x
               | otherwise
               -> convertError $ ConvertErrorExpNoSuchVariable (annAnnot ann) n
 
-
     Nested _ q
      -> convertExpQ q
 

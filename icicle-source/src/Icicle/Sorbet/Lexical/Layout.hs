@@ -359,6 +359,8 @@ takeOpenScope = \case
     Just Context
   Tok_Fold ->
     Just Context
+  Tok_Scan ->
+    Just Context
   Tok_Fold1 ->
     Just Context
   Tok_Windowed ->

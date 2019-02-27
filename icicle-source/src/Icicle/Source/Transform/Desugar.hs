@@ -131,7 +131,7 @@ desugarLets cc
            expand PatDefault = do
              n <- fresh
              return (PatVariable n, [])
-           expand (PatVariable n) = do
+           expand (PatVariable n) =
              return (PatVariable n, [])
            expand c = do
              n <- fresh
@@ -143,6 +143,23 @@ desugarLets cc
            lets     <- mapM desugarLets (kx <> vx)
            return $
              GroupFold a k' v' m : concat lets
+
+    LetScan a n x
+      -> let
+           expand PatDefault = do
+             n' <- fresh
+             return (PatVariable n', [])
+           expand (PatVariable n') =
+             return (PatVariable n', [])
+           expand c = do
+             n' <- fresh
+             let nbind = Let a c (Var a n')
+             return (PatVariable n', [nbind])
+         in do
+           (n', nx) <- expand n
+           lets     <- mapM desugarLets nx
+           return $
+             LetScan a n' x : concat lets
 
     x -> return [x]
 
@@ -156,6 +173,7 @@ desugarC cc
     Distinct  a   x   -> Distinct  a     <$> desugarX x
     Filter    a   x   -> Filter    a     <$> desugarX x
     Let       a n x   -> Let       a n   <$> desugarX x
+    LetScan   a n x   -> LetScan   a n   <$> desugarX x
     LetFold   a   f   -> LetFold   a     <$> desugarF f
     GroupFold a k v x -> GroupFold a k v <$> desugarX x
     Windowed{}        -> return cc

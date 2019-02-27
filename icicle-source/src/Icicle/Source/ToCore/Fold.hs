@@ -398,7 +398,7 @@ convertFold q
                           $ unwrapSum k'possibly t'sumF n'error  k'             n'key t'k
                           $ mapInsertF
 
-           mapInsertX    <- primInsert t'kr t'xr (CE.xVar n'acc') (CE.xVar n'key) (CE.xVar n'x')
+           mapInsertX    <- primInsertNoCheck t'kr t'xr (CE.xVar n'acc') (CE.xVar n'key) (CE.xVar n'x')
 
            let extract n  = mapExtract res CE.@~ CE.xVar n
            let ins        = CE.xLam n'acc t'sumX
@@ -406,6 +406,7 @@ convertFold q
                           $ CE.xLam n'x   t'fold
                           $ unwrapSum True       t'sumX n'error (CE.xVar n'acc) n'acc' t'sumX
                           $ unwrapSum q'possibly t'sumX n'error (extract n'x)   n'x' (typeExtract res)
+                          $ x'right (T.MapT t'kr t'xr)
                           $ mapInsertX
 
            let xtra       = CE.xLam n'sum t'sumF
@@ -634,6 +635,12 @@ convertFold q
 
     (LetFold (Annot { annAnnot = ann }) Fold{ foldBind = pat } : _)
      -> convertError $ ConvertErrorPatternUnconvertable ann pat
+
+    (LetScan (Annot { annAnnot = ann }) pat x : _)
+     -> do  resb <- convertFold (Query [] x)
+            convertAsLet ann pat resb
+
+
 
  where
   q' = q { contexts = drop 1 $ contexts q }

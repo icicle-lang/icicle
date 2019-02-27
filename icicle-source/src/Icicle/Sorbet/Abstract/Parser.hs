@@ -267,6 +267,7 @@ pSingleContext =
     , pContextFilter
     , pContextLatest
     , pContextFold
+    , pContextScan
     ]
 
 
@@ -360,6 +361,13 @@ pContextFold = do
   k       <- pQuery                                         <?> "fold expression"
   return $ LetFold p (Fold n (simpNested z) (simpNested k) ft)
 
+pContextScan :: Parser s m => m (Context Range Var)
+pContextScan = do
+  p       <- pToken Tok_Scan
+  n       <- pPattern
+  _       <- pToken Tok_Equals
+  k       <- pQuery                                         <?> "fold expression"
+  return $ LetScan p n (simpNested k)
 
 pFoldType :: Parser s m => m (Range, FoldType)
 pFoldType

@@ -166,6 +166,13 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
           , indent 2 . align $ annotate AnnBinding (pretty b) <+> prettyPunctuation "=" <+> pretty (PrettyAnnot x)
           ]
 
+      LetScan _ b x ->
+        vsep [
+            prettyKeyword "let" <+> prettyKeyword "scan" <+> annotate AnnBinding (pretty b) <> pretty (annotOfExp x) <+> prettyPunctuation "="
+          , indent 2 . align $
+              pretty $ PrettyAnnot x
+          ]
+
 instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Query a n)) where
   pretty qq =
     case getPrettyAnnot qq of
