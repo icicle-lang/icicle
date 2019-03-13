@@ -56,7 +56,7 @@ alphaEquality' m x1 x2
  -- Types must match. Names can be different, so add them to bijection
  | XLam _ n1 t1 x1'   <- x1
  , XLam _ n2 t2 x2'   <- x2
- =  t1 == t2 
+ =  t1 == t2
  && alphaEquality' (insertBoth m (n1,n2))
        x1' x2'
 

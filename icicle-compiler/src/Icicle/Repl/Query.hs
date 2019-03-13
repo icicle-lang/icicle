@@ -515,7 +515,7 @@ fromOutput oid output = do
     Boxed.zip (Runtime.outputKey output) pvalues
 
 evaluateZebra :: CompiledQuery -> FilePath -> EitherT QueryError Repl ()
-evaluateZebra compiled path = do
+evaluateZebra compiled path =
   case compiledAvalanche compiled of
     Nothing ->
       pure ()

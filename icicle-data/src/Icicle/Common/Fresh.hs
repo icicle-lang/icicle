@@ -105,7 +105,6 @@ instance Monad m => Applicative (FreshT n m) where
   = do f' <- f
        x' <- x
        return $ f' x'
- 
 
 instance MonadTrans (FreshT n) where
  lift m
@@ -113,4 +112,3 @@ instance MonadTrans (FreshT n) where
   $ \ns
   -> do v <- m
         return (ns, v)
-
