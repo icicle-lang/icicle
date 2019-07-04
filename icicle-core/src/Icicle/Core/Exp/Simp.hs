@@ -255,14 +255,16 @@ takeIrrefutable xx = case xx of
  where
   x <%> a = fmap (either (Left . x) (Right . x)) a
 
-unshuffleLets :: (Monad m, Hashable n, Eq n)
-              => a -> C.Exp a n -> FixT m (C.Exp a n)
+unshuffleLets :: (Hashable n, Eq n)
+              => a -> C.Exp a n -> FixT (Fresh n) (C.Exp a n)
 unshuffleLets _ xx
   | XLet a n b q <- xx
   , XLet a1 n1 b1 x1 <- b
-  = progress
-    $ XLet a1 n1 b1
-    $ XLet a n x1 q
+  = do
+    n1'new <- lift fresh
+    progress
+      $ XLet a1 n1'new b1
+      $ XLet a n (subsNameInExp n1 n1'new x1) q
 
   | otherwise
   = return xx
