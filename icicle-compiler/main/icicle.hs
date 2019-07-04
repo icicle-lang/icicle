@@ -5,10 +5,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 
-import           BuildInfo_icicle
-import           DependencyInfo_icicle
+import           Paths_icicle (version)
+import           Data.Version (showVersion)
 
-import           Data.String (String)
+import           Data.String (String, fromString)
 import qualified Data.Text as Text
 
 import           GHC.Conc (getNumProcessors, setNumCapabilities)
@@ -41,7 +41,7 @@ main = do
   setNumCapabilities (min 16 n)
   hSetBuffering stdout LineBuffering
   hSetBuffering stderr LineBuffering
-  Options.cli "icicle" buildInfoVersion dependencyInfo parser runCommand
+  Options.cli "icicle" (showVersion version) [] parser runCommand
 
 parser :: Parser IcicleCommand
 parser =
@@ -117,6 +117,7 @@ pCheck :: Parser Check
 pCheck =
   Check
     <$> pInputDictionaryToml
+    <*> pColourOutput
 
 pMaximumQueriesPerKernel :: Parser MaximumQueriesPerKernel
 pMaximumQueriesPerKernel =
@@ -228,6 +229,11 @@ pMaximumMapSize =
     Options.metavar "QUERY_COUNT" <>
     Options.help "The maximum allowed size of a map at runtime."
 
+pColourOutput :: Parser UseColor
+pColourOutput =
+  Options.flag NoColor UseColor $
+    Options.long "colour"
+
 tryRead :: [Char] -> ([Char] -> Maybe a) -> (a -> b) -> Options.ReadM b
 tryRead err f g =
   Options.readerAsk >>= \s ->
@@ -242,7 +248,7 @@ tryRead err f g =
 icicleFingerprint :: Fingerprint
 icicleFingerprint =
   Fingerprint $
-    "icicle-" <> Text.pack buildInfoVersion
+    "icicle-" <> fromString (showVersion version)
 
 runCommand :: IcicleCommand -> IO ()
 runCommand = \case

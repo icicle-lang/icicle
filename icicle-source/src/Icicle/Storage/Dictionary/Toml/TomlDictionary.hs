@@ -7,7 +7,6 @@ module Icicle.Storage.Dictionary.Toml.TomlDictionary (
   , ConcreteKey'(..)
   , DictionaryValidationError(..)
   , tomlDict
-  , toEither
   ) where
 
 import           P
@@ -16,7 +15,7 @@ import           Control.Lens
 
 import qualified Control.Applicative as CA ((<|>))
 import           Data.Text
-import           Data.Validation
+import           Data.Validation hiding (validate)
 import qualified Data.HashMap.Strict as M
 
 import           Data.Attoparsec.Text
@@ -139,7 +138,7 @@ type Name = Text
 tomlDict
   :: DictionaryConfig
   -> Table
-  -> AccValidation [DictionaryValidationError] (DictionaryConfig, [DictionaryInput'], [DictionaryOutput'])
+  -> Validation [DictionaryValidationError] (DictionaryConfig, [DictionaryInput'], [DictionaryOutput'])
 tomlDict parentConf x = fromEither $ do
   n <- toEither . textFocus "namespace" $ x
   nsp <- case n of
@@ -182,7 +181,7 @@ validateNamespace
   :: DictionaryConfig
   -> Text
   -> Table
-  -> AccValidation [DictionaryValidationError] Namespace
+  -> Validation [DictionaryValidationError] Namespace
 validateNamespace parent name x =
   let
     k =
@@ -192,7 +191,7 @@ validateNamespace parent name x =
       maybeToRight [MissingRequired ("fact." <> name) k] (configNamespace parent)
 
   in maybe
-       (either AccFailure AccSuccess valParent)
+       (either Failure Success valParent)
        (andThen parseNamespace [InvalidNamespace name] . validateText k)
        (x ^? key k)
 
@@ -202,14 +201,14 @@ validateFact
   :: DictionaryConfig
   -> Name
   -> Table
-  -> AccValidation [DictionaryValidationError] DictionaryInput'
+  -> Validation [DictionaryValidationError] DictionaryInput'
 validateFact conf name x =
   let fname
         = "fact." <> name
 
       -- Every fact needs an encoding, which can't be inherited from it's parent.
       encoding
-        = maybe (AccFailure [MissingRequired fname "encoding"])
+        = maybe (Failure [MissingRequired fname "encoding"])
                 (validateEncoding' fname)
                 (M.lookup "encoding" x)
 
@@ -229,7 +228,7 @@ validateFact conf name x =
         <$> (validateExpression (fname <> ".key")) `traverse` (x ^? key "key"))
 
       attribute
-        = maybe (AccFailure [InvalidName name]) pure (parseInputName name)
+        = maybe (Failure [InvalidName name]) pure (parseInputName name)
 
       -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
   in DictionaryInput'
@@ -241,7 +240,7 @@ validateFact conf name x =
 
 validateExpression :: Text
                    -> (Node, SourcePos)
-                   -> AccValidation [DictionaryValidationError] (Exp SourcePos Variable)
+                   -> Validation [DictionaryValidationError] (Exp SourcePos Variable)
 validateExpression fname expression = fromEither $ do
    expression' <- maybeToRight [BadType fname "string" (expression ^. _2)]
                 $ expression ^? _1 . _NTValue . _VString
@@ -262,7 +261,7 @@ validateFeature
   :: DictionaryConfig
   -> Name
   -> Table
-  -> AccValidation [DictionaryValidationError] DictionaryOutput'
+  -> Validation [DictionaryValidationError] DictionaryOutput'
 validateFeature conf name x = fromEither $ do
   let fname     = "feature." <> name
       fexp      = fname <> ".expression"
@@ -296,7 +295,7 @@ validateFeature conf name x = fromEither $ do
 validateEncoding'
   :: Text
   -> (Node, Pos.SourcePos)
-  -> AccValidation [DictionaryValidationError] Encoding
+  -> Validation [DictionaryValidationError] Encoding
 
 -- We can accept an encoding as a string in the old form.
 -- e.g. "(location:string,severity:int)"
@@ -304,8 +303,8 @@ validateEncoding'
 validateEncoding' ofFeature (NTValue (VString encs), pos) =
   let encodingString = pack $ fst <$> encs
   in either
-       (AccFailure . const [EncodingError ofFeature encodingString pos])
-        AccSuccess
+       (Failure . const [EncodingError ofFeature encodingString pos])
+        Success
        $ parseOnly parseEncoding encodingString
 
 -- Or as a table with string fields.
@@ -316,7 +315,7 @@ validateEncoding' ofFeature (NTValue (VString encs), pos) =
 --
 validateEncoding' ofFeature (NTable t, _) =
   let validated name (enc, pos')
-        = either AccFailure AccSuccess
+        = either Failure Success
         $ do -- Using a monad instance here, as the encoding should be a string.
              enc' <- maybe (Left [BadType name "string" pos'])
                            (Right . fmap fst)
@@ -335,7 +334,7 @@ validateEncoding' ofFeature (NTable t, _) =
 
 -- But all other values should be failures.
 validateEncoding' ofFeature (_, pos) =
-  AccFailure $ [BadType (ofFeature <> ".encoding") "string" pos]
+  Failure $ [BadType (ofFeature <> ".encoding") "string" pos]
 
 
 --------------------------------------------------------------------------------
@@ -346,11 +345,11 @@ validateTableWith
   :: (   DictionaryConfig
       -> Text
       -> Table
-      -> AccValidation [DictionaryValidationError] a )
+      -> Validation [DictionaryValidationError] a )
   -> Text
   -> DictionaryConfig
   -> (Node, Pos.SourcePos)
-  -> AccValidation [DictionaryValidationError] [a]
+  -> Validation [DictionaryValidationError] [a]
 validateTableWith validator _ conf (NTable t, _) =
   let validate name (fact', pos')
         = fromEither $ do
@@ -362,7 +361,7 @@ validateTableWith validator _ conf (NTable t, _) =
   -- We will get an error for every failed item listed.
   in toList <$> M.traverseWithKey validate t
 
-validateTableWith _ n _ (_, pos) = AccFailure $ [BadType n "table" pos]
+validateTableWith _ n _ (_, pos) = Failure $ [BadType n "table" pos]
 
 
 -- | Validate a TOML node is a string.
@@ -370,10 +369,10 @@ validateTableWith _ n _ (_, pos) = AccFailure $ [BadType n "table" pos]
 validateText
   :: Text
   -> (Node, Pos.SourcePos)
-  -> AccValidation [DictionaryValidationError] Text
+  -> Validation [DictionaryValidationError] Text
 validateText ttt x
-  = maybe (AccFailure [BadType ttt "string" (x ^. _2)])
-          (AccSuccess . pack . fmap fst)
+  = maybe (Failure [BadType ttt "string" (x ^. _2)])
+          (Success . pack . fmap fst)
           (x ^? _1 . _NTValue . _VString)
 
 
@@ -382,9 +381,9 @@ validateText ttt x
 validateInt
   :: Text
   -> (Node, Pos.SourcePos)
-  -> AccValidation [DictionaryValidationError] Int64
-validateInt _ (NTValue (VInteger i), _) = AccSuccess i
-validateInt t (_, pos)                  = AccFailure $ [BadType t "int" pos]
+  -> Validation [DictionaryValidationError] Int64
+validateInt _ (NTValue (VInteger i), _) = Success i
+validateInt t (_, pos)                  = Failure $ [BadType t "int" pos]
 
 
 -- | Validate a TOML node is an array of strings.
@@ -392,45 +391,35 @@ validateInt t (_, pos)                  = AccFailure $ [BadType t "int" pos]
 validateTextArray
   :: Text
   -> (Node, Pos.SourcePos)
-  -> AccValidation [DictionaryValidationError] [Text]
+  -> Validation [DictionaryValidationError] [Text]
 
 validateTextArray t (NTValue (VArray xs), pos) =
   let validateString (VString x) = Right $ pack $ fst <$> x
       validateString _           = Left $ [BadType t "string" pos]
-  in  either AccFailure AccSuccess $ validateString `traverse` xs
+  in  either Failure Success $ validateString `traverse` xs
 
 validateTextArray t (_, pos) =
-  AccFailure $ [BadType t "array" pos]
+  Failure $ [BadType t "array" pos]
 
 
-textArrayFocus :: Text -> Table -> AccValidation [DictionaryValidationError] [Text]
+textArrayFocus :: Text -> Table -> Validation [DictionaryValidationError] [Text]
 textArrayFocus label x'
   = maybe [] id <$> traverse (validateTextArray label) (x' ^? key label)
 
-textFocus :: Text -> Table -> AccValidation [DictionaryValidationError] (Maybe Text)
+textFocus :: Text -> Table -> Validation [DictionaryValidationError] (Maybe Text)
 textFocus label x'
   = validateText label `traverse` (x' ^? key label)
 
-intFocus :: Text -> Table -> AccValidation [DictionaryValidationError] (Maybe Int64)
+intFocus :: Text -> Table -> Validation [DictionaryValidationError] (Maybe Int64)
 intFocus label x'
   = validateInt label `traverse` (x' ^? key label)
 
 --------------------------------------------------------------------------------
 
-toEither :: AccValidation a b -> Either a b
-toEither = accValidation Left Right
-
-fromEither :: Either a b -> AccValidation a b
-fromEither = either AccFailure AccSuccess
-
-accValidation :: (a -> c) -> (b -> c) -> AccValidation a b -> c
-accValidation f _ (AccFailure a) = f a
-accValidation _ f (AccSuccess b) = f b
-
-andThen :: (b -> Maybe c) -> a -> AccValidation a b -> AccValidation a c
+andThen :: (b -> Maybe c) -> a -> Validation a b -> Validation a c
 andThen f e v =
   case toEither v of
     Left t ->
-      AccFailure t
+      Failure t
     Right x ->
-      maybe (AccFailure e) AccSuccess (f x)
+      maybe (Failure e) Success (f x)

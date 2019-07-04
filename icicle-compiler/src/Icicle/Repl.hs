@@ -5,6 +5,8 @@
 module Icicle.Repl (
     ReplOptions(..)
   , UseDotfiles(..)
+  , UseColor(..)
+
   , repl
   , repl_
   ) where

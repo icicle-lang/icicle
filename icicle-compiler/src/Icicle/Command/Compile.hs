@@ -36,6 +36,7 @@ import qualified Icicle.Compiler as Compiler
 import qualified Icicle.Compiler.Source as Source
 import           Icicle.Dictionary.Data (Dictionary, prettyDictionarySummary)
 import qualified Icicle.Internal.Pretty as Pretty
+import           Icicle.Repl.Pretty as Pretty
 import           Icicle.Runtime.Data
 import qualified Icicle.Runtime.Evaluator as Runtime
 import           Icicle.Sea.Header
@@ -43,7 +44,7 @@ import qualified Icicle.Storage.Dictionary.Toml as Toml
 
 import           P
 
-import           System.IO (IO, FilePath)
+import           System.IO as IO (IO, FilePath)
 
 import           X.Control.Monad.Trans.Either (EitherT, hoistEither)
 
@@ -59,6 +60,7 @@ data Compile =
 data Check =
   Check {
       checkInputDictionary :: !InputDictionaryToml
+    , checkColourOutput    :: !Pretty.UseColor
     } deriving (Eq, Ord, Show)
 
 newtype InputDictionaryToml =
@@ -169,4 +171,7 @@ icicleCheck check = do
     summary
       = prettyDictionarySummary dictionary
 
-  liftIO $ Pretty.putDoc summary
+    use
+      = checkColourOutput check
+
+  putPrettyWith use 80 summary

@@ -7,7 +7,7 @@ copyright:             (c) 2015 Ambiata.
 synopsis:              Icicle Source language parser and type checker.
 category:              System
 cabal-version:         >= 1.8
-build-type:            Custom
+build-type:            Simple
 description:           Icicle Source language parser and type checker.
 
 extra-source-files:
@@ -40,7 +40,7 @@ library
                      , time                            >= 1.5        && < 1.10
                      , time-locale-compat              == 0.1.*
                      , transformers                    >= 0.3        && < 0.6
-                     , validation                      == 0.5.*
+                     , validation                      >= 1          && < 1.2
                      , vector
                      -- Well, it might look very odd that we're using both attoparsec
                      -- and parsec.

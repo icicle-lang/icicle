@@ -7,7 +7,7 @@ copyright:             (c) 2015 Ambiata.
 synopsis:              Icicle Core language definition.
 category:              System
 cabal-version:         >= 1.8
-build-type:            Custom
+build-type:            Simple
 description:           Icicle Core language definition.
 
 library

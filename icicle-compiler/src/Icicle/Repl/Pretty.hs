@@ -12,6 +12,7 @@ module Icicle.Repl.Pretty (
   , getUseColorDefault
 
   , putPretty
+  , putPrettyWith
   , putError
   , putErrorPosition
   , putSection
@@ -133,6 +134,10 @@ putPretty :: (MonadState State m, MonadIO m, Pretty a) => a -> m ()
 putPretty x = do
   use <- getUseColor
   width <- fromMaybe 80 <$> getTerminalWidth
+  putPrettyWith use width x
+
+putPrettyWith :: (MonadIO m, Pretty a) => UseColor -> Int -> a -> m ()
+putPrettyWith use width x =
   liftIO .
     IO.putStrLn .
     Pretty.displayDecorated (setColor use) (const $ sgrReset use) id .

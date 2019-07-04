@@ -1,0 +1,34 @@
+packages: icicle-core/
+          icicle-source/
+          icicle-compiler/
+          lib/piano/
+          lib/jetski/
+          lib/anemone/
+          lib/zebra/zebra-cli/
+          lib/zebra/zebra-core/test/
+          lib/zebra/zebra-core/
+          lib/viking/
+          lib/disorder.hs/disorder-corpus/
+          lib/disorder.hs/disorder-aeson/
+          lib/disorder.hs/disorder-cli/
+          lib/disorder.hs/disorder-jack/
+          lib/disorder.hs/disorder-core/
+          lib/snapper/
+          lib/x/x-optparse/
+          lib/x/x-bytestring/
+          lib/x/x-eithert/
+          lib/x/x-attoparsec/
+          lib/x/x-exception/
+          lib/x/x-conduit/
+          lib/x/x-htoml/
+          lib/x/x-vector/
+          lib/x/x-templatehaskell/
+          lib/x/x-show/
+          lib/x/x-aeson/
+          lib/x/x-file-embed/
+          lib/p/
+          icicle-data/
+
+constraints:
+  cabal > 2
+

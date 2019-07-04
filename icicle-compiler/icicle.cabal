@@ -7,7 +7,7 @@ copyright:             (c) 2015 Ambiata.
 synopsis:              icicle
 category:              System
 cabal-version:         >= 1.8
-build-type:            Custom
+build-type:            Simple
 description:           icicle.
 
 extra-source-files:
@@ -70,7 +70,6 @@ library
                      , transformers-base               == 0.4.*
                      , unix                            == 2.7.*
                      , unordered-containers            == 0.2.*
-                     , validation                      == 0.5.*
                      , vector                          >= 0.11       && < 0.13
                      , vector-space                    >= 0.10
                      , void                            >= 0.5        && < 0.8
@@ -95,7 +94,6 @@ library
                        src
 
   exposed-modules:
-                       Paths_icicle
                        Icicle
 
                        Icicle.Avalanche.Program
@@ -182,10 +180,10 @@ library
 
 
 executable icicle
-    main-is:           ../main/icicle.hs
+    main-is:           icicle.hs
 
     hs-source-dirs:
-                       gen
+                       main
 
 
     build-depends:     base
@@ -210,6 +208,9 @@ executable icicle
                      , text
                      , time
                      , transformers
+
+    other-modules:
+                       Paths_icicle
 
     -- The parallel GC prior to GHC 8.0.1 has pathological behaviour for
     -- unbalanced workloads:
@@ -268,7 +269,7 @@ test-suite test
                      , pretty-show
                      , hashable
                      , hedgehog                        >= 0.5        && < 0.7
-                     , hedgehog-quickcheck
+                     , hedgehog-quickcheck             == 0.1
                      , unordered-containers
                      , QuickCheck
                      , quickcheck-instances

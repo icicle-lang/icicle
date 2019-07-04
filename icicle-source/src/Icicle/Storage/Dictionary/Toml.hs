@@ -44,6 +44,7 @@ import qualified Data.Set                                      as Set
 import qualified Data.Text                                     as T
 import qualified Data.Text.Encoding                            as T
 import qualified Data.Text.IO                                  as T
+import           Data.Validation (toEither)
 
 import           Text.Parsec                                   (SourcePos)
 import qualified Text.Parsec                                   as Parsec
