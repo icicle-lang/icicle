@@ -140,13 +140,16 @@ caseOfCase a_fresh xx
         replaceIn
           = either (const l'exp) (const r'exp)
 
+        nameIn
+          = either (const l'n) (const r'n)
+
         newLeftLam
           = xlam n'l i'l'typ
-          $ xlet l'n (join either renameInLeft l'case) (replaceIn l'case)
+          $ xlet (nameIn l'case) (join either renameInLeft l'case) (replaceIn l'case)
 
         newRightLam
           = xlam n'r i'r'typ
-          $ xlet r'n (join either renameInRight r'case) (replaceIn r'case)
+          $ xlet (nameIn r'case) (join either renameInRight r'case) (replaceIn r'case)
 
       progress
         $ xprim (PrimFold fld ret'typ)
