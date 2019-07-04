@@ -1,6 +1,6 @@
 Queries will no longer be evaluated using the C evaluator.
 Snapshot mode activated with a snapshot date of 2017-01-01.
-Loaded dictionary with 5 inputs, 0 outputs, 71 functions.
+Loaded dictionary with 5 inputs, 0 outputs, 74 functions.
 Selected psv file as input: test/cli/repl/data.psv
 
   ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
@@ -27,170 +27,133 @@ conv-2 : Time =
 conv-3 : Int =
   MAX_MAP_SIZE
 
-acc-c-conv-10-simpflat-2 =i ExceptNotAnError : Error
-acc-c-conv-10-simpflat-3 =i 0 : Int
-acc-conv-25-simpflat-4 =i Buf_make#
+acc-c-conv-10-simpflat-0 =i ExceptNotAnError : Error
+acc-c-conv-10-simpflat-1 =i 0 : Int
+acc-conv-25-simpflat-2 =i Buf_make#
                             () : Buf 3 Error
-acc-conv-25-simpflat-5 =i Buf_make#
+acc-conv-25-simpflat-3 =i Buf_make#
                             () : Buf 3 Int
 
 for_facts conv-1 : Time
-        , conv-0-simpflat-38 : Error
-        , conv-0-simpflat-39 : Int
-        , conv-0-simpflat-40 : Time {
-    flat-0-simpflat-6 =i ExceptNotAnError : Error
-    flat-0-simpflat-7 =i False : Bool
+        , conv-0-simpflat-28 : Error
+        , conv-0-simpflat-29 : Int
+        , conv-0-simpflat-30 : Time {
+    flat-0 =i False : Bool
     
     if (eq#
-          conv-0-simpflat-38
+          conv-0-simpflat-28
           ExceptNotAnError)
     {
-        simpflat-0 = gt#
-                       conv-0-simpflat-39
-                       10
-        flat-0-simpflat-6 =w ExceptNotAnError
-        flat-0-simpflat-7 =w simpflat-0
+        flat-0 =w gt#
+                    conv-0-simpflat-29
+                    10
     }
     else
     {
-        flat-0-simpflat-6 =w conv-0-simpflat-38
-        flat-0-simpflat-7 =w False
+        flat-0 =w True
     }
     
-    flat-0-simpflat-8 =r flat-0-simpflat-6
-    flat-0-simpflat-9 =r flat-0-simpflat-7
-    flat-1 =i False : Bool
+    flat-0 =r flat-0
     
-    if (eq#
-          flat-0-simpflat-8
-          ExceptNotAnError)
+    if (flat-0)
     {
-        flat-1 =w flat-0-simpflat-9
-    }
-    else
-    {
-        flat-1 =w True
-    }
-    
-    flat-1 =r flat-1
-    
-    if (flat-1)
-    {
-        c-conv-10-aval-0-simpflat-10 =r acc-c-conv-10-simpflat-2
-        c-conv-10-aval-0-simpflat-11 =r acc-c-conv-10-simpflat-3
-        flat-2-simpflat-12 =i ExceptNotAnError : Error
-        flat-2-simpflat-13 =i 0 : Int
+        c-conv-10-aval-0-simpflat-4 =r acc-c-conv-10-simpflat-0
+        c-conv-10-aval-0-simpflat-5 =r acc-c-conv-10-simpflat-1
+        flat-1-simpflat-6 =i ExceptNotAnError : Error
+        flat-1-simpflat-7 =i 0 : Int
         
         if (eq#
-              conv-0-simpflat-38
+              conv-0-simpflat-28
               ExceptNotAnError)
         {
-            flat-5-simpflat-14 =i ExceptNotAnError : Error
-            flat-5-simpflat-15 =i 0 : Int
+            flat-4-simpflat-8 =i ExceptNotAnError : Error
+            flat-4-simpflat-9 =i 0 : Int
             
             if (eq#
-                  c-conv-10-aval-0-simpflat-10
+                  c-conv-10-aval-0-simpflat-4
                   ExceptNotAnError)
             {
-                simpflat-1 = add#
-                               c-conv-10-aval-0-simpflat-11
-                               1
-                flat-5-simpflat-14 =w ExceptNotAnError
-                flat-5-simpflat-15 =w simpflat-1
+                reify-9-conv-17 = add#
+                                    c-conv-10-aval-0-simpflat-5
+                                    1
+                flat-4-simpflat-8 =w ExceptNotAnError
+                flat-4-simpflat-9 =w reify-9-conv-17
             }
             else
             {
-                flat-5-simpflat-14 =w c-conv-10-aval-0-simpflat-10
-                flat-5-simpflat-15 =w 0
+                flat-4-simpflat-8 =w c-conv-10-aval-0-simpflat-4
+                flat-4-simpflat-9 =w 0
             }
             
-            flat-5-simpflat-16 =r flat-5-simpflat-14
-            flat-5-simpflat-17 =r flat-5-simpflat-15
-            flat-6-simpflat-18 =i ExceptNotAnError : Error
-            flat-6-simpflat-19 =i 0 : Int
-            
-            if (eq#
-                  flat-5-simpflat-16
-                  ExceptNotAnError)
-            {
-                flat-6-simpflat-18 =w ExceptNotAnError
-                flat-6-simpflat-19 =w flat-5-simpflat-17
-            }
-            else
-            {
-                flat-6-simpflat-18 =w flat-5-simpflat-16
-                flat-6-simpflat-19 =w 0
-            }
-            
-            flat-6-simpflat-20 =r flat-6-simpflat-18
-            flat-6-simpflat-21 =r flat-6-simpflat-19
-            flat-2-simpflat-12 =w flat-6-simpflat-20
-            flat-2-simpflat-13 =w flat-6-simpflat-21
+            flat-4-simpflat-10 =r flat-4-simpflat-8
+            flat-4-simpflat-11 =r flat-4-simpflat-9
+            flat-1-simpflat-6 =w flat-4-simpflat-10
+            flat-1-simpflat-7 =w flat-4-simpflat-11
         }
         else
         {
-            flat-2-simpflat-12 =w conv-0-simpflat-38
-            flat-2-simpflat-13 =w 0
+            flat-1-simpflat-6 =w conv-0-simpflat-28
+            flat-1-simpflat-7 =w 0
         }
         
-        flat-2-simpflat-22 =r flat-2-simpflat-12
-        flat-2-simpflat-23 =r flat-2-simpflat-13
-        acc-c-conv-10-simpflat-2 =w flat-2-simpflat-22
-        acc-c-conv-10-simpflat-3 =w flat-2-simpflat-23
+        flat-1-simpflat-12 =r flat-1-simpflat-6
+        flat-1-simpflat-13 =r flat-1-simpflat-7
+        acc-c-conv-10-simpflat-0 =w flat-1-simpflat-12
+        acc-c-conv-10-simpflat-1 =w flat-1-simpflat-13
     }
     
-    acc-conv-25-simpflat-4 =r acc-conv-25-simpflat-4
-    acc-conv-25-simpflat-4 =w Buf_push#
-                                acc-conv-25-simpflat-4
-                                conv-0-simpflat-38
-    acc-conv-25-simpflat-5 =r acc-conv-25-simpflat-5
-    acc-conv-25-simpflat-5 =w Buf_push#
-                                acc-conv-25-simpflat-5
-                                conv-0-simpflat-39
+    acc-conv-25-simpflat-2 =r acc-conv-25-simpflat-2
+    acc-conv-25-simpflat-2 =w Buf_push#
+                                acc-conv-25-simpflat-2
+                                conv-0-simpflat-28
+    acc-conv-25-simpflat-3 =r acc-conv-25-simpflat-3
+    acc-conv-25-simpflat-3 =w Buf_push#
+                                acc-conv-25-simpflat-3
+                                conv-0-simpflat-29
 }
 
-conv-25-simpflat-26 =r acc-conv-25-simpflat-4
-conv-25-simpflat-27 =r acc-conv-25-simpflat-5
-c-conv-10-simpflat-28 =r acc-c-conv-10-simpflat-2
-c-conv-10-simpflat-29 =r acc-c-conv-10-simpflat-3
-flat-16-simpflat-30 =i ExceptNotAnError : Error
-flat-16-simpflat-31 =i 0 : Int
-flat-16-simpflat-32 =i unsafe_Array_create#
+conv-25-simpflat-16 =r acc-conv-25-simpflat-2
+conv-25-simpflat-17 =r acc-conv-25-simpflat-3
+c-conv-10-simpflat-18 =r acc-c-conv-10-simpflat-0
+c-conv-10-simpflat-19 =r acc-c-conv-10-simpflat-1
+flat-10-simpflat-20 =i ExceptNotAnError : Error
+flat-10-simpflat-21 =i 0 : Int
+flat-10-simpflat-22 =i unsafe_Array_create#
                          0 : Array Error
-flat-16-simpflat-33 =i unsafe_Array_create#
+flat-10-simpflat-23 =i unsafe_Array_create#
                          0 : Array Int
 
 if (eq#
-      c-conv-10-simpflat-28
+      c-conv-10-simpflat-18
       ExceptNotAnError)
 {
-    flat-16-simpflat-30 =w ExceptNotAnError
-    flat-16-simpflat-31 =w c-conv-10-simpflat-29
-    flat-16-simpflat-32 =w Buf_read#
-                             conv-25-simpflat-26
-    flat-16-simpflat-33 =w Buf_read#
-                             conv-25-simpflat-27
+    flat-10-simpflat-20 =w ExceptNotAnError
+    flat-10-simpflat-21 =w c-conv-10-simpflat-19
+    flat-10-simpflat-22 =w Buf_read#
+                             conv-25-simpflat-16
+    flat-10-simpflat-23 =w Buf_read#
+                             conv-25-simpflat-17
 }
 else
 {
-    flat-16-simpflat-30 =w c-conv-10-simpflat-28
-    flat-16-simpflat-31 =w 0
-    flat-16-simpflat-32 =w unsafe_Array_create#
+    flat-10-simpflat-20 =w c-conv-10-simpflat-18
+    flat-10-simpflat-21 =w 0
+    flat-10-simpflat-22 =w unsafe_Array_create#
                              0
-    flat-16-simpflat-33 =w unsafe_Array_create#
+    flat-10-simpflat-23 =w unsafe_Array_create#
                              0
 }
 
-flat-16-simpflat-34 =r flat-16-simpflat-30
-flat-16-simpflat-35 =r flat-16-simpflat-31
-flat-16-simpflat-36 =r flat-16-simpflat-32
-flat-16-simpflat-37 =r flat-16-simpflat-33
+flat-10-simpflat-24 =r flat-10-simpflat-20
+flat-10-simpflat-25 =r flat-10-simpflat-21
+flat-10-simpflat-26 =r flat-10-simpflat-22
+flat-10-simpflat-27 =r flat-10-simpflat-23
 
 output repl:output : Sum Error (Int, Array (Sum Error Int)) =
-    flat-16-simpflat-34 : Error
-  , flat-16-simpflat-35 : Int
-  , flat-16-simpflat-36 : Array Error
-  , flat-16-simpflat-37 : Array Int
+    flat-10-simpflat-24 : Error
+  , flat-10-simpflat-25 : Int
+  , flat-10-simpflat-26 : Array Error
+  , flat-10-simpflat-27 : Array Int
 
 Flattened Avalanche (simplified), typechecked
 ---------------------------------------------
@@ -200,170 +163,133 @@ conv-2 : Time =
 conv-3 : Int =
   MAX_MAP_SIZE
 
-acc-c-conv-10-simpflat-2 =i ExceptNotAnError : Error
-acc-c-conv-10-simpflat-3 =i 0 : Int
-acc-conv-25-simpflat-4 =i Buf_make#
+acc-c-conv-10-simpflat-0 =i ExceptNotAnError : Error
+acc-c-conv-10-simpflat-1 =i 0 : Int
+acc-conv-25-simpflat-2 =i Buf_make#
                             () : Buf 3 Error
-acc-conv-25-simpflat-5 =i Buf_make#
+acc-conv-25-simpflat-3 =i Buf_make#
                             () : Buf 3 Int
 
 for_facts conv-1 : Time
-        , conv-0-simpflat-38 : Error
-        , conv-0-simpflat-39 : Int
-        , conv-0-simpflat-40 : Time {
-    flat-0-simpflat-6 =i ExceptNotAnError : Error
-    flat-0-simpflat-7 =i False : Bool
+        , conv-0-simpflat-28 : Error
+        , conv-0-simpflat-29 : Int
+        , conv-0-simpflat-30 : Time {
+    flat-0 =i False : Bool
     
     if (eq#
-          conv-0-simpflat-38
+          conv-0-simpflat-28
           ExceptNotAnError)
     {
-        simpflat-0 = gt#
-                       conv-0-simpflat-39
-                       10
-        flat-0-simpflat-6 =w ExceptNotAnError
-        flat-0-simpflat-7 =w simpflat-0
+        flat-0 =w gt#
+                    conv-0-simpflat-29
+                    10
     }
     else
     {
-        flat-0-simpflat-6 =w conv-0-simpflat-38
-        flat-0-simpflat-7 =w False
+        flat-0 =w True
     }
     
-    flat-0-simpflat-8 =r flat-0-simpflat-6
-    flat-0-simpflat-9 =r flat-0-simpflat-7
-    flat-1 =i False : Bool
+    flat-0 =r flat-0
     
-    if (eq#
-          flat-0-simpflat-8
-          ExceptNotAnError)
+    if (flat-0)
     {
-        flat-1 =w flat-0-simpflat-9
-    }
-    else
-    {
-        flat-1 =w True
-    }
-    
-    flat-1 =r flat-1
-    
-    if (flat-1)
-    {
-        c-conv-10-aval-0-simpflat-10 =r acc-c-conv-10-simpflat-2
-        c-conv-10-aval-0-simpflat-11 =r acc-c-conv-10-simpflat-3
-        flat-2-simpflat-12 =i ExceptNotAnError : Error
-        flat-2-simpflat-13 =i 0 : Int
+        c-conv-10-aval-0-simpflat-4 =r acc-c-conv-10-simpflat-0
+        c-conv-10-aval-0-simpflat-5 =r acc-c-conv-10-simpflat-1
+        flat-1-simpflat-6 =i ExceptNotAnError : Error
+        flat-1-simpflat-7 =i 0 : Int
         
         if (eq#
-              conv-0-simpflat-38
+              conv-0-simpflat-28
               ExceptNotAnError)
         {
-            flat-5-simpflat-14 =i ExceptNotAnError : Error
-            flat-5-simpflat-15 =i 0 : Int
+            flat-4-simpflat-8 =i ExceptNotAnError : Error
+            flat-4-simpflat-9 =i 0 : Int
             
             if (eq#
-                  c-conv-10-aval-0-simpflat-10
+                  c-conv-10-aval-0-simpflat-4
                   ExceptNotAnError)
             {
-                simpflat-1 = add#
-                               c-conv-10-aval-0-simpflat-11
-                               1
-                flat-5-simpflat-14 =w ExceptNotAnError
-                flat-5-simpflat-15 =w simpflat-1
+                reify-9-conv-17 = add#
+                                    c-conv-10-aval-0-simpflat-5
+                                    1
+                flat-4-simpflat-8 =w ExceptNotAnError
+                flat-4-simpflat-9 =w reify-9-conv-17
             }
             else
             {
-                flat-5-simpflat-14 =w c-conv-10-aval-0-simpflat-10
-                flat-5-simpflat-15 =w 0
+                flat-4-simpflat-8 =w c-conv-10-aval-0-simpflat-4
+                flat-4-simpflat-9 =w 0
             }
             
-            flat-5-simpflat-16 =r flat-5-simpflat-14
-            flat-5-simpflat-17 =r flat-5-simpflat-15
-            flat-6-simpflat-18 =i ExceptNotAnError : Error
-            flat-6-simpflat-19 =i 0 : Int
-            
-            if (eq#
-                  flat-5-simpflat-16
-                  ExceptNotAnError)
-            {
-                flat-6-simpflat-18 =w ExceptNotAnError
-                flat-6-simpflat-19 =w flat-5-simpflat-17
-            }
-            else
-            {
-                flat-6-simpflat-18 =w flat-5-simpflat-16
-                flat-6-simpflat-19 =w 0
-            }
-            
-            flat-6-simpflat-20 =r flat-6-simpflat-18
-            flat-6-simpflat-21 =r flat-6-simpflat-19
-            flat-2-simpflat-12 =w flat-6-simpflat-20
-            flat-2-simpflat-13 =w flat-6-simpflat-21
+            flat-4-simpflat-10 =r flat-4-simpflat-8
+            flat-4-simpflat-11 =r flat-4-simpflat-9
+            flat-1-simpflat-6 =w flat-4-simpflat-10
+            flat-1-simpflat-7 =w flat-4-simpflat-11
         }
         else
         {
-            flat-2-simpflat-12 =w conv-0-simpflat-38
-            flat-2-simpflat-13 =w 0
+            flat-1-simpflat-6 =w conv-0-simpflat-28
+            flat-1-simpflat-7 =w 0
         }
         
-        flat-2-simpflat-22 =r flat-2-simpflat-12
-        flat-2-simpflat-23 =r flat-2-simpflat-13
-        acc-c-conv-10-simpflat-2 =w flat-2-simpflat-22
-        acc-c-conv-10-simpflat-3 =w flat-2-simpflat-23
+        flat-1-simpflat-12 =r flat-1-simpflat-6
+        flat-1-simpflat-13 =r flat-1-simpflat-7
+        acc-c-conv-10-simpflat-0 =w flat-1-simpflat-12
+        acc-c-conv-10-simpflat-1 =w flat-1-simpflat-13
     }
     
-    acc-conv-25-simpflat-4 =r acc-conv-25-simpflat-4
-    acc-conv-25-simpflat-4 =w Buf_push#
-                                acc-conv-25-simpflat-4
-                                conv-0-simpflat-38
-    acc-conv-25-simpflat-5 =r acc-conv-25-simpflat-5
-    acc-conv-25-simpflat-5 =w Buf_push#
-                                acc-conv-25-simpflat-5
-                                conv-0-simpflat-39
+    acc-conv-25-simpflat-2 =r acc-conv-25-simpflat-2
+    acc-conv-25-simpflat-2 =w Buf_push#
+                                acc-conv-25-simpflat-2
+                                conv-0-simpflat-28
+    acc-conv-25-simpflat-3 =r acc-conv-25-simpflat-3
+    acc-conv-25-simpflat-3 =w Buf_push#
+                                acc-conv-25-simpflat-3
+                                conv-0-simpflat-29
 }
 
-conv-25-simpflat-26 =r acc-conv-25-simpflat-4
-conv-25-simpflat-27 =r acc-conv-25-simpflat-5
-c-conv-10-simpflat-28 =r acc-c-conv-10-simpflat-2
-c-conv-10-simpflat-29 =r acc-c-conv-10-simpflat-3
-flat-16-simpflat-30 =i ExceptNotAnError : Error
-flat-16-simpflat-31 =i 0 : Int
-flat-16-simpflat-32 =i unsafe_Array_create#
+conv-25-simpflat-16 =r acc-conv-25-simpflat-2
+conv-25-simpflat-17 =r acc-conv-25-simpflat-3
+c-conv-10-simpflat-18 =r acc-c-conv-10-simpflat-0
+c-conv-10-simpflat-19 =r acc-c-conv-10-simpflat-1
+flat-10-simpflat-20 =i ExceptNotAnError : Error
+flat-10-simpflat-21 =i 0 : Int
+flat-10-simpflat-22 =i unsafe_Array_create#
                          0 : Array Error
-flat-16-simpflat-33 =i unsafe_Array_create#
+flat-10-simpflat-23 =i unsafe_Array_create#
                          0 : Array Int
 
 if (eq#
-      c-conv-10-simpflat-28
+      c-conv-10-simpflat-18
       ExceptNotAnError)
 {
-    flat-16-simpflat-30 =w ExceptNotAnError
-    flat-16-simpflat-31 =w c-conv-10-simpflat-29
-    flat-16-simpflat-32 =w Buf_read#
-                             conv-25-simpflat-26
-    flat-16-simpflat-33 =w Buf_read#
-                             conv-25-simpflat-27
+    flat-10-simpflat-20 =w ExceptNotAnError
+    flat-10-simpflat-21 =w c-conv-10-simpflat-19
+    flat-10-simpflat-22 =w Buf_read#
+                             conv-25-simpflat-16
+    flat-10-simpflat-23 =w Buf_read#
+                             conv-25-simpflat-17
 }
 else
 {
-    flat-16-simpflat-30 =w c-conv-10-simpflat-28
-    flat-16-simpflat-31 =w 0
-    flat-16-simpflat-32 =w unsafe_Array_create#
+    flat-10-simpflat-20 =w c-conv-10-simpflat-18
+    flat-10-simpflat-21 =w 0
+    flat-10-simpflat-22 =w unsafe_Array_create#
                              0
-    flat-16-simpflat-33 =w unsafe_Array_create#
+    flat-10-simpflat-23 =w unsafe_Array_create#
                              0
 }
 
-flat-16-simpflat-34 =r flat-16-simpflat-30
-flat-16-simpflat-35 =r flat-16-simpflat-31
-flat-16-simpflat-36 =r flat-16-simpflat-32
-flat-16-simpflat-37 =r flat-16-simpflat-33
+flat-10-simpflat-24 =r flat-10-simpflat-20
+flat-10-simpflat-25 =r flat-10-simpflat-21
+flat-10-simpflat-26 =r flat-10-simpflat-22
+flat-10-simpflat-27 =r flat-10-simpflat-23
 
 output repl:output : Sum Error (Int, Array (Sum Error Int)) =
-    flat-16-simpflat-34 : Error
-  , flat-16-simpflat-35 : Int
-  , flat-16-simpflat-36 : Array Error
-  , flat-16-simpflat-37 : Array Int
+    flat-10-simpflat-24 : Error
+  , flat-10-simpflat-25 : Int
+  , flat-10-simpflat-26 : Array Error
+  , flat-10-simpflat-27 : Array Int
 
 Core evaluation
 ---------------

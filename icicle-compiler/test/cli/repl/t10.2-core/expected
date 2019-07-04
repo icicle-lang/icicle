@@ -1,6 +1,6 @@
 Queries will no longer be evaluated using the C evaluator.
 Snapshot mode activated with a snapshot date of 2017-01-01.
-Loaded dictionary with 5 inputs, 0 outputs, 71 functions.
+Loaded dictionary with 5 inputs, 0 outputs, 74 functions.
 Selected psv file as input: test/cli/repl/data.psv
 
   ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
@@ -39,29 +39,20 @@ conv-3 : MaxMapSize
 STREAM_FILTER
   PREDICATE:
     let
-      simp-0 =
+      simp-2 =
         fst# conv-0
-      
-      simp-1 =
-        Sum_fold#
-          (\reify-0-conv-4 ->
-            left# reify-0-conv-4)
-          (\reify-1-conv-5 ->
-            right# (gt# reify-1-conv-5 10))
-          simp-0
     in
       Sum_fold#
-        (\reify-2-conv-7 -> True)
-        (\reify-3-conv-8 ->
-          reify-3-conv-8)
-        simp-1
+        (\simp-0 -> True)
+        (\simp-1 -> gt# simp-1 10)
+        simp-2
   STREAMS:
     STREAM_FOLD c-conv-10 : Sum Error Int
       INIT:
         Right 0
       KONS:
         let
-          simp-2 =
+          simp-5 =
             fst# conv-0
         in
           Sum_fold#
@@ -69,26 +60,24 @@ STREAM_FILTER
               left# reify-6-conv-11)
             (\reify-7-conv-12 ->
               Sum_fold#
-                (\reify-8-conv-16 ->
-                  left# reify-8-conv-16)
-                (\reify-9-conv-17 ->
-                  right# reify-9-conv-17)
-                (Sum_fold#
-                  (\reify-4-conv-13 ->
-                    left# reify-4-conv-13)
-                  (\reify-5-conv-14 ->
-                    right# (add# reify-5-conv-14 1))
-                  c-conv-10))
-            simp-2
+                (\simp-3 -> left# simp-3)
+                (\simp-4 ->
+                  let
+                    reify-9-conv-17 =
+                      add# simp-4 1
+                  in
+                    right# reify-9-conv-17)
+                c-conv-10)
+            simp-5
 STREAM_FOLD conv-25 : Buf 3 (Sum Error Int)
   INIT:
     Buf []
   KONS:
     let
-      simp-3 =
+      simp-6 =
         fst# conv-0
     in
-      Latest_push# conv-25 simp-3
+      Latest_push# conv-25 simp-6
 
 ## Postcomputations
 
@@ -199,7 +188,7 @@ conv-37 =
                         (length# (keys# conv-34))
                         conv-3))
                 (let
-                  conv-4 =
+                  simp-0 =
                     Latest_read# conv-27
                 in
                   Array_fold#
@@ -219,7 +208,7 @@ conv-37 =
                             conv-8)
                         (fst# conv-7))
                     (Right 0)
-                    conv-4))
+                    simp-0))
             conv-23)
         (Right (Map []))
         conv-26)
