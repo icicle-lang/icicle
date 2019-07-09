@@ -119,43 +119,45 @@ deadX = fst . go
 caseOfCase :: (Hashable n, Eq n)
            => a -> C.Exp a n -> FixT (Fresh n) (C.Exp a n)
 caseOfCase a_fresh xx
-  | Just (primitive, as) <- takePrimApps xx
+  | Just (primitive, arguments) <- takePrimApps xx
   , PrimFold _ ret'typ <- primitive
-  , [XLam _ l'n _ l'exp, XLam _ r'n _ r'exp, scrut] <- as
-  , Just (primitive', ass) <- takePrimApps scrut
+  , [XLam _ leftName _ leftExpression, XLam _ rightName _ rightExpression, scrutinee] <- arguments
+  , Just (primitive', innerArguments) <- takePrimApps scrutinee
   , PrimFold fld _ <- primitive'
-  , [XLam _ i'l'n i'l'typ i'l'exp, XLam _ i'r'n i'r'typ i'r'exp, scrutinee] <- ass
-  , Just (l'case, r'case) <- (,) <$> takeIrrefutable i'l'exp <*> takeIrrefutable i'r'exp
+  , [XLam _ innerLeftName innerLeftType innerLeftExpression, XLam _ innerRightName innerRightType innerRightExpression, innerScrutinee] <- innerArguments
+  , Just (l'case, r'case) <- (,) <$> takeIrrefutable innerLeftExpression <*> takeIrrefutable innerRightExpression
   = do
-      n'l <- lift fresh
-      n'r <- lift fresh
+      newLeftName <- lift fresh
+      newRightName <- lift fresh
 
       let
         renameInLeft
-          = subsNameInExp i'l'n n'l
+          = join either $ subsNameInExp innerLeftName newLeftName
 
         renameInRight
-          = subsNameInExp i'r'n n'r
+          = join either $ subsNameInExp innerRightName newRightName
 
         replaceIn
-          = either (const l'exp) (const r'exp)
+          = either (const leftExpression) (const rightExpression)
 
         nameIn
-          = either (const l'n) (const r'n)
+          = either (const leftName) (const rightName)
 
         newLeftLam
-          = xlam n'l i'l'typ
-          $ xlet (nameIn l'case) (join either renameInLeft l'case) (replaceIn l'case)
+          = xlam newLeftName innerLeftType
+          $ xlet <$> nameIn <*> renameInLeft <*> replaceIn
+          $ l'case
 
         newRightLam
-          = xlam n'r i'r'typ
-          $ xlet (nameIn r'case) (join either renameInRight r'case) (replaceIn r'case)
+          = xlam newRightName innerRightType
+          $ xlet <$> nameIn <*> renameInRight <*> replaceIn
+          $ r'case
 
       progress
         $ xprim (PrimFold fld ret'typ)
           `xapp` newLeftLam
           `xapp` newRightLam
-          `xapp` scrutinee
+          `xapp` innerScrutinee
 
   | otherwise
   = return xx
