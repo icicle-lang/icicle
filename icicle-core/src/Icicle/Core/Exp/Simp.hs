@@ -122,7 +122,8 @@ caseOfCase a_fresh xx
   | Just (primitive, arguments) <- takePrimApps xx
   , PrimFold _ ret'typ <- primitive
   , [XLam _ leftName _ leftExpression, XLam _ rightName _ rightExpression, scrutinee] <- arguments
-  , Just (primitive', innerArguments) <- takePrimApps scrutinee
+  , (scrutinee_lets, scrutinee_no_lets) <- takeLets scrutinee
+  , Just (primitive', innerArguments) <- takePrimApps scrutinee_no_lets
   , PrimFold fld _ <- primitive'
   , [XLam _ innerLeftName innerLeftType innerLeftExpression, XLam _ innerRightName innerRightType innerRightExpression, innerScrutinee] <- innerArguments
   , Just (l'case, r'case) <- (,) <$> takeIrrefutable innerLeftExpression <*> takeIrrefutable innerRightExpression
@@ -154,6 +155,7 @@ caseOfCase a_fresh xx
           $ r'case
 
       progress
+        $ makeLets a_fresh scrutinee_lets
         $ xprim (PrimFold fld ret'typ)
           `xapp` newLeftLam
           `xapp` newRightLam
