@@ -16,16 +16,16 @@ import                  P
 import                  Data.String (String)
 import                  Data.Text (unpack)
 
-data DefixError n
+data DefixError pos n
  = ErrorNoSuchPrefixOperator          Text
  | ErrorNoSuchInfixOperator           Text
  | ErrorExpectedExpressionGotEnd
- | ErrorExpectedOperatorGotExpression (Q.Exp T.SourcePos n)
+ | ErrorExpectedOperatorGotExpression (Q.Exp pos n)
  | ErrorBUGPrefixInCrunch
- | ErrorBUGLeftovers [Q.Exp T.SourcePos n] [(Q.Op, T.SourcePos)]
+ | ErrorBUGLeftovers [Q.Exp pos n] [(Q.Op, pos)]
  deriving (Show, Eq, Ord)
 
-renderDefixError :: Show n => DefixError n -> String
+renderDefixError :: (Show pos, Show n) => DefixError pos n -> String
 renderDefixError e
  | ErrorNoSuchPrefixOperator op <- e
  , OpsOfSymbol (Just _) _ <- symbol op
@@ -46,7 +46,7 @@ data Ops
 
 
 -- | Convert from infix operators to ast - "de-infixing"
-defix :: [Either (Q.Exp T.SourcePos n) (T.Operator, T.SourcePos)] -> Either (DefixError n) (Q.Exp T.SourcePos n)
+defix :: [Either (Q.Exp pos n) (T.Operator, pos)] -> Either (DefixError pos n) (Q.Exp pos n)
 defix inps
  = shuntX [] []
  $ fmap (second get) inps
@@ -78,13 +78,13 @@ defix inps
 -- This is why it is split into two functions - shuntX for expressions of prefixes,
 -- shuntI for infix operators.
 
-shuntX  :: [Q.Exp T.SourcePos n]
+shuntX  :: [Q.Exp pos n]
         -- ^ The expression stack
-        -> [(Q.Op, T.SourcePos)]
+        -> [(Q.Op, pos)]
         -- ^ The operators stack - binary operators only
-        -> [Either (Q.Exp T.SourcePos n) (Ops, T.SourcePos)]
+        -> [Either (Q.Exp pos n) (Ops, pos)]
         -- ^ The inputs
-        -> Either (DefixError n) (Q.Exp T.SourcePos n)
+        -> Either (DefixError pos n) (Q.Exp pos n)
 
 -- Try to grab an expression off the front and proceed with infixes
 shuntX xs os inps
@@ -94,8 +94,8 @@ shuntX xs os inps
 
 -- | Try to grab an expression off the front, return it and the remaining input
 shuntPrefix
-        :: [Either (Q.Exp T.SourcePos n) (Ops, T.SourcePos)]
-        -> Either (DefixError n) (Q.Exp T.SourcePos n, [Either (Q.Exp T.SourcePos n) (Ops, T.SourcePos)])
+        :: [Either (Q.Exp pos n) (Ops, pos)]
+        -> Either (DefixError pos n) (Q.Exp pos n, [Either (Q.Exp pos n) (Ops, pos)])
 
 shuntPrefix []
  = Left $ ErrorExpectedExpressionGotEnd
@@ -122,13 +122,13 @@ shuntPrefix (Right (Ops sym ops, pos) : inps)
 
 
 -- | Shunt an infix operator
-shuntI  :: [Q.Exp T.SourcePos n]
+shuntI  :: [Q.Exp pos n]
         -- ^ The expression stack
-        -> [(Q.Op, T.SourcePos)]
+        -> [(Q.Op, pos)]
         -- ^ The operators stack - binary operators only
-        -> [Either (Q.Exp T.SourcePos n) (Ops, T.SourcePos)]
+        -> [Either (Q.Exp pos n) (Ops, pos)]
         -- ^ The inputs
-        -> Either (DefixError n) (Q.Exp T.SourcePos n)
+        -> Either (DefixError pos n) (Q.Exp pos n)
 shuntI xs os []
  = finish xs os
 
@@ -151,13 +151,13 @@ shuntI xs os (Right (Ops sym ops, pos) : inps)
 -- Depending on the new operator's precedence, we might need to apply
 -- top expressions to the top operator
 crunchOperator
-        :: [Q.Exp T.SourcePos n]
+        :: [Q.Exp pos n]
         -- ^ The expression stack
-        -> [(Q.Op, T.SourcePos)]
+        -> [(Q.Op, pos)]
         -- ^ The operators stack
         -> Fixity
         -- ^ Operator we're about to push
-        -> Either (DefixError n) ([Q.Exp T.SourcePos n], [(Q.Op, T.SourcePos)])
+        -> Either (DefixError pos n) ([Q.Exp pos n], [(Q.Op, pos)])
 
 -- If we have two arguments to apply and an operator
 crunchOperator (x:y:xs) ((o,pos):os) f
@@ -196,11 +196,11 @@ crunchOperator xs os _
  = return (xs,os)
 
 
-finish  :: [Q.Exp T.SourcePos n]
+finish  :: [Q.Exp pos n]
         -- ^ The expression stack
-        -> [(Q.Op, T.SourcePos)]
+        -> [(Q.Op, pos)]
         -- ^ The operators stack
-        -> Either (DefixError n) (Q.Exp T.SourcePos n)
+        -> Either (DefixError pos n) (Q.Exp pos n)
 finish [x] []
  = return x
 
