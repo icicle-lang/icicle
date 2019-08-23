@@ -149,7 +149,7 @@ checkF' fun env
                 $ keepModes : freeT resT : fmap freeT argTs
 
       -- Put it all together
-      let funT  = FunctionType binds constrs argTs resT
+      let funT  = FunctionType binds constrs $ foldr TypeArrow resT argTs
 
       return (Function args q, funT)
  where
@@ -163,7 +163,7 @@ checkF' fun env
    <*>                  (TypeVar <$> fresh))
 
   lookupArg subs e (a,n)
-   = do (_,_,t,_) <- lookup a n e
+   = do (_,t,_) <- lookup a n e
         return (Annot a (substT subs t) [], n)
 
   dischargeInfo q cons subs =

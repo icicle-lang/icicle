@@ -64,6 +64,8 @@ substT ss tt
        | otherwise
        -> t
 
+      TypeArrow a b         -> TypeArrow    (go a) (go b)
+
 
 substC :: Eq n => SubstT n -> Constraint n -> Constraint n
 substC ss cc
@@ -100,7 +102,7 @@ substFT :: Eq n => SubstT n -> FunctionType n -> FunctionType n
 substFT ss ff
  = ff
  { functionConstraints  = fmap (substC ss') (functionConstraints ff)
- , functionArguments    = fmap (substT ss') (functionArguments   ff)
+--  , functionArguments    = fmap (substT ss') (functionArguments   ff)
  , functionReturn       =       substT ss'  (functionReturn      ff) }
  where
   ss' = foldl (flip Map.delete) ss
@@ -169,6 +171,7 @@ unifyT t1 t2
      | TypeVar b <- t2
      -> return $ Map.singleton b t1
 
+
     BoolT       -> eq
     TimeT       -> eq
     DoubleT     -> eq
@@ -235,10 +238,15 @@ unifyT t1 t2
     PossibilityPossibly     -> eq
     PossibilityDefinitely   -> eq
 
+    TypeArrow  at ar
+     | TypeArrow bt br <- t2
+     -> compose <$> unifyT at bt <*> unifyT ar br
+     | otherwise
+     -> Nothing
+
  where
   eq
    | t1 == t2
    = Just Map.empty
    | otherwise
    = Nothing
-

@@ -62,8 +62,7 @@ buildResolved a_fresh builtin = do
     <- primLookup' (Fun builtin)
 
   args
-    <- for (functionArguments typ) $ \ty -> do
-         (Annot a_fresh ty [],) <$> Fresh.fresh
+    <- return []
 
   let
     name

@@ -44,6 +44,7 @@ import           P
 
 data Exp' q a n
  = Var a (Name n)
+--  | Lam (Name n) (Exp' q a n)
  | Nested a (q a n)
  | App  a (Exp' q a n) (Exp' q a n)
  | Prim a Prim
