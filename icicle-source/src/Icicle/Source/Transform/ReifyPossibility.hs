@@ -54,29 +54,31 @@ reifyPossibilityX' wrap x
        , t                      <- annResult $ annotOfExp arg
        , PossibilityPossibly    <- getPossibilityOrDefinitely t
        -> do nValue     <- fresh
+             nError     <- fresh
              let aValue  = definiteAnnot a
              let aError  = typeAnnot aValue ErrorT
              let vValue  = Var  aValue nValue
-             let vError  = Prim aError (PrimCon (ConError ExceptTombstone))
+             let vError  = Var  aError nError
              reifyPossibilityX' wrapAsSum
                $ Case a arg
-                   [ ( PatCon ConSome [PatVariable nValue], vValue)
-                   , ( PatCon ConNone [],                   vError) ]
+                   [ ( PatCon ConRight [PatVariable nValue], vValue)
+                   , ( PatCon ConLeft  [PatVariable nError], vError) ]
 
        -- Box of a definitely can just wrap in the left/right immediately
        | Just (p, _, [arg])   <- takePrimApps x
        , Fun (BuiltinData Box) <- p
        -> do arg'       <- reifyPossibilityX' wrap arg
              nValue     <- fresh
+             nError     <- fresh
              let a'  = wrapAnnot a
              let aValue  = definiteAnnot a
              let aError  = typeAnnot a' ErrorT
              let vValue  = Var  aValue nValue
-             let vError  = Prim aError (PrimCon (ConError ExceptTombstone))
+             let vError  = Var  aError nError
              return
                $ Case a' arg'
-                   [ ( PatCon ConSome [PatVariable nValue], con1 a' ConRight $ vValue)
-                   , ( PatCon ConNone [],                   con1 a' ConLeft $ vError ) ]
+                   [ ( PatCon ConRight [PatVariable nValue], con1 a' ConRight $ vValue)
+                   , ( PatCon ConLeft  [PatVariable nError], con1 a' ConLeft  $ vError )]
 
 
        | otherwise

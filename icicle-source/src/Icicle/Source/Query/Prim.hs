@@ -137,7 +137,7 @@ primLookup' prim
     Fun (BuiltinData Seq)
      -> f2 $ \a at b bt -> FunctionType [a,b] [] [at,bt] bt
     Fun (BuiltinData Box)
-     -> f1 $ \a at -> FunctionType [a] [] [OptionT at] (Possibility PossibilityPossibly at)
+     -> f1 $ \a at -> FunctionType [a] [] [SumT ErrorT at] (Possibility PossibilityPossibly at)
 
     Fun (BuiltinArray ArraySort)
      -> f1 $ \a at -> FunctionType [a] [] [ArrayT at] (ArrayT at)

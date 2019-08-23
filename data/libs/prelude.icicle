@@ -26,8 +26,10 @@ week_of_day d
 # Boolean statements
 not a = case a | True -> False | False -> True end.
 
-is_some a = case a | Some a' -> True  | None -> False end.
-is_none a = case a | Some a' -> False | None -> True  end.
+is_some a = case a | Some _ -> True  | None -> False end.
+is_none a = case a | Some _ -> False | None -> True  end.
+
+get a = case a | Some a' -> a' | None -> box (Left ExceptTombstone) end.
 
 get_or_else default a  = case a | Some a' -> a' | None -> default end.
 
@@ -195,15 +197,3 @@ date_offset_weeks time
        ~> let ds    = round (double (days between begin time) / 7)
        ~> (map_insert ds 0 map, begin))
  ~> keys (fst offsets).
-
-###############################
-### Backwards Compatibility ###
-###############################
-
-isSome a = is_some a.
-isNone a = is_none a.
-
-getOrElse d a = get_or_else d a.
-
-minby a b = min_by a b.
-maxby a b = max_by a b.
