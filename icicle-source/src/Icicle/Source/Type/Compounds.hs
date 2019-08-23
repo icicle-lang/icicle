@@ -31,7 +31,7 @@ import                  Data.Hashable (Hashable)
 
 function0 :: Type n -> FunctionType n
 function0 u
- = FunctionType [] [] [] u
+ = FunctionType [] [] u
 
 freeT :: (Hashable n, Eq n) => Type n -> Set.Set (Name n)
 freeT t
@@ -63,6 +63,8 @@ freeT t
     PossibilityDefinitely   -> Set.empty
 
     TypeVar n               -> Set.singleton n
+    -- TypeForall a b          -> Set.delete a (freeT b)
+    TypeArrow f b           -> Set.union (freeT f) (freeT b)
 
 
 freeC :: (Hashable n, Eq n) => Constraint n -> Set.Set (Name n)
@@ -145,6 +147,8 @@ getTemporality tt
     PossibilityDefinitely -> Nothing
 
     TypeVar _             -> Nothing
+    -- TypeForall a b        -> wrap go (TypeForall a) b
+    TypeArrow f a         -> Nothing -- wrap2 go TypeArrow f a
 
  where
   go = getTemporality
@@ -191,6 +195,8 @@ getPossibility tt
     PossibilityDefinitely -> Nothing
 
     TypeVar _             -> Nothing
+    -- TypeForall a b        -> wrap go (TypeForall a) b
+    TypeArrow f a         -> Nothing -- wrap2 go TypeArrow f a
 
  where
   go = getPossibility
@@ -228,7 +234,8 @@ getBaseType tt
     PossibilityDefinitely -> Nothing
 
     TypeVar _             -> Just tt
-
+    -- TypeForall _ _        -> Just tt
+    TypeArrow _ _         -> Just tt
 
 -- Temporality and possibility helpers --
 

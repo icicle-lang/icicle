@@ -56,6 +56,8 @@ data Type n
  | PossibilityDefinitely
 
  | TypeVar             (Name n)
+--  | TypeForall          (Name n) (Type n)
+ | TypeArrow           (Type n) (Type n)
  deriving (Eq, Ord, Show, Generic)
 
 instance NFData n => NFData (Type n)
@@ -109,6 +111,8 @@ valTypeOfType bt
     PossibilityDefinitely   -> Nothing
 
     TypeVar _               -> Nothing
+    -- TypeForall _ _          -> Nothing
+    TypeArrow _ _           -> Nothing
  where
   go = valTypeOfType
 
@@ -130,7 +134,7 @@ data FunctionType n
  = FunctionType
  { functionForalls      :: [Name n]
  , functionConstraints  :: [Constraint n]
- , functionArguments    :: [Type n]
+--  , functionArguments    :: [Type n]
  , functionReturn       :: Type n
  }
  deriving (Eq, Ord, Show, Generic)
@@ -185,6 +189,10 @@ instance Pretty n => Pretty (Type n) where
       prettyStructType hcat . fmap (bimap pretty pretty) $ Map.toList fs
     TypeVar v ->
       annotate AnnVariable (pretty v)
+    -- TypeForall _ b ->
+    --   pretty b
+    TypeArrow f a ->
+      annotate AnnVariable (pretty f) <+> text "->" <+> annotate AnnVariable (pretty a)
 
     Temporality a b ->
       prettyApp hsep p a [b]
@@ -239,7 +247,7 @@ prettyFun :: Pretty n => FunctionType n -> PrettyFunType
 prettyFun fun =
   PrettyFunType
     (fmap pretty $ functionConstraints fun)
-    (fmap pretty $ functionArguments fun)
+    []
     (pretty $ functionReturn fun)
 
 instance Pretty n => Pretty (FunctionType n) where

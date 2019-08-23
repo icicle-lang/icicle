@@ -60,7 +60,7 @@ constructors
 --   handled the same in the patterns as the expressions
 --   they match, and we don't have to duplicate parser
 --   logic.
-checkPat :: Monad m => Q.Exp T.SourcePos Var -> m (Q.Pattern Var)
+checkPat :: Monad m => Q.Exp pos Var -> m (Q.Pattern Var)
 checkPat exp =
   case exp of
     -- Variables are simple, just underscore default

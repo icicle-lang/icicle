@@ -21,14 +21,14 @@ import           Icicle.Source.Type
 
 import           Icicle.Common.Base
 import qualified Icicle.Common.Fresh          as Fresh
-import           Icicle.Internal.Pretty (Pretty)
+import           Icicle.Internal.Pretty       (Pretty)
 
 import           P hiding (with)
 
-import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Class    (lift)
 
 import           Data.Hashable                (Hashable)
-import           Data.List                    (unzip3, zip)
+import           Data.List                    (unzip3)
 import qualified Data.Map                     as Map
 
 import           X.Control.Monad.Trans.Either
@@ -567,11 +567,11 @@ generateX x env
  =<< case x of
     -- Variables can only be values, not functions.
     Var a n
-     -> do (fErr, argsT, resT, cons') <- lookup a n env
+     -> do (_fErr, resT, cons') <- lookup a n env
 
-           when (not $ null argsT)
-             $ genHoistEither
-             $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+           --  when (not $ null argsT)
+           --    $ genHoistEither
+           --    $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
            let x' = annotate cons' resT
                   $ \a' -> Var a' n
@@ -614,20 +614,19 @@ generateX x env
             genXs [] _  = return []
             genXs (xx:xs) env'
                         = do (xx',s,c) <- generateX xx env'
-                             rs       <- genXs xs (substE s env')
+                             rs        <- genXs xs (substE s env')
                              return ((xx',s,c) : rs)
 
-        in do   (fErr, argsT, resT, consf) <- look
+        in do   (fErr, resT, consf)        <- look
 
                 (args', subs', consxs)     <- unzip3 <$> genXs args env
                 let argsT'                  = fmap (annResult.annotOfExp) args'
 
-                when (length argsT /= length args)
-                 $ genHoistEither
-                 $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
+                let
+                  go (tt, consh) u =
+                    appType a tt consh u
 
-                let go (t, c) u     = appType a t u c
-                (resT', consap) <- foldM go (resT, []) (argsT `zip` argsT')
+                (resT', consap)    <- foldM go (resT, []) argsT'
 
                 let s' = foldl compose Map.empty subs'
                 let cons' = concat (consf : consap : consxs)
@@ -638,11 +637,11 @@ generateX x env
 
     -- Unapplied primitives should be relatively easy
     Prim a p
-     -> do (fErr, argsT, resT, cons') <- primLookup a p
+     -> do (_fErr, resT, cons') <- primLookup a p
 
-           when (not $ null argsT)
-             $ genHoistEither
-             $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+           -- when (not $ null argsT)
+           --   $ genHoistEither
+           --   $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
            let x' = annotate cons' resT
                   $ \a' -> Prim a' p
@@ -794,7 +793,7 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
         return ( SumT l r , c, e' )
 
   goPat (PatLit l _) e
-   = do FunctionType _foralls constraints _args resT <- Gen . lift . lift $ primLookup' (Lit l)
+   = do FunctionType _foralls constraints resT <- Gen . lift . lift $ primLookup' (Lit l)
         return (resT, fmap (ann,) constraints, e)
 
   goPat _ _
@@ -806,20 +805,29 @@ appType
  :: (Hashable n)
  => a
  -> Type n
- -> (Type n, Type n)
  -> GenConstraintSet a n
+ -> Type n
  -> Gen a n (Type n, GenConstraintSet a n)
-appType ann resT (expT,actT) cons = do
-  let (tmpE,posE,datE) = decomposeT $ canonT expT
-  let (tmpA,posA,datA) = decomposeT $ canonT actT
-  let (tmpR,posR,datR) = decomposeT $ canonT resT
-  let consD            = require ann (CEquals datE datA)
+appType ann funT cons actT
+  | let (tmpF,posF,datF) = decomposeT $ canonT funT
+  , TypeArrow expT resT <- datF
+  = do
+    let (tmpR,posR,datR) = decomposeT $ canonT resT
+    let (tmpE,posE,datE) = decomposeT $ canonT expT
+    let (tmpA,posA,datA) = decomposeT $ canonT actT
+    let consD            = require ann (CEquals datE datA)
 
-  (tmpR', consT) <- checkTemp (purely tmpE) (purely tmpA) (purely tmpR)
-  (posR', consP) <- checkPoss (definitely posE) (definitely posA) (definitely posR)
+    -- Join function result and partial results.
+    (tmpR',  consT)      <- checkTemp (purely tmpE) (purely tmpA) (purely tmpR)
+    (tmpR'', consT')     <- checkTemp Nothing (purely tmpR') (purely tmpF)
+    (posR',  consP)      <- checkPoss (definitely posE) (definitely posA) (definitely posR)
+    (posR'', consP')     <- checkPoss Nothing (definitely posR') (definitely posF)
 
-  let t = recomposeT (tmpR', posR', datR)
-  return (t, concat [cons, consD, consT, consP])
+    let t = recomposeT (tmpR'', posR'', datR)
+    return (t, concat [cons, consD, consT, consT', consP, consP'])
+  | otherwise
+  = genHoistEither
+  $ errorNoSuggestions (ErrorFunctionWrongArgs ann funT actT)
 
  where
   checkTemp = check' TemporalityPure       CTemporalityJoin
@@ -835,12 +843,10 @@ appType ann resT (expT,actT) cons = do
    | Just a' <- modA
    , Nothing <- modE
    , Just r' <- modR
-   = do r'' <- TypeVar <$> fresh
+   = do r''  <- TypeVar <$> fresh
         let j = joinMode r'' a' r'
         return (Just r'', require ann j)
-   -- Just <- modA
-   -- Just <- modE
-   -- ?    <- modR
+
    | otherwise
    = do ignore <- TypeVar <$> fresh
         let j = joinMode ignore (maybe pureMode id modE) (maybe pureMode id modA)
