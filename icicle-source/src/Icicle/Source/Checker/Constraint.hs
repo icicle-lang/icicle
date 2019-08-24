@@ -569,9 +569,9 @@ generateX x env
     Var a n
      -> do (_fErr, resT, cons') <- lookup a n env
 
-           --  when (not $ null argsT)
-           --    $ genHoistEither
-           --    $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+           when (isFunction resT)
+             $ genHoistEither
+             $ errorNoSuggestions (ErrorFunctionWrongArgs a x resT [])
 
            let x' = annotate cons' resT
                   $ \a' -> Var a' n
@@ -617,16 +617,17 @@ generateX x env
                              rs        <- genXs xs (substE s env')
                              return ((xx',s,c) : rs)
 
-        in do   (fErr, resT, consf)        <- look
+        in do   (_fErr, resT, consf)        <- look
 
                 (args', subs', consxs)     <- unzip3 <$> genXs args env
                 let argsT'                  = fmap (annResult.annotOfExp) args'
 
-                let
-                  go (tt, consh) u =
-                    appType a tt consh u
+                let go                      = uncurry (appType a x)
+                (resT', consap)            <- foldM go (resT, []) argsT'
 
-                (resT', consap)    <- foldM go (resT, []) argsT'
+                when (isFunction resT')
+                  $ genHoistEither
+                  $ errorNoSuggestions (ErrorFunctionWrongArgs a x resT [])
 
                 let s' = foldl compose Map.empty subs'
                 let cons' = concat (consf : consap : consxs)
@@ -639,9 +640,9 @@ generateX x env
     Prim a p
      -> do (_fErr, resT, cons') <- primLookup a p
 
-           -- when (not $ null argsT)
-           --   $ genHoistEither
-           --   $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+           when (isFunction resT)
+              $ genHoistEither
+              $ errorNoSuggestions (ErrorFunctionWrongArgs a x resT [])
 
            let x' = annotate cons' resT
                   $ \a' -> Prim a' p
@@ -804,11 +805,12 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
 appType
  :: (Hashable n)
  => a
+ -> Exp a n
  -> Type n
  -> GenConstraintSet a n
  -> Type n
  -> Gen a n (Type n, GenConstraintSet a n)
-appType ann funT cons actT
+appType ann errExp funT cons actT
   | let (tmpF,posF,datF) = decomposeT $ canonT funT
   , TypeArrow expT resT <- datF
   = do
@@ -827,7 +829,7 @@ appType ann funT cons actT
     return (t, concat [cons, consD, consT, consT', consP, consP'])
   | otherwise
   = genHoistEither
-  $ errorNoSuggestions (ErrorFunctionWrongArgs ann funT actT)
+  $ errorNoSuggestions (ErrorFunctionWrongArgs ann errExp funT [actT])
 
  where
   checkTemp = check' TemporalityPure       CTemporalityJoin
@@ -860,3 +862,11 @@ appType ann funT cons actT
   definitely pos = pos
 
 
+isFunction
+ :: Type n
+ -> Bool
+isFunction funT
+  | (_,_,TypeArrow _ _) <- decomposeT $ canonT funT
+  = True
+  | otherwise
+  = False

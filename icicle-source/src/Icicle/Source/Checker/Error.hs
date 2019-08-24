@@ -41,7 +41,7 @@ data ErrorInfo a n
  = ErrorNoSuchVariable a (Name n)
  | ErrorNoSuchInput a UnresolvedInputId
  | ErrorContextNotAllowedHere  a (Context a n)
- | ErrorFunctionWrongArgs      a (Type n) (Type n)
+ | ErrorFunctionWrongArgs      a (Exp a n) (Type n) [Type n]
  | ErrorApplicationNotFunction a (Exp a n)
  | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
  | ErrorConstraintLeftover      a [(a, Constraint n)]
@@ -65,7 +65,7 @@ annotOfError (CheckError e _)
      -> Just a
     ErrorContextNotAllowedHere  a _
      -> Just a
-    ErrorFunctionWrongArgs      a _ _
+    ErrorFunctionWrongArgs      a _ _ _
      -> Just a
     ErrorApplicationNotFunction a _
      -> Just a
@@ -144,10 +144,11 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
         , "Context: " <> inp c
         ]
 
-    ErrorFunctionWrongArgs a f tys ->
+    ErrorFunctionWrongArgs a x f tys ->
       vsep [
           "Function applied to wrong number of arguments at" <+> pretty a
         , mempty
+        , "Expression:     " <> inp x
         , "Function type:  " <> inp f
         , "Argument types: " <> inp tys
         ]
