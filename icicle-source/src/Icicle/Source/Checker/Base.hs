@@ -235,16 +235,22 @@ introForalls
   -> FunctionType n
   -> Gen a n (FunctionType n, Type n, GenConstraintSet a n)
 introForalls ann f
- = do freshen <- Map.fromList <$> mapM mkSubst (functionForalls f)
+ = case functionReturn f of
+    TypeForall ns cs x -> do
+      freshen <- Map.fromList <$> mapM mkSubst ns
 
       let cons = concat
                $ fmap (require ann . substC freshen)
-               $ functionConstraints f
+               $ cs
 
       let sub   = substT freshen
       return ( f
-             , sub $ functionReturn    f
+             , sub x
              , cons )
+
+    elsewise ->
+      return (f, elsewise, [])
+
  where
   mkSubst n
    = ((,) n . TypeVar) <$> fresh

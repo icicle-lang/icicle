@@ -149,7 +149,9 @@ checkF' fun env
                 $ keepModes : freeT resT : fmap freeT argTs
 
       -- Put it all together
-      let funT  = FunctionType binds constrs $ foldr TypeArrow resT argTs
+      let funT  = FunctionType
+                $ TypeForall binds constrs
+                $ foldr TypeArrow resT argTs
 
       return (Function args q, funT)
  where

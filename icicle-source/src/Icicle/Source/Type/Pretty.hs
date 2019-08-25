@@ -36,13 +36,7 @@ import                  Data.Hashable (Hashable)
 -- just before pretty printing.
 prettyFunWithNames :: (Pretty n, Eq n) => [Name n] -> FunctionType n -> PrettyFunType
 prettyFunWithNames names fun
-  =  prettyFun fun'
-  where
-   sub
-    = Map.fromList
-    (functionForalls fun `zip` fmap TypeVar names)
-
-   fun' = substFT sub (fun { functionForalls = [] })
+  =  prettyFun fun
 
 -- We make them actual names (with the hash code) because they will be used
 -- for substituations.

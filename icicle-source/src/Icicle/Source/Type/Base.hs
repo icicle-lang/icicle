@@ -3,6 +3,7 @@
 -- so each type is tagged with a universe describing the stage.
 --
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -56,7 +57,7 @@ data Type n
  | PossibilityDefinitely
 
  | TypeVar             (Name n)
---  | TypeForall          (Name n) (Type n)
+ | TypeForall          [Name n] [Constraint n] (Type n)
  | TypeArrow           (Type n) (Type n)
  deriving (Eq, Ord, Show, Generic)
 
@@ -111,7 +112,7 @@ valTypeOfType bt
     PossibilityDefinitely   -> Nothing
 
     TypeVar _               -> Nothing
-    -- TypeForall _ _          -> Nothing
+    TypeForall _ _ _        -> Nothing
     TypeArrow _ _           -> Nothing
  where
   go = valTypeOfType
@@ -132,10 +133,10 @@ instance NFData n => NFData (Constraint n)
 
 data FunctionType n
  = FunctionType
- { functionForalls      :: [Name n]
- , functionConstraints  :: [Constraint n]
---  , functionArguments    :: [Type n]
- , functionReturn       :: Type n
+ { --   functionForalls      :: [Name n]
+   --   functionConstraints  :: [Constraint n]
+   --  , functionArguments    :: [Type n]
+  functionReturn       :: Type n
  }
  deriving (Eq, Ord, Show, Generic)
 
@@ -189,8 +190,8 @@ instance Pretty n => Pretty (Type n) where
       prettyStructType hcat . fmap (bimap pretty pretty) $ Map.toList fs
     TypeVar v ->
       annotate AnnVariable (pretty v)
-    -- TypeForall _ b ->
-    --   pretty b
+    TypeForall ns cs x ->
+      pretty $ PrettyFunType (fmap pretty cs) (fmap pretty ns) (pretty x)
     TypeArrow f a ->
       annotate AnnVariable (pretty f) <+> text "->" <+> annotate AnnVariable (pretty a)
 
@@ -244,15 +245,14 @@ instance Pretty n => Pretty (Constraint n) where
       prettyApp hsep 0 (prettyConstructor "PossibilityJoin") [b, c]
 
 prettyFun :: Pretty n => FunctionType n -> PrettyFunType
-prettyFun fun =
-  PrettyFunType
-    (fmap pretty $ functionConstraints fun)
-    []
-    (pretty $ functionReturn fun)
+prettyFun (FunctionType (TypeForall ns cs x)) =
+  PrettyFunType (fmap pretty cs) (fmap pretty ns) (pretty x)
+prettyFun (FunctionType x) =
+  PrettyFunType [] [] (pretty x)
 
 instance Pretty n => Pretty (FunctionType n) where
   pretty =
-    pretty . prettyFun
+    pretty . functionReturn
 
 instance (Pretty n) => Pretty (Annot a n) where
   pretty ann =

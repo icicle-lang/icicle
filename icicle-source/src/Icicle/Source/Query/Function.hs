@@ -67,10 +67,10 @@ buildResolved a_fresh builtin = do
   let
     name
       = nameOf . NameBase . fromString . show . pretty $ builtin
-    constraints
-      = (a_fresh,) <$> functionConstraints typ
+    -- constraints
+    --   = (a_fresh,) <$> functionConstraints typ
     annot
-      = Annot a_fresh (functionReturn typ) constraints
+      = Annot a_fresh (functionReturn typ) []
     prim
       = Prim annot (Fun builtin)
     exp'

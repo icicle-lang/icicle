@@ -793,8 +793,8 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
         return ( SumT l r , c, e' )
 
   goPat (PatLit l _) e
-   = do FunctionType _foralls constraints resT <- Gen . lift . lift $ primLookup' (Lit l)
-        return (resT, fmap (ann,) constraints, e)
+   = do FunctionType resT <- Gen . lift . lift $ primLookup' (Lit l)
+        return (resT, [], e)
 
   goPat _ _
    = genHoistEither
