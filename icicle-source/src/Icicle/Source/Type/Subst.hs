@@ -64,7 +64,8 @@ substT ss tt
        | otherwise
        -> t
 
-      TypeArrow a b         -> TypeArrow    (go a) (go b)
+      TypeForall a c b      -> TypeForall  a      (fmap (substC ss) c) (go b)
+      TypeArrow a b         -> TypeArrow   (go a) (go b)
 
 
 substC :: Eq n => SubstT n -> Constraint n -> Constraint n
@@ -101,12 +102,7 @@ substC ss cc
 substFT :: Eq n => SubstT n -> FunctionType n -> FunctionType n
 substFT ss ff
  = ff
- { functionConstraints  = fmap (substC ss') (functionConstraints ff)
---  , functionArguments    = fmap (substT ss') (functionArguments   ff)
- , functionReturn       =       substT ss'  (functionReturn      ff) }
- where
-  ss' = foldl (flip Map.delete) ss
-      $ functionForalls ff
+ { functionReturn       =       substT ss  (functionReturn      ff) }
 
 
 -- | Compose two substitutions together, in order.
@@ -237,6 +233,13 @@ unifyT t1 t2
 
     PossibilityPossibly     -> eq
     PossibilityDefinitely   -> eq
+
+    TypeForall n _ac at
+     | TypeForall m _bc bt <- t2
+     , n == m
+     -> unifyT at bt
+     | otherwise
+     -> Nothing
 
     TypeArrow  at ar
      | TypeArrow bt br <- t2

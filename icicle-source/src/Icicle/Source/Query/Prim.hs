@@ -183,7 +183,8 @@ primLookup' prim
 
  where
   functionType foralls constraints arguments simpleType
-   = FunctionType foralls constraints
+   = FunctionType
+   $ TypeForall foralls constraints
    $ foldr TypeArrow simpleType arguments
 
   f0 argsT resT
