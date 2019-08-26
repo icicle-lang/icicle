@@ -15,7 +15,11 @@ module Icicle.Source.Type.Base (
   , Constraint  (..)
   , Annot (..)
   , annotDiscardConstraints
+  , foldTypePlate
   ) where
+
+import           Control.Lens.Fold   (foldMapOf)
+import           Control.Lens.Plated (Plated (..))
 
 import qualified Data.Map as Map
 
@@ -60,6 +64,39 @@ data Type n
  deriving (Eq, Ord, Show, Generic)
 
 instance NFData n => NFData (Type n)
+
+instance Plated (Type n) where
+  plate f t = case t of
+    BoolT        -> pure BoolT
+    TimeT        -> pure TimeT
+    DoubleT      -> pure DoubleT
+    IntT         -> pure IntT
+    StringT      -> pure StringT
+    UnitT        -> pure UnitT
+    ErrorT       -> pure ErrorT
+    ArrayT a     -> ArrayT  <$> f a
+    GroupT k v   -> GroupT  <$> f k <*> f v
+    OptionT a    -> OptionT <$> f a
+    PairT a b    -> PairT   <$> f a <*> f b
+    SumT  a b    -> SumT    <$> f a <*> f b
+    StructT st   -> StructT <$> traverse f st
+
+    Temporality x a         -> Temporality <$> f x <*> f a
+    TemporalityPure         -> pure TemporalityPure
+    TemporalityElement      -> pure TemporalityElement
+    TemporalityAggregate    -> pure TemporalityAggregate
+
+    Possibility p a         -> Possibility <$> f p <*> f a
+    PossibilityPossibly     -> pure PossibilityPossibly
+    PossibilityDefinitely   -> pure PossibilityDefinitely
+
+    TypeVar v               -> pure (TypeVar v)
+    TypeForall ns cs x      -> TypeForall ns cs <$> f x
+    TypeArrow a b           -> TypeArrow <$> f a <*> f b
+
+foldTypePlate :: Monoid x => (Type n -> x) -> (Type n -> x)
+foldTypePlate =
+  foldMapOf plate
 
 typeOfValType :: CT.ValType -> Type n
 typeOfValType vt
@@ -178,9 +215,11 @@ instance Pretty n => Pretty (Type n) where
     TypeVar v ->
       annotate AnnVariable (pretty v)
     TypeForall _ cs x ->
-      pretty $ PrettyFunType (fmap pretty cs) [] (pretty x)
+      parensWhenArg p $
+        pretty $ PrettyFunType (fmap pretty cs) [] (pretty x)
     TypeArrow f x ->
-      pretty $ PrettyFunType [] [pretty f] (pretty x)
+      parensWhenArg p $
+        pretty $ PrettyFunType [] [pretty f] (pretty x)
     Temporality a b ->
       prettyApp hsep p a [b]
     TemporalityPure ->

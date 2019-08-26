@@ -176,7 +176,7 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
 
     ErrorReturnNotAggregate a t ->
       vsep [
-          "Return type is not an aggregate at" <+> pretty a
+          "Return type is not an aggregate value at" <+> pretty a
         , mempty
         , "Type: " <> inp t
         ]

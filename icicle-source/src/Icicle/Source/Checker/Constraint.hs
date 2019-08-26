@@ -567,7 +567,7 @@ generateX x env
     Var a n
      -> do (fErr, resT, cons') <- lookup a n env
 
-           when (isFunction resT)
+           when (anyArrows resT)
              $ genHoistEither
              $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
@@ -623,9 +623,9 @@ generateX x env
                 let go                      = uncurry (appType a x)
                 (resT', consap)            <- foldM go (resT, []) argsT'
 
-                when (isFunction resT')
+                when (anyArrows resT')
                   $ genHoistEither
-                  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+                  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
 
                 let s' = foldl compose Map.empty subs'
                 let cons' = concat (consf : consap : consxs)
@@ -636,12 +636,7 @@ generateX x env
 
     -- Unapplied primitives should be relatively easy
     Prim a p
-     -> do (fErr, resT, cons') <- primLookup a p
-
-           when (isFunction resT)
-              $ genHoistEither
-              $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
-
+     -> do (_fErr, resT, cons') <- primLookup a p
            let x' = annotate cons' resT
                   $ \a' -> Prim a' p
            return (x', Map.empty, cons')
@@ -792,7 +787,7 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
         return ( SumT l r , c, e' )
 
   goPat (PatLit l _) e
-   = do (_, resT, cons) <- primLookup ann (Lit l)
+   = do (_fErr, resT, cons) <- primLookup ann (Lit l)
         return (resT, cons, e)
 
   goPat _ _
@@ -858,13 +853,3 @@ appType ann errExp funT cons actT
 
   definitely (Just PossibilityDefinitely) = Nothing
   definitely pos = pos
-
-
-isFunction
- :: Type n
- -> Bool
-isFunction funT
-  | (_,_,TypeArrow _ _) <- decomposeT $ canonT funT
-  = True
-  | otherwise
-  = False

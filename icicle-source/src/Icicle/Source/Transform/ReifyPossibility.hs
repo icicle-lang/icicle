@@ -70,7 +70,7 @@ reifyPossibilityX' wrap x
        -> do arg'       <- reifyPossibilityX' wrap arg
              nValue     <- fresh
              nError     <- fresh
-             let a'  = wrapAnnot a
+             let a'      = wrapAnnot a
              let aValue  = definiteAnnot a
              let aError  = typeAnnot a' ErrorT
              let vValue  = Var  aValue nValue

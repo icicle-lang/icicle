@@ -163,7 +163,7 @@ checkF' fun env
    <*>                  (TypeVar <$> fresh))
 
   lookupArg subs e (a,n)
-   = do (_,t,_) <- lookup a n e
+   = do (_, t,_) <- lookup a n e
         return (Annot a (substT subs t) [], n)
 
   dischargeInfo q cons subs =

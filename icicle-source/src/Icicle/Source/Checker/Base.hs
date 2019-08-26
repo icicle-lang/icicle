@@ -248,9 +248,7 @@ introForalls ann f
                $ cs
 
       let sub   = substT freshen
-      return ( f
-             , sub x
-             , cons )
+      return (f, sub x, cons)
 
     _ ->
       return (f, f, [])
