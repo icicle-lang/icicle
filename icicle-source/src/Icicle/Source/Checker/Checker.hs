@@ -45,9 +45,9 @@ checkQT opts features qt
   = case lookupInputId (queryInput qt) (featuresConcretes features) of
     Just (FeatureConcrete _ _ f)
      -> do  let env = Map.unions
-                      [ fmap function0 (envOfFeatureContext f)
+                      [ envOfFeatureContext f
                       , featuresFunctions features
-                      , fmap function0 (envOfFeatureNow opts (featureNow features)) ]
+                      , envOfFeatureNow opts (featureNow features) ]
             (q,t) <- checkQ opts (emptyCheckEnv { checkEnvironment = env }) (query qt)
             return (qt { query = q }, t)
 

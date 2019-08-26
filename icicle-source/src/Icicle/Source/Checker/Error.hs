@@ -91,7 +91,7 @@ annotOfError (CheckError e _)
 
 data ErrorSuggestion a n
  = AvailableFeatures UnresolvedInputId [(InputId, Type n)]
- | AvailableBindings (Name n) [(Name n, FunctionType n)]
+ | AvailableBindings (Name n) [(Name n, Type n)]
  | Suggest String
  deriving (Show, Eq, Generic)
 
@@ -149,7 +149,7 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
           "Function applied to wrong number of arguments at" <+> pretty a
         , mempty
         , "Expression:     " <> inp x
-        , "Function type:  " <> inp f
+        , "Function type:  " <> inp (prettyFunFromStrings f)
         , "Argument types: " <> inp tys
         ]
 

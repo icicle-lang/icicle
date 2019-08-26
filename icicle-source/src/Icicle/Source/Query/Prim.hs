@@ -22,7 +22,7 @@ import                  P
 import                  Data.Hashable (Hashable)
 
 
-primLookup' :: Hashable n => Prim -> Fresh.Fresh n (FunctionType n)
+primLookup' :: Hashable n => Prim -> Fresh.Fresh n (Type n)
 primLookup' prim
  = case prim of
     -- Negate on Doubles will not introduce NaN or Inf
@@ -182,9 +182,11 @@ primLookup' prim
      -> f0 [] ErrorT
 
  where
+  functionType [] [] arguments simpleType
+   = foldr TypeArrow simpleType arguments
+
   functionType foralls constraints arguments simpleType
-   = FunctionType
-   $ TypeForall foralls constraints
+   = TypeForall foralls constraints
    $ foldr TypeArrow simpleType arguments
 
   f0 argsT resT

@@ -13,10 +13,8 @@ module Icicle.Source.Type.Base (
   , typeOfValType
   , valTypeOfType
   , Constraint  (..)
-  , FunctionType(..)
   , Annot (..)
   , annotDiscardConstraints
-  , prettyFun
   ) where
 
 import qualified Data.Map as Map
@@ -131,17 +129,6 @@ data Constraint n
 
 instance NFData n => NFData (Constraint n)
 
-data FunctionType n
- = FunctionType
- { --   functionForalls      :: [Name n]
-   --   functionConstraints  :: [Constraint n]
-   --  , functionArguments    :: [Type n]
-  functionReturn       :: Type n
- }
- deriving (Eq, Ord, Show, Generic)
-
-instance NFData n => NFData (FunctionType n)
-
 data Annot a n
  = Annot
  { annAnnot         :: a
@@ -190,10 +177,10 @@ instance Pretty n => Pretty (Type n) where
       prettyStructType hcat . fmap (bimap pretty pretty) $ Map.toList fs
     TypeVar v ->
       annotate AnnVariable (pretty v)
-    TypeForall ns cs x ->
-      pretty $ PrettyFunType (fmap pretty cs) (fmap pretty ns) (pretty x)
+    TypeForall _ cs x ->
+      pretty $ PrettyFunType (fmap pretty cs) [] (pretty x)
     TypeArrow f a ->
-      annotate AnnVariable (pretty f) <+> text "->" <+> annotate AnnVariable (pretty a)
+      pretty f <+> text "->" <+> pretty a
 
     Temporality a b ->
       prettyApp hsep p a [b]
@@ -243,16 +230,6 @@ instance Pretty n => Pretty (Constraint n) where
     CPossibilityJoin a b c ->
       pretty a <+> prettyPunctuation "=:" <+>
       prettyApp hsep 0 (prettyConstructor "PossibilityJoin") [b, c]
-
-prettyFun :: Pretty n => FunctionType n -> PrettyFunType
-prettyFun (FunctionType (TypeForall ns cs x)) =
-  PrettyFunType (fmap pretty cs) (fmap pretty ns) (pretty x)
-prettyFun (FunctionType x) =
-  PrettyFunType [] [] (pretty x)
-
-instance Pretty n => Pretty (FunctionType n) where
-  pretty =
-    pretty . functionReturn
 
 instance (Pretty n) => Pretty (Annot a n) where
   pretty ann =

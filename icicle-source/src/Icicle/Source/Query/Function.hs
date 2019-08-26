@@ -38,7 +38,7 @@ reannotF f fun
 data ResolvedFunction a n =
   ResolvedFunction {
      functionName :: Name n
-   , functionType :: FunctionType n
+   , functionType :: Type n
    , functionDefinition :: Function (Annot a n) n
    } deriving (Eq, Show)
 
@@ -67,10 +67,8 @@ buildResolved a_fresh builtin = do
   let
     name
       = nameOf . NameBase . fromString . show . pretty $ builtin
-    -- constraints
-    --   = (a_fresh,) <$> functionConstraints typ
     annot
-      = Annot a_fresh (functionReturn typ) []
+      = Annot a_fresh typ []
     prim
       = Prim annot (Fun builtin)
     exp'
