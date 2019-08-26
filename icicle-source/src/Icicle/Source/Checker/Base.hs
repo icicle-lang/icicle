@@ -250,8 +250,8 @@ introForalls ann f
              , sub x
              , cons )
 
-    elsewise ->
-      return (f, elsewise, [])
+    _ ->
+      return (f, f, [])
 
  where
   mkSubst n

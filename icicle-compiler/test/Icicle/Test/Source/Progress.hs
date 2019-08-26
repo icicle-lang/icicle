@@ -29,7 +29,7 @@ import qualified Data.Map as Map
 
 
 mkElems :: Map.Map (CB.Name T.Variable) CT.ValType -> CheckEnv () T.Variable
-mkElems m = emptyCheckEnv { checkEnvironment = Map.map (function0 . Temporality TemporalityElement . Possibility PossibilityDefinitely . typeOfValType) m }
+mkElems m = emptyCheckEnv { checkEnvironment = Map.map (Temporality TemporalityElement . Possibility PossibilityDefinitely . typeOfValType) m }
 
 prop_progress_no_values :: Map.Map (CB.Name T.Variable) CT.ValType -> Query () T.Variable -> Property
 prop_progress_no_values f q
