@@ -80,8 +80,14 @@ checkQ opts ctx q
        _
          -> hoistEither
           $ errorSuggestions
-              (ErrorReturnNotAggregate (annotOfQuery $ q) t)
+              (ErrorReturnNotAggregate (annotOfQuery q) t)
               [Suggest "The return must be an aggregate, otherwise the result could be quite large"]
+
+      when (anyArrows t)
+        $ hoistEither
+        $ errorSuggestions
+            (ErrorReturnNotAggregate (annotOfQuery q) t)
+            [Suggest "The return must not contain functions or type abstractions"]
 
       hoistEither $ invariantQ ctx q
 
@@ -89,4 +95,3 @@ checkQ opts ctx q
         hoistEither $ checkResumableQ ctx q
 
       return (q', t)
-

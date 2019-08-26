@@ -14,6 +14,8 @@ module Icicle.Source.Type.Compounds (
   , getPossibility
   , getTemporalityOrPure
   , getPossibilityOrDefinitely
+
+  , anyArrows
   ) where
 
 
@@ -24,6 +26,7 @@ import                  P
 
 import                  Data.List (zipWith, zip)
 import qualified        Data.Map as Map
+import                  Data.Monoid (Any (..))
 import qualified        Data.Set as Set
 import                  Data.Hashable (Hashable)
 
@@ -259,3 +262,9 @@ wrapN go f ts
        Nothing -> Nothing
        Just tmp' -> f tmp' args
 
+
+anyArrows :: Type n -> Bool
+anyArrows
+ = let go (TypeArrow {}) = Any True
+       go x = foldTypePlate go x
+   in getAny . go
