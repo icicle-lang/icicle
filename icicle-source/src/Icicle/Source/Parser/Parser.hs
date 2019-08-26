@@ -32,16 +32,17 @@ top name
         q <- query                                              <?> "query"
         return $ Q.QueryTop v name q
 
-functions :: Parser [((T.SourcePos, Name Var), (Q.Function T.SourcePos Var))]
+functions :: Parser [((T.SourcePos, Name Var), (Q.Exp T.SourcePos Var))]
 functions
  = ((,) <$> ((,) <$> getPosition <*> pVariable) <*> function) `sepEndBy` (pEq T.TStatementEnd)
 
-function :: Parser (Q.Function T.SourcePos Var)
+function :: Parser (Q.Exp T.SourcePos Var)
 function
- = do   v <- many ((,) <$> getPosition <*> pVariable)       <?> "function variables"
+ = do   vs <- many ((,) <$> getPosition <*> pVariable)      <?> "function variables"
         pEq T.TEqual                                        <?> "equals"
-        q <- query
-        return $ Q.Function v q
+        q <- (,) <$> getPosition <*> query
+        let lams = foldr (uncurry Q.Lam) (uncurry Q.Nested q) vs
+        return lams
 
 query :: Parser (Q.Query T.SourcePos Var)
 query

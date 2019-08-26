@@ -87,6 +87,9 @@ simpDumbCases xx
     App a x y
      -> App a (simpX x) (simpX y)
 
+    Lam a n x
+     -> Lam a n (simpX x)
+
     Var{}  -> xx
     Prim{} -> xx
 

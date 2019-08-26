@@ -110,6 +110,9 @@ simplifyNestedX xx
     App a x y
      -> App a (simplifyNestedX x) (simplifyNestedX y)
 
+    Lam a n x
+     -> Lam a n (simplifyNestedX x)
+
     Var{}
      -> xx
     Prim{}
@@ -215,6 +218,9 @@ allvarsX x
  = case x of
     Var a n
      -> Var (a, sgl n) n
+    Lam a n p
+     -> let p' = allvarsX p
+        in  Lam (a, Set.delete n (annX p')) n p'
     Nested a q
      -> let q' = allvarsQ q
         in  Nested (a, snd $ annotOfQuery q') q'

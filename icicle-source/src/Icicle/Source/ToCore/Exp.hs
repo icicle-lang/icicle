@@ -65,7 +65,7 @@ convertExp x
      -> convertExpQ q
 
 
-    App ann _ _
+    App ann f q
      -- Primitive application: convert arguments, then convert primitive
      | Just (p, Annot { annResult = resT }, args) <- takePrimApps x
      -> do  args'   <- mapM convertExp args
@@ -73,12 +73,19 @@ convertExp x
             convertPrim p (annAnnot ann) resT (args' `zip` tys)
 
      | otherwise
-     -> convertError
-      $ ConvertErrorExpApplicationOfNonPrimitive (annAnnot ann) x
-
+     -> do  p'      <- convertExp f
+            q'      <- convertExp q
+            return $
+              p' `CE.xApp` q'
 
     Prim ann p
      -> convertPrim p (annAnnot ann) (annResult ann) []
+
+    Lam ann n p
+     -> do  p'      <- convertExp p
+            typ     <- convertFunctionArgType (annAnnot ann) $ annResult ann
+            return $
+              CE.xLam n typ p'
 
     -- Only deal with flattened, single layer cases.
     -- We need a pass beforehand to simplify them.

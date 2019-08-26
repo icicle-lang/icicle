@@ -29,7 +29,7 @@ import Text.Parsec
 
 import P
 
-parseFunctions :: SourceName -> Text -> Either ParseError [((SourcePos, Name Variable), (Function SourcePos Variable))]
+parseFunctions :: SourceName -> Text -> Either ParseError [((SourcePos, Name Variable), (Exp SourcePos Variable))]
 parseFunctions source inp
  = let toks = lexer source inp
    in  runParser (consumeAll functions) () source toks

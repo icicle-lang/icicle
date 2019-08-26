@@ -11,7 +11,6 @@ import           Data.String (String)
 import           Icicle.Data.Name
 import           Icicle.Internal.Pretty
 import           Icicle.Source.Query
-import           Icicle.Source.Type
 
 import           P
 
@@ -56,6 +55,9 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
 
       Prim a p ->
         annotate AnnPrimitive (pretty p) <> annotPrim a p
+
+      Lam _ n x ->
+        prettyPunctuation "\\" <> pretty n <+> prettyPunctuation "->" <+> prettyPrec appPrec1 x
 
       Case a scrut pats ->
         vsep [
@@ -152,20 +154,4 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (QueryTop a n)) where
         vsep [
             prettyKeyword "feature" <+> annotate AnnConstant (pretty (show (renderUnresolvedInputId input)))
           , prettyPunctuation "~>" <+> align (pretty (PrettyAnnot q))
-          ]
-
-instance Pretty n => Pretty (PrettyAnnot (Function (Annot a n) n)) where
-  pretty (PrettyAnnot q) =
-    let
-      args =
-        case reverse $ arguments q of
-          [] ->
-            [ prettyPunctuation "=" ]
-          (a0, n0) : xs0 ->
-            fmap (\(a, n) -> pretty n <> prettyAnnot a) (reverse xs0) <>
-            [ pretty n0 <> prettyAnnot a0 <+> prettyPunctuation "=" ]
-    in
-      vsep $
-        args <> [
-            indent 2 . pretty $ PrettyAnnot (body q)
           ]

@@ -93,7 +93,7 @@ type AnnotUnit = ()
 type Var         = Parse.Variable
 type TypeAnnot a = Type.Annot a Var
 
-type Funs a b = [((a, Name b), Query.Function a b)]
+type Funs a b = [((a, Name b), Query.Exp a b)]
 type FunEnvT a b = [ Query.ResolvedFunction a b ]
 
 type QueryUntyped v = Query.QueryTop            Parsec.SourcePos  v
@@ -233,7 +233,7 @@ sourceDesugarF :: Funs Parsec.SourcePos Var
 sourceDesugarF fun
  = runIdentity . runEitherT . bimapEitherT ErrorSourceDesugar snd
  $ Fresh.runFreshT
-     (mapM (mapM Desugar.desugarFun) fun)
+     (mapM (mapM Desugar.desugarX) fun)
      (freshNamer "desugar_f")
 
 sourceReifyQT :: QueryTyped Var

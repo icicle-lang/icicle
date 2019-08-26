@@ -92,6 +92,10 @@ reifyPossibilityX' wrap x
       Prim a p
        -> return $ Prim a p
 
+      -- Lambdas shouldn't be in here after inlining. Just force a left error.
+      Lam ann p x
+       -> return $ Lam ann p x
+
       -- If the scrutinee is possibly, we need to unwrap it before performing the case:
       -- > case scrut | alt -> ...
       -- ==>

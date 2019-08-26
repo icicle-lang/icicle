@@ -123,6 +123,7 @@ defaults topq
            Nested _ q -> fa <> defaultOfAllQ q
            App _ p q -> fa <> defaultOfAllX p <> defaultOfAllX q
            Prim{} -> fa
+           Lam{} -> fa
            Case _ s pats
             ->  fa <> defaultOfAllX s <>
                (Map.unions $ fmap (defaultOfAllX . snd) pats)
@@ -576,6 +577,16 @@ generateX x env
            let x' = annotate cons' resT
                   $ \a' -> Var a' n
            return (x', Map.empty, cons')
+
+    -- Variables can only be values, not functions.
+    Lam _ n p
+     -> do bindType  <- TypeVar <$> fresh
+           let env'   = Map.insert n bindType env
+           (p',s,c)  <- generateX p env'
+           let pT     = annResult $ annotOfExp p'
+           let x'     = annotate c (TypeArrow bindType pT)
+                      $ \a' -> Lam a' n p'
+           return (x', s, c)
 
     -- Nested just has the type of its inner query.
     Nested _ q

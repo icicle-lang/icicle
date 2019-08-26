@@ -2,9 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections     #-}
 module Icicle.Source.Query.Function (
-    Function (..)
-  , ResolvedFunction (..)
-
+    ResolvedFunction (..)
   , builtinDefinitions
   ) where
 
@@ -23,22 +21,11 @@ import                  Icicle.Source.Type
 
 import                  P
 
-data Function a n
-  = Function
-  { arguments :: [(a,Name n)]
-  , body      :: Query a n }
-  deriving (Show, Eq)
-
-instance TraverseAnnot Function  where
-  traverseAnnot f fun =
-    Function <$> traverse (\(a, n) -> (,n) <$> f a) (arguments fun)
-             <*> traverseAnnot f (body fun)
-
 data ResolvedFunction a n =
   ResolvedFunction {
      functionName :: Name n
    , functionType :: Type n
-   , functionDefinition :: Function (Annot a n) n
+   , functionDefinition :: Exp (Annot a n) n
    } deriving (Eq, Show)
 
 -- | Build a function environment containing our builtin functions.
@@ -66,26 +53,5 @@ buildResolved a_fresh builtin = do
       = Annot a_fresh typ []
     prim
       = Prim annot (Fun builtin)
-    query'
-      = Query [] prim
-    definition
-      = Function [] query'
-
   return $
-    ResolvedFunction name typ definition
-
-instance Pretty n => Pretty (Function a n) where
-  pretty q =
-    let
-      args =
-        case reverse $ arguments q of
-          [] ->
-            [ prettyPunctuation "=" ]
-          (_, n0) : xs0 ->
-            fmap (\(_, n) -> pretty n) (reverse xs0) <>
-            [ pretty n0 <+> prettyPunctuation "=" ]
-    in
-      vsep $
-        args <> [
-            indent 2 . pretty $ body q
-          ]
+    ResolvedFunction name typ prim
