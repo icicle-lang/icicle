@@ -60,10 +60,6 @@ buildResolved :: (IsString n, Hashable n) => a -> BuiltinFun -> Fresh.Fresh n (R
 buildResolved a_fresh builtin = do
   typ
     <- primLookup' (Fun builtin)
-
-  args
-    <- return []
-
   let
     name
       = nameOf . NameBase . fromString . show . pretty $ builtin
@@ -71,12 +67,10 @@ buildResolved a_fresh builtin = do
       = Annot a_fresh typ []
     prim
       = Prim annot (Fun builtin)
-    exp'
-      = foldl (\ex (a, argName) -> mkApp ex (Var a argName)) prim args
     query'
-      = Query [] exp'
+      = Query [] prim
     definition
-      = Function args query'
+      = Function [] query'
 
   return $
     ResolvedFunction name typ definition

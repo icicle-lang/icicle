@@ -10,11 +10,11 @@ feature salary ~> count value
 -- Mean example
 feature salary ~> mean value
 
--- minby / min example
-feature injury ~> minby severity location , min severity
+-- min_by / min example
+feature injury ~> min_by severity location , min severity
 
--- maxby / max example
-feature injury ~> maxby severity location , max severity
+-- max_by / max example
+feature injury ~> max_by severity location , max severity
 
 -- Standard deviation example
 feature salary ~> sd value
@@ -36,9 +36,9 @@ feature injury ~> numflips location
 feature injury ~> numflips' location tombstone
 
 -- IsSome
-feature salary ~> latest 1 ~> isSome (Some "hi")
+feature salary ~> latest 1 ~> is_some (Some "hi")
 -- IsNone
-feature salary ~> latest 1 ~> isNone (Some "hi")
+feature salary ~> latest 1 ~> is_none (Some "hi")
 
 --GetOrElse example
-feature salary ~> getOrElse 3 (Some (newest value))
+feature salary ~> get_or_else 3 (Some (newest value))

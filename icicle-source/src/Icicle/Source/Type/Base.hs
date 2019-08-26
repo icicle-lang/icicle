@@ -179,9 +179,8 @@ instance Pretty n => Pretty (Type n) where
       annotate AnnVariable (pretty v)
     TypeForall _ cs x ->
       pretty $ PrettyFunType (fmap pretty cs) [] (pretty x)
-    TypeArrow f a ->
-      pretty f <+> text "->" <+> pretty a
-
+    TypeArrow f x ->
+      pretty $ PrettyFunType [] [pretty f] (pretty x)
     Temporality a b ->
       prettyApp hsep p a [b]
     TemporalityPure ->
