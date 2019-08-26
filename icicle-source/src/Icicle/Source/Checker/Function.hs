@@ -28,9 +28,8 @@ import                  Data.Hashable           (Hashable)
 
 import                  X.Control.Monad.Trans.Either
 
-type Funs a n = [((a, Name n), Function a n)]
+type Funs a n = [((a, Name n), Exp a n)]
 type FunEnvT a n = [ ResolvedFunction a n ]
-
 
 checkFs :: (Hashable n, Eq n, Pretty n)
         => FunEnvT a n
@@ -51,9 +50,9 @@ checkFs env functions
 
 checkF  :: (Hashable n, Eq n, Pretty n)
         => Map.Map (Name n) (Type n)
-        -> Function a n
+        -> Exp a n
         -> EitherT (CheckError a n) (Fresh.Fresh n)
-                   ((Function (Annot a n) n, Type n), [CheckLog a n])
+                   ((Exp (Annot a n) n, Type n), [CheckLog a n])
 
 checkF env fun
  = evalGen $ checkF' fun env
@@ -61,15 +60,16 @@ checkF env fun
 
 -- | Typecheck a function definition, generalising types and pulling out constraints
 checkF' :: (Hashable n, Eq n, Pretty n)
-        => Function a n
+        => Exp a n
         -> GenEnv n
-        -> Gen a n (Function (Annot a n) n, Type n)
+        -> Gen a n (Exp (Annot a n) n, Type n)
 
 checkF' fun env
- = do -- Give each argument a fresh type variable
-      env' <- foldM bindArg env $ arguments fun
+ = do let (arguments, body) = takeLams fun
+      -- Give each argument a fresh type variable
+      env' <- foldM bindArg env $ arguments
       -- Get the type annotated body
-      (q', subs', cons') <- generateQ (body fun) env'
+      (q', subs', cons') <- generateX body env'
 
       -- Perform top-level discharge of any silly
       -- leftover Possibility or Temporality joins
@@ -81,7 +81,7 @@ checkF' fun env
       -- Look up the argument types after solving all constraints.
       -- Because they started as fresh unification variables,
       -- they will end up being unified to the actual types.
-      args <- mapM (lookupArg subs env') (arguments fun)
+      args <- mapM (lookupArg subs env') arguments
 
       -- Find all leftover constraints
       let constrs = fmap snd cons
@@ -141,7 +141,8 @@ checkF' fun env
 
       -- Fix the modes of all the argument and result types
       let argTs = fmap (fixmodes . annResult . fst) args
-      let resT  = fixmodes $ annResult $ annotOfQuery q
+
+      let resT  = fixmodes $ annResult $ annotOfExp q
 
       -- Find free variables in types and constraints - these have to be bound as foralls.
       let binds = Set.toList
@@ -149,6 +150,7 @@ checkF' fun env
                 $ keepModes : freeT resT : fmap freeT argTs
 
       let arrT  = foldr TypeArrow resT argTs
+      let lams  = foldr (uncurry Lam) q args
 
       -- Put it all together
       let funT  | null binds && null constrs
@@ -156,7 +158,7 @@ checkF' fun env
                 | otherwise
                 = TypeForall binds constrs arrT
 
-      return (Function args q, funT)
+      return (lams, funT)
  where
   bindArg cx (_,n)
    = do t <- freshType
@@ -172,13 +174,13 @@ checkF' fun env
         return (Annot a (substT subs t) [], n)
 
   dischargeInfo q cons subs =
-    DischargeInfo (annResult (annotOfQuery q)) cons subs
+    DischargeInfo (annResult (annotOfExp q)) cons subs
 
   dischargeF q subs cons =
     genLiftFresh (runEitherT (dischargeCS' dischargeC'toplevel cons)) >>= \case
       Left errs
         -> genHoistEither
-        $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot (annotOfQuery q)) errs)
+        $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot (annotOfExp q)) errs)
       Right (sub, cons')
        -> do let subs'     = compose subs sub
              q'           <- genLiftFresh (substTQ sub q)

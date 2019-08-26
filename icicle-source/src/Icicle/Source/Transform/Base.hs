@@ -108,6 +108,9 @@ transformX t xx
 
       case xx' of
        Var{} -> return xx'
+       Lam a n p
+        -> do p' <- goX p
+              return $ Lam a n p'
        Nested a q
         -> do q' <- goQ q
               return $ Nested a q'

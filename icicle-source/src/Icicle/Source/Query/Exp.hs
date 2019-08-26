@@ -28,6 +28,8 @@ module Icicle.Source.Query.Exp (
 
   , takeApps
   , takePrimApps
+  , takeLams
+  , makeLams
   , annotOfExp
   , mkApp
   , precedenceOfX
@@ -55,7 +57,7 @@ reannot = over traverseAnnot
 
 data Exp' q a n
  = Var a (Name n)
---  | Lam (Name n) (Exp' q a n)
+ | Lam a (Name n) (Exp' q a n)
  | Nested a (q a n)
  | App  a (Exp' q a n) (Exp' q a n)
  | Prim a Prim
@@ -68,12 +70,25 @@ instance TraverseAnnot q => TraverseAnnot (Exp' q)  where
   traverseAnnot f xx =
     case xx of
       Var    a n   -> Var    <$> f a <*> pure n
+      Lam    a n q -> Lam    <$> f a <*> pure n            <*> traverseAnnot f q
       Nested a q   -> Nested <$> f a <*> traverseAnnot f q
       App    a x y -> App    <$> f a <*> traverseAnnot f x <*> traverseAnnot f y
       Prim   a p   -> Prim   <$> f a <*> pure p
       Case a scrut pats
        -> Case <$> f a <*> traverseAnnot f scrut
                <*> traverse (\(p,x) -> (p,) <$> traverseAnnot f x) pats
+
+takeLams :: Exp' q a n -> ([(a, Name n)], Exp' q a n)
+takeLams (Lam a n x) =
+  let
+    (bs, ret) = takeLams x
+    binds = (a, n) : bs
+  in
+    (binds, ret)
+takeLams x = ([], x)
+
+makeLams :: [(a, Name n)] -> Exp' q a n -> Exp' q a n
+makeLams ls x = foldr (uncurry Lam) x ls
 
 takeApps :: Exp' q a n -> (Exp' q a n, [Exp' q a n])
 takeApps xx
@@ -95,6 +110,7 @@ annotOfExp :: Exp' q a n -> a
 annotOfExp x
  = case x of
    Var    a _   -> a
+   Lam    a _ _ -> a
    Nested a _   -> a
    App    a _ _ -> a
    Prim   a _   -> a
@@ -137,6 +153,9 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
 
         Var _ n ->
           annotate AnnVariable (pretty n)
+
+        Lam _ n x ->
+          prettyPunctuation "\\" <> pretty n <+> prettyPunctuation "->" <+> prettyPrec inner_prec_2 x
 
         Prim _ p ->
           annotate AnnPrimitive (pretty p)
@@ -208,6 +227,8 @@ precedenceOfX xx
  = case xx of
     Var{}
      -> precedenceNeverParens
+    Lam{}
+     -> precedenceApplication
     Nested{}
      -> precedenceAlwaysParens
     App{}

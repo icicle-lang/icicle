@@ -14,7 +14,7 @@ module Icicle.Source.Transform.Desugar
   , runDesugar
   , desugarQT
   , desugarQ
-  , desugarFun
+  , desugarX
   ) where
 
 import           Control.Monad.Trans.Class
@@ -62,14 +62,6 @@ annotOfError (DesugarIllTypedPatterns a _)   = Just a
 
 runDesugar :: NameState n -> DesugarM a n x -> Either (DesugarError a n) x
 runDesugar n m = runIdentity . runEitherT . bimapEitherT id snd $ runFreshT m n
-
-desugarFun
-  :: (Hashable n, Eq n)
-  => Function a n
-  -> DesugarM a n (Function a n)
-desugarFun f
-  = do b' <- desugarQ (body f)
-       return $ f { body = b'}
 
 desugarQT
   :: (Hashable n, Eq n)
@@ -203,8 +195,11 @@ desugarX xx
             x2' <- desugarX x2
             return $ App a x1' x2'
 
-    Var _ _
+    Lam a n x1
+      -> do x1' <- desugarX x1
+            return $ Lam a n x1'
 
+    Var _ _
       -> return xx
     Prim _ _
      -> return xx

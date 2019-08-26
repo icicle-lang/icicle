@@ -24,6 +24,7 @@ module Icicle.Source.ToCore.Base (
   , convertFreshenLookup
   , convertFreshenLookupMaybe
   , convertValType
+  , convertFunctionArgType
   , convertContext
 
   , pre, filt, sfold, post
@@ -305,6 +306,14 @@ convertFreshenLookupMaybe n
  = do   o <- get
         return $ Map.lookup n $ csFreshen o
 
+
+convertFunctionArgType :: a -> Type n -> ConvertM a n ValType
+convertFunctionArgType ann ty
+ = case ty of
+    TypeArrow ty' _
+      -> convertValType ann ty'
+    _
+     -> convertError $ ConvertErrorCannotConvertType ann ty
 
 convertValType :: a -> Type n -> ConvertM a n ValType
 convertValType ann ty

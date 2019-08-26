@@ -71,7 +71,7 @@ data CheckEnv a n
  -- | Mapping from variable names to whole types
    checkEnvironment :: Map.Map (Name n) (Type n)
  -- | Function bodies
- , checkBodies      :: Map.Map (Name n) (Function a n)
+ , checkBodies      :: Map.Map (Name n) (Query a n)
  , checkInvariants  :: Invariants
  }
 

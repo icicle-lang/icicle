@@ -5,7 +5,8 @@ module Icicle.Source.Checker.Invariants (
     invariantQ
   , invariantX
   ) where
-
+import Icicle.Common.Base
+import Icicle.Common.Fresh
 import                  Icicle.Source.Checker.Base
 import                  Icicle.Source.Checker.Error
 import                  Icicle.Source.Query
@@ -115,6 +116,8 @@ invariantX ctx x
  = case x of
     Var a n
      -> goFun a n []
+    Lam a n p
+     -> goFun a n [p]
     Nested _ q
      -> invariantQ ctx q
     App{}
@@ -131,15 +134,24 @@ invariantX ctx x
  where
   goFun a n args
    | Just fun <- Map.lookup n $ checkBodies ctx
-   = let ctx' = foldl bindArg ctx (arguments fun `zip` args)
+   = let ctx' = foldl bindArg ctx (argumentsQ fun `zip` args)
      in  errorInFunctionEither a n
-       $ invariantQ ctx' $ body fun
+       $ invariantQ ctx' fun
    | otherwise
    = mapM_ (invariantX ctx) args
 
   bindArg ctx' ((_,n),def)
    = ctx'
-   { checkBodies = Map.insert n (Function [] (Query [] def))
+   { checkBodies = Map.insert n (Query [] def)
                  $ checkBodies ctx'
    }
 
+  argumentsX :: Exp a n -> [(a, Name n)]
+  argumentsX (Lam a n x) =
+    (a, n) : argumentsX x
+  argumentsX _ = []
+
+  argumentsQ :: Query a n -> [(a, Name n)]
+  argumentsQ (Query [] (Lam a n x)) =
+    (a, n) : argumentsX x
+  argumentsQ _ = []

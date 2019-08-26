@@ -64,7 +64,7 @@ data DictionaryImportError
   | DictionaryErrorImpossible
   deriving (Show)
 
-type Funs a  = [((a, Name SP.Variable), SQ.Function a SP.Variable)]
+type Funs a  = [((a, Name SP.Variable), SQ.Exp a SP.Variable)]
 type FunEnvT = [ ResolvedFunction Parsec.SourcePos SP.Variable ]
 
 data ImplicitPrelude = ImplicitPrelude | NoImplicitPrelude

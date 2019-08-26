@@ -111,6 +111,9 @@ checkPat exp =
       | otherwise
       -> fail "unable to parse pattern"
 
+    Q.Lam {}
+      -> fail "unable to parse lambda function as a pattern"
+
     Q.Nested {}
       -> fail "unable to parse nested queries as a pattern"
 
