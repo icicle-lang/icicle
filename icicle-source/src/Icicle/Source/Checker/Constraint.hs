@@ -142,7 +142,7 @@ defaults topq
 --   We take the map of types of all imported functions.
 constraintsQ
   :: (Hashable n, Eq n, Pretty n)
-  => Map.Map (Name n) (FunctionType n)
+  => Map.Map (Name n) (Type n)
   -> Query a n
   -> EitherT (CheckError a n) (Fresh.Fresh n) (Query'C a n)
 constraintsQ env q
@@ -793,7 +793,7 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
         return ( SumT l r , c, e' )
 
   goPat (PatLit l _) e
-   = do FunctionType resT <- Gen . lift . lift $ primLookup' (Lit l)
+   = do resT <- Gen . lift . lift $ primLookup' (Lit l)
         return (resT, [], e)
 
   goPat _ _

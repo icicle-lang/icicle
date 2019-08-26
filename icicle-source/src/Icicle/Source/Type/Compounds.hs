@@ -4,8 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Type.Compounds (
-    function0
-  , freeT
+    freeT
   , freeC
   , canonT
   , decomposeT
@@ -28,10 +27,6 @@ import qualified        Data.Map as Map
 import qualified        Data.Set as Set
 import                  Data.Hashable (Hashable)
 
-
-function0 :: Type n -> FunctionType n
-function0 u
- = FunctionType u
 
 freeT :: (Hashable n, Eq n) => Type n -> Set.Set (Name n)
 freeT t

@@ -66,7 +66,7 @@ import           Data.Hashable (Hashable)
 data CheckEnv a n
  = CheckEnv {
  -- | Mapping from variable names to whole types
-   checkEnvironment :: Map.Map (Name n) (FunctionType n)
+   checkEnvironment :: Map.Map (Name n) (Type n)
  -- | Function bodies
  , checkBodies      :: Map.Map (Name n) (Function a n)
  , checkInvariants  :: Invariants
@@ -114,7 +114,7 @@ defaultCheckOptions = optionSmallData
 --------------------------------------------------------------------------------
 
 
-type GenEnv n             = Map.Map (Name n) (FunctionType n)
+type GenEnv n             = Map.Map (Name n) (Type n)
 type GenConstraintSet a n = [(a, Constraint n)]
 
 data DischargeInfo a n = DischargeInfo
@@ -229,13 +229,15 @@ fresh
 
 -- | Freshen function type by applying introduction rules to foralls.
 --
+-- This only works at the top level, which is fine for now, but might
+-- start becoming a challenge when the type system grows.
 introForalls
   :: (Hashable n, Eq n)
   => a
-  -> FunctionType n
-  -> Gen a n (FunctionType n, Type n, GenConstraintSet a n)
+  -> Type n
+  -> Gen a n (Type n, Type n, GenConstraintSet a n)
 introForalls ann f
- = case functionReturn f of
+ = case f of
     TypeForall ns cs x -> do
       freshen <- Map.fromList <$> mapM mkSubst ns
 
@@ -263,7 +265,7 @@ lookup
   => a
   -> Name n
   -> GenEnv n
-  -> Gen a n (FunctionType n, Type n, GenConstraintSet a n)
+  -> Gen a n (Type n, Type n, GenConstraintSet a n)
 lookup ann n env
  = case Map.lookup n env of
      Just t
@@ -276,7 +278,7 @@ lookup ann n env
 -- | Bind a new to a type in the given context.
 bindT :: Eq n => Name n -> Type n -> GenEnv n -> GenEnv n
 bindT n t
- = Map.insert n (function0 t)
+ = Map.insert n t
 
 -- | Temporarily add the binding to a context, then do something.
 withBind
@@ -295,12 +297,12 @@ removeElementBinds env
    in  foldr Map.delete env elts
  where
   isElementTemporality ft
-   = getTemporalityOrPure (functionReturn ft) == TemporalityElement
+   = getTemporalityOrPure ft == TemporalityElement
 
 
 substE :: Eq n => SubstT n -> GenEnv n -> GenEnv n
 substE s
- = fmap (substFT s)
+ = fmap (substT s)
 
 substTQ :: (Hashable n, Eq n) => SubstT n -> Query'C a n -> Query'C a n
 substTQ s

@@ -8,7 +8,6 @@ module Icicle.Source.Type.Subst (
     SubstT
   , substT
   , substC
-  , substFT
   , compose
   , unifyT
   ) where
@@ -64,7 +63,17 @@ substT ss tt
        | otherwise
        -> t
 
-      TypeForall a c b      -> TypeForall  a      (fmap (substC ss) c) (go b)
+      --- | Substitute into a forall type.
+      --- It is very important that any binders in here are unique.
+      --- If the binders mention any names in the substitution, things WILL go awry.
+      --- This is not a problem for type checking since all names are fresh.
+      ---
+      --- Because the function constraints will only mention newly bound type variables,
+      --- it is not necessary to substitute into the constraints.
+      ---
+      --- Perhaps this should actually be called "unsafeSubstT" because none of these
+      --- invariants are checked.
+      TypeForall ns c b     -> TypeForall  ns     (fmap (substC ss) c) (go b)
       TypeArrow a b         -> TypeArrow   (go a) (go b)
 
 
@@ -87,22 +96,6 @@ substC ss cc
      -> CPossibilityOfLatest (substT ss ret) (substT ss tmp) (substT ss pos)
     CPossibilityJoin ret b c
      -> CPossibilityJoin (substT ss ret) (substT ss b) (substT ss c)
-
-
--- | Substitute into a function type.
--- It is very important that any binders (foralls) in here are unique.
--- If the binders mention any names in the substitution, things WILL go awry.
--- This is not a problem for type checking since all names are fresh.
---
--- Because the function constraints will only mention newly bound type variables,
--- it is not necessary to substitute into the constraints.
---
--- Perhaps this should actually be called "unsafeSubstFT" because none of these
--- invariants are checked.
-substFT :: Eq n => SubstT n -> FunctionType n -> FunctionType n
-substFT ss ff
- = ff
- { functionReturn       =       substT ss  (functionReturn      ff) }
 
 
 -- | Compose two substitutions together, in order.
