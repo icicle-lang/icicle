@@ -7,19 +7,24 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE TypeFamilies #-}
 module Icicle.Source.Type.Base (
     Type        (..)
+  , TraverseType (..)
   , typeOfValType
   , valTypeOfType
   , Constraint  (..)
   , Annot (..)
   , annotDiscardConstraints
-  , foldTypePlate
+  , foldSourceType
+  , mapSourceType
   ) where
 
-import           Control.Lens.Fold   (foldMapOf)
-import           Control.Lens.Plated (Plated (..))
+import           Control.Lens.Fold      (foldMapOf)
+import           Control.Lens.Setter    (over)
 
 import qualified Data.Map as Map
 
@@ -65,8 +70,17 @@ data Type n
 
 instance NFData n => NFData (Type n)
 
-instance Plated (Type n) where
-  plate f t = case t of
+class TraverseType a where
+  type N a :: *
+  traverseType :: Applicative f => (Type (N a) -> f (Type (N a))) -> (a -> f a)
+
+instance TraverseType a => TraverseType [a] where
+  type N [a] = N a
+  traverseType f d = traverse (traverseType f) d
+
+instance TraverseType (Type n) where
+  type N (Type n) = n
+  traverseType f t = case t of
     BoolT        -> pure BoolT
     TimeT        -> pure TimeT
     DoubleT      -> pure DoubleT
@@ -91,12 +105,16 @@ instance Plated (Type n) where
     PossibilityDefinitely   -> pure PossibilityDefinitely
 
     TypeVar v               -> pure (TypeVar v)
-    TypeForall ns cs x      -> TypeForall ns cs <$> f x
+    TypeForall ns cs x      -> TypeForall ns <$> traverseType f cs <*> f x
     TypeArrow a b           -> TypeArrow <$> f a <*> f b
 
-foldTypePlate :: Monoid x => (Type n -> x) -> (Type n -> x)
-foldTypePlate =
-  foldMapOf plate
+foldSourceType :: Monoid x => (Type n -> x) -> (Type n -> x)
+foldSourceType =
+  foldMapOf traverseType
+
+mapSourceType :: (Type n -> Type n) -> (Type n -> Type n)
+mapSourceType =
+  over traverseType
 
 typeOfValType :: CT.ValType -> Type n
 typeOfValType vt
@@ -165,6 +183,26 @@ data Constraint n
  deriving (Eq, Ord, Show, Generic)
 
 instance NFData n => NFData (Constraint n)
+
+instance TraverseType (Constraint n) where
+  type N (Constraint n) = n
+  traverseType f t = case t of
+    CEquals t1 t2
+      -> CEquals <$> f t1 <*> f t2
+    CIsNum t1
+      -> CIsNum <$> f t1
+    CPossibilityOfNum t1 t2
+      -> CPossibilityOfNum <$> f t1 <*> f t2
+    CTemporalityJoin t1 t2 t3
+      -> CTemporalityJoin <$> f t1 <*> f t2 <*> f t3
+    CReturnOfLetTemporalities t1 t2 t3
+      -> CReturnOfLetTemporalities <$> f t1 <*> f t2 <*> f t3
+    CDataOfLatest t1 t2 t3 t4
+      -> CDataOfLatest <$> f t1 <*> f t2 <*> f t3 <*> f t4
+    CPossibilityOfLatest t1 t2 t3
+      -> CPossibilityOfLatest <$> f t1 <*> f t2 <*> f t3
+    CPossibilityJoin t1 t2 t3
+      -> CPossibilityJoin <$> f t1 <*> f t2 <*> f t3
 
 data Annot a n
  = Annot

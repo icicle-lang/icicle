@@ -1,9 +1,10 @@
 -- | Doing things with Constraints
 --
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE LambdaCase        #-}
 module Icicle.Source.Type.Constraints (
     DischargeResult (..)
   , DischargeError (..)

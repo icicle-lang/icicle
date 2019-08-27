@@ -342,14 +342,14 @@ genExp tgi
 
   primApps
    = do p <- arbitrary
-        let ft = testFresh "" $ primLookup' p
+        let ft  = testFresh "" $ primLookup' p
         let num = lengthFunctionArguments ft
-        xs <- vectorOf num (genExp tgi)
+        xs     <- vectorOf num (genExp tgi)
         return $ foldl (App ()) (Prim () p) xs
 
   lengthFunctionArguments t
    = case t of
-      TypeForall _ _ x -> lengthFunctionArguments x
+      TypeForall _ _ x  -> lengthFunctionArguments x
       TypeArrow _ x -> 1 + lengthFunctionArguments x
       _ -> 0
 
