@@ -1,7 +1,8 @@
 -- | Typecheck and generalise functions
-{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE DoAndIfThenElse  #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE LambdaCase        #-}
 module Icicle.Source.Checker.Function (
     checkF
   , checkFs
@@ -175,13 +176,13 @@ checkF' fun env
     DischargeInfo (annResult (annotOfQuery q)) cons subs
 
   dischargeF q subs cons =
-    case dischargeCS' dischargeC'toplevel cons of
+    genLiftFresh (runEitherT (dischargeCS' dischargeC'toplevel cons)) >>= \case
       Left errs
         -> genHoistEither
         $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot (annotOfQuery q)) errs)
       Right (sub, cons')
        -> do let subs'     = compose subs sub
-             let q'        = substTQ sub q
+             q'           <- genLiftFresh (substTQ sub q)
              let log_ppr   = pretty fun
              let log_info0 = dischargeInfo q cons subs
              let log_info1 = dischargeInfo q' cons' subs'
