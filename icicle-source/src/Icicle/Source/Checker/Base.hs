@@ -240,12 +240,8 @@ introForalls ann f
  = case f of
     TypeForall ns cs x -> do
       freshen <- Map.fromList <$> mapM mkSubst ns
-
-      let cons = concat
-               $ fmap (require ann . substC freshen)
-               $ cs
-
-      let sub   = substT freshen
+      let cons = concatMap (require ann . substC freshen) cs
+      let sub  = substT freshen
       return (f, sub x, cons)
 
     _ ->

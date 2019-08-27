@@ -266,5 +266,5 @@ wrapN go f ts
 anyArrows :: Type n -> Bool
 anyArrows
  = let go (TypeArrow {}) = Any True
-       go x = foldTypePlate go x
+       go x = foldSourceType go x
    in getAny . go

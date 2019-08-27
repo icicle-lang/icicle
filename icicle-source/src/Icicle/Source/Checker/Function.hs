@@ -148,9 +148,13 @@ checkF' fun env
                 $ Set.unions
                 $ keepModes : freeT resT : fmap freeT argTs
 
+      let arrT  = foldr TypeArrow resT argTs
+
       -- Put it all together
-      let funT  = TypeForall binds constrs
-                $ foldr TypeArrow resT argTs
+      let funT  | null binds && null constrs
+                = arrT
+                | otherwise
+                = TypeForall binds constrs arrT
 
       return (Function args q, funT)
  where
