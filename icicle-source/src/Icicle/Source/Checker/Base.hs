@@ -300,11 +300,11 @@ substE s
 
 substTQ :: (Hashable n, Eq n) => SubstT n -> Query'C a n -> Query'C a n
 substTQ s
- = reannotQ (substAnnot s)
+ = reannot (substAnnot s)
 
 substTX :: (Hashable n, Eq n) => SubstT n -> Exp'C a n -> Exp'C a n
 substTX s
- = reannotX (substAnnot s)
+ = reannot (substAnnot s)
 
 substAnnot :: (Hashable n, Eq n) => SubstT n -> Annot a n -> Annot a n
 substAnnot s ann

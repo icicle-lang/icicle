@@ -279,7 +279,7 @@ sourceInline :: Inline.InlineOption
              -> QueryTyped   Var
              -> QueryUntyped Var
 sourceInline opt d q
- = Query.reannotQT Type.annAnnot
+ = Query.reannot Type.annAnnot
  $ inline q
  where
   funs      = M.fromList

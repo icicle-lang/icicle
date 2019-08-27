@@ -3,6 +3,8 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Icicle.Source.Query.Query (
     QueryTop  (..)
   , Query     (..)
@@ -14,10 +16,6 @@ module Icicle.Source.Query.Query (
   , simplifyNestedC
   , simplifyNestedX
 
-  , reannotQT
-  , reannotQ
-  , reannotC
-  , reannotX
   , annotOfQuery
 
   , allvarsX, allvarsC, allvarsQ
@@ -121,44 +119,14 @@ simplifyNestedX xx
      -> Case a (simplifyNestedX scrut)
       $ fmap (\(p,x) -> (p, simplifyNestedX x)) pats
 
+instance TraverseAnnot Query  where
+  traverseAnnot f q =
+    Query <$> traverse (traverseAnnot f) (contexts q)
+          <*>           traverseAnnot f  (final    q)
 
-
-reannotX :: (a -> a') -> Exp a n -> Exp a' n
-reannotX f xx
- = case xx of
-    Var    a n   -> Var    (f a)  n
-    Nested a q   -> Nested (f a) (reannotQ f q)
-    App    a x y -> App    (f a) (reannotX f x) (reannotX f y)
-    Prim   a p   -> Prim   (f a)  p
-    Case a scrut pats
-     -> Case (f a) (reannotX f scrut)
-      $ fmap (\(p,x) -> (p, reannotX f x)) pats
-
-
-reannotC :: (a -> a') -> Context a n -> Context a' n
-reannotC f cc
- = case cc of
-    Windowed  a b c   -> Windowed  (f a) b c
-    Latest    a i     -> Latest    (f a) i
-    GroupBy   a x     -> GroupBy   (f a) (reannotX f x)
-    GroupFold a k v x -> GroupFold (f a) k v (reannotX f x)
-    Distinct  a x     -> Distinct  (f a) (reannotX f x)
-    Filter    a x     -> Filter    (f a) (reannotX f x)
-    LetFold   a ff    -> LetFold   (f a) (ff { foldInit = reannotX f (foldInit ff)
-                                             , foldWork = reannotX f (foldWork ff) })
-    Let      a n x    -> Let       (f a) n (reannotX f x)
-
-reannotQ :: (a -> a') -> Query a n -> Query a' n
-reannotQ f q
- = q
- { contexts = fmap (reannotC f) (contexts q)
- , final    =       reannotX f  (final    q)
- }
-
-reannotQT :: (a -> a') -> QueryTop a n -> QueryTop a' n
-reannotQT f qt
- = qt
- { query = reannotQ f (query qt) }
+instance TraverseAnnot QueryTop  where
+  traverseAnnot f (QueryTop i0 n0 q0)
+    = QueryTop i0 n0 <$> traverseAnnot f q0
 
 annotOfQuery :: Query a n -> a
 annotOfQuery q

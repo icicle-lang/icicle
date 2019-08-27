@@ -9,7 +9,6 @@ import           Icicle.Internal.Pretty
 
 import           P
 
-
 data BuiltinFun
  = BuiltinMath  !BuiltinMath
  | BuiltinText  !BuiltinText

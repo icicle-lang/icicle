@@ -21,7 +21,7 @@ substX :: (Hashable n, Eq n)
        -> Exp a n
        -> Fresh n (Exp a n)
 substX ms x
- = reannotX fst
+ = reannot fst
  <$> substX' (fmap allvarsX ms) (allvarsX x)
 
 substQ :: (Hashable n, Eq n)
@@ -29,7 +29,7 @@ substQ :: (Hashable n, Eq n)
        -> Query a n
        -> Fresh n (Query a n)
 substQ ms q
- = reannotQ fst
+ = reannot fst
  <$> substQ' (fmap allvarsX ms) (allvarsQ q)
 
 --------------
