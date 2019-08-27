@@ -8,6 +8,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE TupleSections #-}
 module Icicle.Source.Query.Exp (
     Exp'      (..)
   , Prim      (..)
@@ -22,6 +23,9 @@ module Icicle.Source.Query.Exp (
   , BuiltinArray (..)
   , BuiltinMap   (..)
 
+  , TraverseAnnot (..)
+  , reannot
+
   , takeApps
   , takePrimApps
   , annotOfExp
@@ -30,6 +34,8 @@ module Icicle.Source.Query.Exp (
   , listOfIntroducedFuns
   , listOfWiredFuns
   ) where
+
+import           Control.Lens.Setter (over)
 
 import           GHC.Generics (Generic)
 
@@ -41,6 +47,11 @@ import           Icicle.Common.Base
 
 import           P
 
+class TraverseAnnot q where
+  traverseAnnot :: Applicative f => (a -> f a') -> q a n -> f (q a' n)
+
+reannot :: TraverseAnnot q => (a -> a') -> q a n -> q a' n
+reannot = over traverseAnnot
 
 data Exp' q a n
  = Var a (Name n)
@@ -52,6 +63,17 @@ data Exp' q a n
  deriving (Show, Eq, Ord, Generic)
 
 instance (NFData (q a n), NFData a, NFData n) => NFData (Exp' q a n)
+
+instance TraverseAnnot q => TraverseAnnot (Exp' q)  where
+  traverseAnnot f xx =
+    case xx of
+      Var    a n   -> Var    <$> f a <*> pure n
+      Nested a q   -> Nested <$> f a <*> traverseAnnot f q
+      App    a x y -> App    <$> f a <*> traverseAnnot f x <*> traverseAnnot f y
+      Prim   a p   -> Prim   <$> f a <*> pure p
+      Case a scrut pats
+       -> Case <$> f a <*> traverseAnnot f scrut
+               <*> traverse (\(p,x) -> (p,) <$> traverseAnnot f x) pats
 
 takeApps :: Exp' q a n -> (Exp' q a n, [Exp' q a n])
 takeApps xx

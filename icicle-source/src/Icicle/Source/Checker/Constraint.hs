@@ -630,7 +630,7 @@ generateX x env
                 let s' = foldl compose Map.empty subs'
                 let cons' = concat (consf : consap : consxs)
 
-                let f' = annotate cons' resT' $ \a' -> reannotX (const a') f
+                let f' = annotate cons' resT' $ \a' -> reannot (const a') f
 
                 return (foldl mkApp f' args', s', cons')
 

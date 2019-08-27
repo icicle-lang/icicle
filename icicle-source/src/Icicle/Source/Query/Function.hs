@@ -5,7 +5,6 @@ module Icicle.Source.Query.Function (
     Function (..)
   , ResolvedFunction (..)
 
-  , reannotF
   , builtinDefinitions
   ) where
 
@@ -30,10 +29,10 @@ data Function a n
   , body      :: Query a n }
   deriving (Show, Eq)
 
-reannotF :: (a -> a') -> Function a n -> Function a' n
-reannotF f fun
- = fun { arguments = fmap (first f) (arguments fun)
-       , body = reannotQ f (body fun) }
+instance TraverseAnnot Function  where
+  traverseAnnot f fun =
+    Function <$> traverse (\(a, n) -> (,n) <$> f a) (arguments fun)
+             <*> traverseAnnot f (body fun)
 
 data ResolvedFunction a n =
   ResolvedFunction {

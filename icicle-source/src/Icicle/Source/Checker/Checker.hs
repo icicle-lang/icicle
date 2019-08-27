@@ -25,7 +25,6 @@ import qualified        Icicle.Common.Fresh     as Fresh
 
 import                  P
 
-
 import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
 
