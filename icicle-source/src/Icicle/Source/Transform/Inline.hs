@@ -12,7 +12,6 @@ module Icicle.Source.Transform.Inline (
 import Icicle.Source.Query
 import Icicle.Source.Type
 import Icicle.Source.Transform.Base
-import Icicle.Source.Transform.SubstX
 
 import Icicle.Common.Base
 import Icicle.Common.Fresh
@@ -45,23 +44,9 @@ inlineTransform _ funs
  }
  where
   tranx _ x
-   | (Var _ n, args)    <- takeApps x
-   , Just fun           <- Map.lookup n funs
-   = do let (vars, body) = takeLams fun
-        let argNames     = fmap snd vars
-
-        let sub          = Map.fromList
-                         $ argNames `zip` args
-
-        body'           <- substX sub body
-
-        let
-          bodyX =
-            case drop (length args) vars of
-              [] -> body'
-              rs -> makeLams rs body'
-
-        return ((), bodyX)
+   | Var _ n   <- x
+   , Just fun  <- Map.lookup n funs
+   = return ((), fun)
 
    | otherwise
    = return ((), x)
