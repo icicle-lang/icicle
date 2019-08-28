@@ -56,8 +56,10 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
       Prim a p ->
         annotate AnnPrimitive (pretty p) <> annotPrim a p
 
-      Lam _ n x ->
-        prettyPunctuation "\\" <> pretty n <+> prettyPunctuation "->" <+> prettyPrec appPrec1 x
+      Lam a n x ->
+        prettyPunctuation "(" <>
+        prettyPunctuation "\\" <> pretty n <+> prettyAnnot a <+> prettyPunctuation "->" <+> prettyPrec appPrec1 (PrettyAnnot x) <>
+        prettyPunctuation ")"
 
       Case a scrut pats ->
         vsep [

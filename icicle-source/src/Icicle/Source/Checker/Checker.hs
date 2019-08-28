@@ -25,10 +25,7 @@ import qualified        Icicle.Common.Fresh     as Fresh
 
 import                  P
 
-<<<<<<< HEAD
-=======
 import                  Control.Monad.Trans.Class (lift)
->>>>>>> 2c7a60a1... Abstract reannotation into a Traversal
 import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
 

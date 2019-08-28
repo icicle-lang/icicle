@@ -27,6 +27,7 @@ module Icicle.Source.Query.Exp (
   , reannot
 
   , takeApps
+  , makeApp
   , takePrimApps
   , takeLams
   , makeLams
@@ -52,8 +53,10 @@ import           P
 class TraverseAnnot q where
   traverseAnnot :: Applicative f => (a -> f a') -> q a n -> f (q a' n)
 
+
 reannot :: TraverseAnnot q => (a -> a') -> q a n -> q a' n
 reannot = over traverseAnnot
+
 
 data Exp' q a n
  = Var a (Name n)
@@ -98,6 +101,9 @@ takeApps xx
         in  (f', xs <> [x])
     _
      -> (xx, [])
+
+makeApp :: a ->  [Exp' q a n] -> Exp' q a n -> Exp' q a n
+makeApp a ls x = foldr (App a) x ls
 
 takePrimApps :: Exp' q a n -> Maybe (Prim, a, [Exp' q a n])
 takePrimApps x
