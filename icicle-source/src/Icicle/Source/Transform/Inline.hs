@@ -12,6 +12,7 @@ module Icicle.Source.Transform.Inline (
 import Icicle.Source.Query
 import Icicle.Source.Type
 import Icicle.Source.Transform.Base
+import Icicle.Source.Transform.SubstX
 
 import Icicle.Common.Base
 import Icicle.Common.Fresh
@@ -44,9 +45,16 @@ inlineTransform _ funs
  }
  where
   tranx _ x
-   | Var _ n   <- x
-   , Just fun  <- Map.lookup n funs
-   = return ((), fun)
+   | (Var _ n, args)   <- takeApps x
+   , Just fun          <- Map.lookup n funs
+   , (arguments, fapp) <- takeLams fun
+   , length arguments == length args
+   = do let argNames   = fmap snd arguments
+            sub        = Map.fromList
+                       $ argNames `zip` args
+
+        inlined  <- substX sub fapp
+        return ((), inlined)
 
    | otherwise
    = return ((), x)

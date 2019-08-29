@@ -26,9 +26,9 @@ Selected psv file as input: test/cli/repl/data.psv
 typedef struct {
     itime_t          convzm2;
     iint_t           new_count;
-    ierror_t         *new_convzm0zmsimpflatzm45;
-    iint_t           *new_convzm0zmsimpflatzm46;
-    itime_t          *new_convzm0zmsimpflatzm47;
+    ierror_t         *new_convzm0zmsimpflatzm41;
+    iint_t           *new_convzm0zmsimpflatzm42;
+    itime_t          *new_convzm0zmsimpflatzm43;
 } input_defaultZCsalary_t;
 
 typedef struct {
@@ -60,40 +60,36 @@ void icluster_0_kernel_0(icluster_0_t *s)
     ierror_t         flatzm3zmsimpflatzm17;
     ibool_t          flatzm3zmsimpflatzm18;
     iint_t           flatzm3zmsimpflatzm19;
-    ierror_t         flatzm3zmsimpflatzm33;
-    idouble_t        flatzm3zmsimpflatzm36;
-    ibool_t          flatzm3zmsimpflatzm34;
-    iint_t           flatzm3zmsimpflatzm35;
-    iint_t           flatzm0zmsimpflatzm39;
-    ibool_t          flatzm0zmsimpflatzm38;
-    ierror_t         flatzm0zmsimpflatzm37;
+    idouble_t        flatzm3zmsimpflatzm32;
+    ibool_t          flatzm3zmsimpflatzm30;
+    iint_t           flatzm3zmsimpflatzm31;
+    ierror_t         flatzm0zmsimpflatzm33;
+    iint_t           flatzm0zmsimpflatzm35;
+    ibool_t          flatzm0zmsimpflatzm34;
+    idouble_t        flatzm0zmsimpflatzm36;
+    ierror_t         flatzm3zmsimpflatzm29;
     idouble_t        flatzm3zmsimpflatzm20;
     ierror_t         flatzm0zmsimpflatzm13;
     idouble_t        flatzm0zmsimpflatzm16;
     iint_t           flatzm0zmsimpflatzm15;
     ibool_t          flatzm0zmsimpflatzm14;
-    idouble_t        flatzm7zmsimpflatzm32;
-    ibool_t          flatzm7zmsimpflatzm30;
-    iint_t           flatzm7zmsimpflatzm31;
-    idouble_t        flatzm0zmsimpflatzm40;
-    ierror_t         flatzm7zmsimpflatzm29;
-    idouble_t        flatzm7zmsimpflatzm28;
-    iint_t           flatzm7zmsimpflatzm27;
-    ibool_t          flatzm7zmsimpflatzm26;
-    ierror_t         flatzm7zmsimpflatzm25;
     idouble_t        acczmperhapszmconvzm4zmsimpflatzm8;
     iint_t           acczmperhapszmconvzm4zmsimpflatzm7;
     ibool_t          acczmperhapszmconvzm4zmsimpflatzm6;
     ierror_t         acczmperhapszmconvzm4zmsimpflatzm5;
-    idouble_t        perhapszmconvzm4zmsimpflatzm44;
-    ierror_t         perhapszmconvzm4zmsimpflatzm41;
-    iint_t           perhapszmconvzm4zmsimpflatzm43;
-    ibool_t          perhapszmconvzm4zmsimpflatzm42;
+    ierror_t         perhapszmconvzm4zmsimpflatzm37;
+    ibool_t          perhapszmconvzm4zmsimpflatzm38;
+    iint_t           perhapszmconvzm4zmsimpflatzm39;
+    idouble_t        perhapszmconvzm4zmsimpflatzm40;
     ierror_t         perhapszmconvzm4zmavalzm0zmsimpflatzm9;
+    ibool_t          flatzm6zmsimpflatzm26;
+    iint_t           flatzm6zmsimpflatzm27;
     idouble_t        flatzm6zmsimpflatzm24;
-    idouble_t        flatzm6zmsimpflatzm22;
-    ierror_t         flatzm6zmsimpflatzm23;
+    ierror_t         flatzm6zmsimpflatzm25;
+    ibool_t          flatzm6zmsimpflatzm22;
+    iint_t           flatzm6zmsimpflatzm23;
     ierror_t         flatzm6zmsimpflatzm21;
+    idouble_t        flatzm6zmsimpflatzm28;
 
     anemone_mempool_t *mempool                = s->mempool;
     itime_t          convzm2                  = s->input.convzm2;
@@ -105,15 +101,15 @@ void icluster_0_kernel_0(icluster_0_t *s)
     acczmperhapszmconvzm4zmsimpflatzm8        = 0.0;                                  /* init */
     
     const iint_t     new_count                = s->input.new_count;
-    const ierror_t  *const new_convzm0zmsimpflatzm45 = s->input.new_convzm0zmsimpflatzm45;
-    const iint_t    *const new_convzm0zmsimpflatzm46 = s->input.new_convzm0zmsimpflatzm46;
-    const itime_t   *const new_convzm0zmsimpflatzm47 = s->input.new_convzm0zmsimpflatzm47;
+    const ierror_t  *const new_convzm0zmsimpflatzm41 = s->input.new_convzm0zmsimpflatzm41;
+    const iint_t    *const new_convzm0zmsimpflatzm42 = s->input.new_convzm0zmsimpflatzm42;
+    const itime_t   *const new_convzm0zmsimpflatzm43 = s->input.new_convzm0zmsimpflatzm43;
     
     for (iint_t i = 0; i < new_count; i++) {
-        itime_t          convzm1              = new_convzm0zmsimpflatzm47[i];
-        ierror_t         convzm0zmsimpflatzm45 = new_convzm0zmsimpflatzm45[i];
-        iint_t           convzm0zmsimpflatzm46 = new_convzm0zmsimpflatzm46[i];
-        itime_t          convzm0zmsimpflatzm47 = new_convzm0zmsimpflatzm47[i];
+        itime_t          convzm1              = new_convzm0zmsimpflatzm43[i];
+        ierror_t         convzm0zmsimpflatzm41 = new_convzm0zmsimpflatzm41[i];
+        iint_t           convzm0zmsimpflatzm42 = new_convzm0zmsimpflatzm42[i];
+        itime_t          convzm0zmsimpflatzm43 = new_convzm0zmsimpflatzm43[i];
         perhapszmconvzm4zmavalzm0zmsimpflatzm9 = acczmperhapszmconvzm4zmsimpflatzm5;  /* read */
         perhapszmconvzm4zmavalzm0zmsimpflatzm10 = acczmperhapszmconvzm4zmsimpflatzm6; /* read */
         perhapszmconvzm4zmavalzm0zmsimpflatzm11 = acczmperhapszmconvzm4zmsimpflatzm7; /* read */
@@ -140,53 +136,40 @@ void icluster_0_kernel_0(icluster_0_t *s)
                 idouble_t        simpflatzm3  = iint_extend (perhapszmconvzm4zmavalzm0zmsimpflatzm11); /* let */
                 idouble_t        convzm8      = idouble_add (simpflatzm3, 1.0);       /* let */
                 flatzm6zmsimpflatzm21         = ierror_not_an_error;                  /* init */
-                flatzm6zmsimpflatzm22         = 0.0;                                  /* init */
+                flatzm6zmsimpflatzm22         = ifalse;                               /* init */
+                flatzm6zmsimpflatzm23         = 0;                                    /* init */
+                flatzm6zmsimpflatzm24         = 0.0;                                  /* init */
                 
                 if (idouble_is_valid (convzm8)) {
                     flatzm6zmsimpflatzm21     = ierror_not_an_error;                  /* write */
-                    flatzm6zmsimpflatzm22     = convzm8;                              /* write */
+                    flatzm6zmsimpflatzm22     = itrue;                                /* write */
+                    flatzm6zmsimpflatzm23     = 0;                                    /* write */
+                    flatzm6zmsimpflatzm24     = convzm8;                              /* write */
                 } else {
                     flatzm6zmsimpflatzm21     = ierror_not_a_number;                  /* write */
-                    flatzm6zmsimpflatzm22     = 0.0;                                  /* write */
+                    flatzm6zmsimpflatzm22     = ifalse;                               /* write */
+                    flatzm6zmsimpflatzm23     = 0;                                    /* write */
+                    flatzm6zmsimpflatzm24     = 0.0;                                  /* write */
                 }
                 
-                flatzm6zmsimpflatzm23         = flatzm6zmsimpflatzm21;                /* read */
-                flatzm6zmsimpflatzm24         = flatzm6zmsimpflatzm22;                /* read */
-                flatzm7zmsimpflatzm25         = ierror_not_an_error;                  /* init */
-                flatzm7zmsimpflatzm26         = ifalse;                               /* init */
-                flatzm7zmsimpflatzm27         = 0;                                    /* init */
-                flatzm7zmsimpflatzm28         = 0.0;                                  /* init */
-                
-                if (ierror_eq (flatzm6zmsimpflatzm23, ierror_not_an_error)) {
-                    flatzm7zmsimpflatzm25     = ierror_not_an_error;                  /* write */
-                    flatzm7zmsimpflatzm26     = itrue;                                /* write */
-                    flatzm7zmsimpflatzm27     = 0;                                    /* write */
-                    flatzm7zmsimpflatzm28     = flatzm6zmsimpflatzm24;                /* write */
-                } else {
-                    flatzm7zmsimpflatzm25     = flatzm6zmsimpflatzm23;                /* write */
-                    flatzm7zmsimpflatzm26     = ifalse;                               /* write */
-                    flatzm7zmsimpflatzm27     = 0;                                    /* write */
-                    flatzm7zmsimpflatzm28     = 0.0;                                  /* write */
-                }
-                
-                flatzm7zmsimpflatzm29         = flatzm7zmsimpflatzm25;                /* read */
-                flatzm7zmsimpflatzm30         = flatzm7zmsimpflatzm26;                /* read */
-                flatzm7zmsimpflatzm31         = flatzm7zmsimpflatzm27;                /* read */
-                flatzm7zmsimpflatzm32         = flatzm7zmsimpflatzm28;                /* read */
-                flatzm3zmsimpflatzm17         = flatzm7zmsimpflatzm29;                /* write */
-                flatzm3zmsimpflatzm18         = flatzm7zmsimpflatzm30;                /* write */
-                flatzm3zmsimpflatzm19         = flatzm7zmsimpflatzm31;                /* write */
-                flatzm3zmsimpflatzm20         = flatzm7zmsimpflatzm32;                /* write */
+                flatzm6zmsimpflatzm25         = flatzm6zmsimpflatzm21;                /* read */
+                flatzm6zmsimpflatzm26         = flatzm6zmsimpflatzm22;                /* read */
+                flatzm6zmsimpflatzm27         = flatzm6zmsimpflatzm23;                /* read */
+                flatzm6zmsimpflatzm28         = flatzm6zmsimpflatzm24;                /* read */
+                flatzm3zmsimpflatzm17         = flatzm6zmsimpflatzm25;                /* write */
+                flatzm3zmsimpflatzm18         = flatzm6zmsimpflatzm26;                /* write */
+                flatzm3zmsimpflatzm19         = flatzm6zmsimpflatzm27;                /* write */
+                flatzm3zmsimpflatzm20         = flatzm6zmsimpflatzm28;                /* write */
             }
             
-            flatzm3zmsimpflatzm33             = flatzm3zmsimpflatzm17;                /* read */
-            flatzm3zmsimpflatzm34             = flatzm3zmsimpflatzm18;                /* read */
-            flatzm3zmsimpflatzm35             = flatzm3zmsimpflatzm19;                /* read */
-            flatzm3zmsimpflatzm36             = flatzm3zmsimpflatzm20;                /* read */
-            flatzm0zmsimpflatzm13             = flatzm3zmsimpflatzm33;                /* write */
-            flatzm0zmsimpflatzm14             = flatzm3zmsimpflatzm34;                /* write */
-            flatzm0zmsimpflatzm15             = flatzm3zmsimpflatzm35;                /* write */
-            flatzm0zmsimpflatzm16             = flatzm3zmsimpflatzm36;                /* write */
+            flatzm3zmsimpflatzm29             = flatzm3zmsimpflatzm17;                /* read */
+            flatzm3zmsimpflatzm30             = flatzm3zmsimpflatzm18;                /* read */
+            flatzm3zmsimpflatzm31             = flatzm3zmsimpflatzm19;                /* read */
+            flatzm3zmsimpflatzm32             = flatzm3zmsimpflatzm20;                /* read */
+            flatzm0zmsimpflatzm13             = flatzm3zmsimpflatzm29;                /* write */
+            flatzm0zmsimpflatzm14             = flatzm3zmsimpflatzm30;                /* write */
+            flatzm0zmsimpflatzm15             = flatzm3zmsimpflatzm31;                /* write */
+            flatzm0zmsimpflatzm16             = flatzm3zmsimpflatzm32;                /* write */
         } else {
             flatzm0zmsimpflatzm13             = perhapszmconvzm4zmavalzm0zmsimpflatzm9; /* write */
             flatzm0zmsimpflatzm14             = ifalse;                               /* write */
@@ -194,24 +177,24 @@ void icluster_0_kernel_0(icluster_0_t *s)
             flatzm0zmsimpflatzm16             = 0.0;                                  /* write */
         }
         
-        flatzm0zmsimpflatzm37                 = flatzm0zmsimpflatzm13;                /* read */
-        flatzm0zmsimpflatzm38                 = flatzm0zmsimpflatzm14;                /* read */
-        flatzm0zmsimpflatzm39                 = flatzm0zmsimpflatzm15;                /* read */
-        flatzm0zmsimpflatzm40                 = flatzm0zmsimpflatzm16;                /* read */
-        acczmperhapszmconvzm4zmsimpflatzm5    = flatzm0zmsimpflatzm37;                /* write */
-        acczmperhapszmconvzm4zmsimpflatzm6    = flatzm0zmsimpflatzm38;                /* write */
-        acczmperhapszmconvzm4zmsimpflatzm7    = flatzm0zmsimpflatzm39;                /* write */
-        acczmperhapszmconvzm4zmsimpflatzm8    = flatzm0zmsimpflatzm40;                /* write */
+        flatzm0zmsimpflatzm33                 = flatzm0zmsimpflatzm13;                /* read */
+        flatzm0zmsimpflatzm34                 = flatzm0zmsimpflatzm14;                /* read */
+        flatzm0zmsimpflatzm35                 = flatzm0zmsimpflatzm15;                /* read */
+        flatzm0zmsimpflatzm36                 = flatzm0zmsimpflatzm16;                /* read */
+        acczmperhapszmconvzm4zmsimpflatzm5    = flatzm0zmsimpflatzm33;                /* write */
+        acczmperhapszmconvzm4zmsimpflatzm6    = flatzm0zmsimpflatzm34;                /* write */
+        acczmperhapszmconvzm4zmsimpflatzm7    = flatzm0zmsimpflatzm35;                /* write */
+        acczmperhapszmconvzm4zmsimpflatzm8    = flatzm0zmsimpflatzm36;                /* write */
     }
     
-    perhapszmconvzm4zmsimpflatzm41            = acczmperhapszmconvzm4zmsimpflatzm5;   /* read */
-    perhapszmconvzm4zmsimpflatzm42            = acczmperhapszmconvzm4zmsimpflatzm6;   /* read */
-    perhapszmconvzm4zmsimpflatzm43            = acczmperhapszmconvzm4zmsimpflatzm7;   /* read */
-    perhapszmconvzm4zmsimpflatzm44            = acczmperhapszmconvzm4zmsimpflatzm8;   /* read */
-    s->replZCoutputzsixzs0                    = perhapszmconvzm4zmsimpflatzm41;       /* output */
-    s->replZCoutputzsixzs1                    = perhapszmconvzm4zmsimpflatzm42;       /* output */
-    s->replZCoutputzsixzs2                    = perhapszmconvzm4zmsimpflatzm43;       /* output */
-    s->replZCoutputzsixzs3                    = perhapszmconvzm4zmsimpflatzm44;       /* output */
+    perhapszmconvzm4zmsimpflatzm37            = acczmperhapszmconvzm4zmsimpflatzm5;   /* read */
+    perhapszmconvzm4zmsimpflatzm38            = acczmperhapszmconvzm4zmsimpflatzm6;   /* read */
+    perhapszmconvzm4zmsimpflatzm39            = acczmperhapszmconvzm4zmsimpflatzm7;   /* read */
+    perhapszmconvzm4zmsimpflatzm40            = acczmperhapszmconvzm4zmsimpflatzm8;   /* read */
+    s->replZCoutputzsixzs0                    = perhapszmconvzm4zmsimpflatzm37;       /* output */
+    s->replZCoutputzsixzs1                    = perhapszmconvzm4zmsimpflatzm38;       /* output */
+    s->replZCoutputzsixzs2                    = perhapszmconvzm4zmsimpflatzm39;       /* output */
+    s->replZCoutputzsixzs3                    = perhapszmconvzm4zmsimpflatzm40;       /* output */
 }
 
 Core evaluation

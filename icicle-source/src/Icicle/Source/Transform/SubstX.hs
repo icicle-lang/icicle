@@ -53,7 +53,7 @@ substX' s x
      -> return x
     Lam a n p
      | Map.member n s
-     -> Lam a n <$> substX' s p -- FIX: Capture avoidance.
+     -> Lam a n <$> substX' (Map.delete n s) p
      | otherwise
      -> Lam a n <$> substX' s p
     Nested a q
