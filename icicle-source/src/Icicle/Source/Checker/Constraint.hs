@@ -826,11 +826,14 @@ appType ann errExp funT cons actT
     -- Join function result and partial results.
     (tmpR',  consT)      <- checkTemp (purely tmpE) (purely tmpA) (purely tmpR)
     (tmpR'', consT')     <- checkTemp Nothing (purely tmpR') (purely tmpF)
+    -- Prevent aggregate functions returning element arrows from being applied.
+    -- This wouldn't work.
+    (_     , consTX)     <- checkTemp Nothing (purely tmpF)  (purely tmpE)
     (posR',  consP)      <- checkPoss (definitely posE) (definitely posA) (definitely posR)
     (posR'', consP')     <- checkPoss Nothing (definitely posR') (definitely posF)
 
     let t = recomposeT (tmpR'', posR'', datR)
-    return (t, concat [cons, consD, consT, consT', consP, consP'])
+    return (t, concat [cons, consD, consT, consT', consP, consP', consTX])
   | let (tmpF,posF,datF) = decomposeT $ canonT funT
   , TypeVar _ <- datF
   = do

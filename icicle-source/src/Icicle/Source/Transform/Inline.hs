@@ -20,7 +20,6 @@ import Icicle.Common.Fresh
 
 import P
 
-import              Data.List (zip)
 import qualified    Data.Map as Map
 import              Data.Hashable (Hashable)
 
