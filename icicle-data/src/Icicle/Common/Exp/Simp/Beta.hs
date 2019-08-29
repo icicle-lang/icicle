@@ -7,6 +7,8 @@ module Icicle.Common.Exp.Simp.Beta (
     , isSimpleValue
     ) where
 
+import Control.Lens.Plated (transform)
+
 import Icicle.Common.Exp.Exp
 import Icicle.Common.Exp.Compounds
 
@@ -16,41 +18,34 @@ import Data.Hashable (Hashable)
 
 -- | Beta and let reduction
 beta :: (Hashable n, Eq n) => Exp a n p -> Exp a n p
-beta toplevel
- = go toplevel
+beta
+ = transform go
  where
   go xx
    = case xx of
       XApp _ (XLam _ n _ (XVar a' n')) q
        -> if   n == n'
-          then go q
+          then q
           else XVar a' n'
 
       XApp _ (XLam _ n _ x) q
-       | v <- go q
-       , isSimpleValue v
-       , Just x' <- substMaybe n v x
-       -> go x'
-
-      XApp a p q
-       -> XApp a (go p) (go q)
-
-      XLam a n t x
-       -> XLam a n t $ go x
+       | isSimpleValue q
+       , Just x' <- substMaybe n q x
+       -> x'
 
       XLet _ n v (XVar a' n')
        -> if   n == n'
-          then go v
+          then v
           else XVar a' n'
 
       XLet _ n v x
        | isSimpleValue v
        , Just x' <- substMaybe n v x
-       -> go x'
+       -> x'
 
-      XLet a n v x
-       -> XLet a n (go v) (go x)
-
+      XLet {}         -> xx
+      XApp {}         -> xx
+      XLam {}         -> xx
       XValue{}        -> xx
       XVar{}          -> xx
       XPrim{}         -> xx

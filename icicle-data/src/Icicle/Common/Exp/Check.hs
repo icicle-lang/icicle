@@ -63,7 +63,7 @@ checkExp frag env x
 
         case allowLambdas frag of
           AllowLambdas                 -> return ()
-          AllowLambdasAsPrimArgs       -> checkLambdasAllowed True x
+          AllowLambdasAsPrimArgs       -> checkLambdasAllowed False x
           AllowLambdasAsPrimArgsAndTop -> checkLambdasAllowed True  x
 
         return t
@@ -225,7 +225,7 @@ checkLambdasAllowed allowedHere xx
 
  where
   -- Recurse, not at top level any more
-  go = checkLambdasAllowed True
+  go = checkLambdasAllowed False
   ok = return ()
   err = Left $ ExpErrorLambdaNotAllowedHere xx
 

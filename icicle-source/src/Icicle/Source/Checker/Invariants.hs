@@ -5,12 +5,10 @@ module Icicle.Source.Checker.Invariants (
     invariantQ
   , invariantX
   ) where
-import Icicle.Common.Base
-import Icicle.Common.Fresh
+import                  Icicle.Common.Base
 import                  Icicle.Source.Checker.Base
 import                  Icicle.Source.Checker.Error
 import                  Icicle.Source.Query
-
 
 import                  P
 
@@ -147,11 +145,11 @@ invariantX ctx x
    }
 
   argumentsX :: Exp a n -> [(a, Name n)]
-  argumentsX (Lam a n x) =
-    (a, n) : argumentsX x
+  argumentsX (Lam a n p) =
+    (a, n) : argumentsX p
   argumentsX _ = []
 
   argumentsQ :: Query a n -> [(a, Name n)]
-  argumentsQ (Query [] (Lam a n x)) =
-    (a, n) : argumentsX x
+  argumentsQ (Query [] (Lam a n p)) =
+    (a, n) : argumentsX p
   argumentsQ _ = []

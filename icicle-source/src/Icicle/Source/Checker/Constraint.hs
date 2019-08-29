@@ -572,9 +572,9 @@ generateX x env
     Var a n
      -> do (fErr, resT, cons') <- lookup a n env
 
-           when (anyArrows resT)
-             $ genHoistEither
-             $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+           --  when (anyArrows resT)
+           --    $ genHoistEither
+           --    $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
            let x' = annotate cons' resT
                   $ \a' -> Var a' n
@@ -636,9 +636,9 @@ generateX x env
                 let go                      = uncurry (appType a x)
                 (resT', consap)            <- foldM go (resT, []) argsT'
 
-                when (anyArrows resT')
-                  $ genHoistEither
-                  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
+                -- when (anyArrows resT')
+                --   $ genHoistEither
+                --   $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
 
                 let s' = foldl compose Map.empty subs'
                 let cons' = concat (consf : consap : consxs)
@@ -833,6 +833,15 @@ appType ann errExp funT cons actT
 
     let t = recomposeT (tmpR'', posR'', datR)
     return (t, concat [cons, consD, consT, consT', consP, consP'])
+  | let (tmpF,posF,datF) = decomposeT $ canonT funT
+  , TypeVar _ <- datF
+  = do
+    expT         <- TypeVar <$> fresh
+    resT         <- TypeVar <$> fresh
+    let funT'     = recomposeT (tmpF, posF, TypeArrow expT resT)
+    let funCons   = require ann (CEquals funT funT')
+    (retT, consD) <- appType ann errExp funT' (cons <> funCons) actT
+    return (retT, consD)
   | otherwise
   = genHoistEither
   $ errorNoSuggestions (ErrorFunctionWrongArgs ann errExp funT [actT])
