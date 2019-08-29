@@ -38,7 +38,7 @@ check_pretty qwf
   t  = T.pack pp
 
   parsed = parseQueryTop (queryName q) t
-  parsed' = second (reannotQT (const ())) parsed
+  parsed' = second (reannot (const ())) parsed
 
   pp'  = case parsed of
           Left e -> show e

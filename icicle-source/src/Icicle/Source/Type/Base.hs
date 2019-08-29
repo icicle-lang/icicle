@@ -21,11 +21,13 @@ module Icicle.Source.Type.Base (
   , annotDiscardConstraints
   , foldSourceType
   , mapSourceType
+  , anyArrows
   ) where
 
 import           Control.Lens.Fold      (foldMapOf)
 import           Control.Lens.Setter    (over)
 
+import           Data.Monoid (Any (..))
 import qualified Data.Map as Map
 
 import           GHC.Generics (Generic)
@@ -69,6 +71,14 @@ data Type n
  deriving (Eq, Ord, Show, Generic)
 
 instance NFData n => NFData (Type n)
+
+
+anyArrows :: Type n -> Bool
+anyArrows
+ = let go (TypeArrow {}) = Any True
+       go x = foldSourceType go x
+   in getAny . go
+
 
 class TraverseType a where
   type N a :: *
@@ -256,8 +266,11 @@ instance Pretty n => Pretty (Type n) where
       parensWhenArg p $
         pretty $ PrettyFunType (fmap pretty cs) [] (pretty x)
     TypeArrow f x ->
-      parensWhenArg p $
-        pretty $ PrettyFunType [] [pretty f] (pretty x)
+      let
+        mParens = if (anyArrows f) then parens else id
+      in
+        parensWhenArg p $
+          pretty $ PrettyFunType [] [mParens (pretty f)] (pretty x)
     Temporality a b ->
       prettyApp hsep p a [b]
     TemporalityPure ->

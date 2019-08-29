@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Transform.Inline (
     inlineTransform
@@ -35,35 +36,43 @@ inlineTransform
         :: (Hashable n, Eq n)
         => InlineOption
         -> FunMap a n
-        -> Transform (Fresh n) () (Annot a n) n
-inlineTransform _ funs
+        -> Transform (Fresh n) (FunMap a n) (Annot a n) n
+inlineTransform _ funs0
  = Transform
  { transformExp     = tranx
  , transformPat     = tranp
  , transformContext = tranc
- , transformState   = ()
+ , transformState   = funs0
  }
  where
-  tranx _ x
+  tranx funs x
    | (Var _ n, args)   <- takeApps x
    , Just fun          <- Map.lookup n funs
    , (arguments, fapp) <- takeLams fun
-   , length arguments == length args
-   = do let argNames   = fmap snd arguments
-            sub        = Map.fromList
-                       $ argNames `zip` args
+   , length arguments  >= length args
+   = do let (xx, dgl)   = args `zipDangle` arguments
+            sub         = Map.fromList
+                        $ fmap (\(b, (_,a)) -> (a,b))
+                        $ xx
 
         inlined  <- substX sub fapp
-        return ((), inlined)
+        return (funs, makeLams dgl inlined)
 
    | otherwise
-   = return ((), x)
+   = return (funs, x)
 
-  tranp _ p
-   = return ((), p)
+  tranp funs p
+   = return (funs, p)
 
-  tranc _ c
-   = return ((), c)
+  tranc funs c
+   | Let ann (PatVariable n) x <- c
+   , anyArrows (annResult (annotOfExp x))
+   = do (funs', x') <- tranx funs x
+        dummy       <- fresh
+        let inlining = Map.insert n x' funs'
+        return (inlining, Let ann (PatVariable dummy) (Prim ann (Lit (LitString "inlined"))))
+   | otherwise
+   = return (funs, c)
 
 inlineQT :: (Hashable n, Eq n)
         => InlineOption
@@ -90,3 +99,8 @@ inlineX :: (Hashable n, Eq n)
 inlineX opt funs
  = transformX (inlineTransform opt funs)
 
+zipDangle :: [a] -> [b] -> ([(a, b)], [b])
+zipDangle    _      []  = ([],[])
+zipDangle    []     bs  = ([],bs)
+zipDangle (a:as) (b:bs) = ((a,b) : cs , sv)
+  where (cs, sv) = zipDangle as bs

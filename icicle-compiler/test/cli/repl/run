@@ -14,7 +14,7 @@ do
     echo " --- Test: $dir"
     if [ $update_expected -eq 1 ]
     then
-        dist/build/icicle/icicle  repl \
+        dist/build/icicle/icicle repl \
             --skip-dotfiles \
             --init ":set -c-eval" \
             --init ":set snapshot 2017-01-01" \
@@ -24,7 +24,7 @@ do
             | $diff -u $dir/expected -
     else
         echo " --- Updating expected "
-        dist/build/icicle/icicle  repl \
+        dist/build/icicle/icicle repl \
             --skip-dotfiles \
             --init ":set -c-eval" \
             --init ":set snapshot 2017-01-01" \

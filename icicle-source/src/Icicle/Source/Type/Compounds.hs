@@ -26,7 +26,6 @@ import                  P
 
 import                  Data.List (zipWith, zip)
 import qualified        Data.Map as Map
-import                  Data.Monoid (Any (..))
 import qualified        Data.Set as Set
 import                  Data.Hashable (Hashable)
 
@@ -261,10 +260,3 @@ wrapN go f ts
    in case tmp of
        Nothing -> Nothing
        Just tmp' -> f tmp' args
-
-
-anyArrows :: Type n -> Bool
-anyArrows
- = let go (TypeArrow {}) = Any True
-       go x = foldSourceType go x
-   in getAny . go
