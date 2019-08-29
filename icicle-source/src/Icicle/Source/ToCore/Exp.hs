@@ -50,7 +50,7 @@ convertExp x
  = case x of
     Var ann n
      -> do  bound <- convertFreshenLookupMaybe n
-            fs <- featureContextVariables <$> convertFeatures
+            fs    <- featureContextVariables <$> convertFeatures
             case bound of
              Just fv
               -> return $ CE.XVar () fv
@@ -82,7 +82,8 @@ convertExp x
      -> convertPrim p (annAnnot ann) (annResult ann) []
 
     Lam ann n p
-     -> do  p'      <- convertExp p
+     -> do  vArgT   <- convertValType (annAnnot ann) (annResult ann)
+            p'      <- convertWithInput n vArgT (convertExp p)
             typ     <- convertFunctionArgType (annAnnot ann) $ annResult ann
             return $
               CE.xLam n typ p'

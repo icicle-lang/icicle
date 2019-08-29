@@ -580,15 +580,11 @@ generateX x env
                   $ \a' -> Var a' n
            return (x', Map.empty, cons')
 
-    -- Functions have the type of arrows.
-    Lam _ n p
-     -> do bindType  <- TypeVar <$> fresh
-           let env'   = Map.insert n bindType env
-           (p',s,c)  <- generateX p env'
-           let pT     = annResult $ annotOfExp p'
-           let x'     = annotate c (TypeArrow bindType pT)
-                      $ \a' -> Lam a' n p'
-           return (x', s, c)
+    -- Functions shouldn't sit by themselves unapplied.
+    Lam a _ _
+      -> do dummy <- TypeArrow <$> (TypeVar <$> fresh) <*> (TypeVar <$> fresh)
+            genHoistEither
+              $ errorNoSuggestions (ErrorFunctionWrongArgs a x dummy [])
 
     -- Nested just has the type of its inner query.
     Nested _ q
