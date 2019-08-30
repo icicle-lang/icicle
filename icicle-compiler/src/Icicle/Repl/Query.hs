@@ -8,6 +8,7 @@ module Icicle.Repl.Query (
   , defineFunction
   ) where
 
+import           Control.Lens ((^.), _Left, _2)
 import           Control.Monad.Catch (MonadCatch)
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.Morph (hoist)
@@ -210,12 +211,7 @@ defineFunction function =
         Source.sourceCheckFunLog funEnv parsed
 
     whenSet FlagTypeCheckLog $
-      case funResolved of
-        Left (_, failLogs) -> do
-          putPretty failLogs
-          liftIO $ IO.putStrLn ""
-        Right _ ->
-          pure ()
+      for_ (funResolved ^. _Left . _2) putPretty
 
     (funEnv', logs) <-
       hoistEither . first (QuerySourceError . fst) $
