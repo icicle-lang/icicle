@@ -169,26 +169,25 @@ instance (Pretty a, Pretty n) => Pretty (CheckLog a n) where
 -- TODO: want EitherT (StateT ...) ...
 -- in order to get log in failure case
 newtype Gen a n t
- = Gen { constraintGen :: StateT [CheckLog a n] (EitherT (CheckError a n) (Fresh.Fresh n)) t }
+ = Gen { constraintGen :: EitherT (CheckError a n) (StateT [CheckLog a n] (Fresh.Fresh n)) t }
  deriving (Functor, Applicative, Monad)
 
 evalGen
     :: Gen a n t
-    -> EitherT (CheckError a n) (Fresh.Fresh n) (t, [CheckLog a n])
+    -> (Fresh.Fresh n) (Either (CheckError a n) t, [CheckLog a n])
 evalGen f
- = flip runStateT []
- $ constraintGen f
+ = runStateT (runEitherT $ constraintGen f) []
 
 evalGenNoLog
     :: Gen a n t
     -> EitherT (CheckError a n) (Fresh.Fresh n) t
-evalGenNoLog f = fst <$> evalGen f
+evalGenNoLog f = newEitherT (fst <$> evalGen f)
 
 checkLog :: CheckLog a n -> Gen a n ()
-checkLog l = Gen $ modify (l:)
+checkLog l = Gen . lift $ modify (l:)
 
 genHoistEither :: Either (CheckError a n) t -> Gen a n t
-genHoistEither = Gen . lift . hoistEither
+genHoistEither = Gen . hoistEither
 
 genLiftFresh :: Fresh.Fresh n t -> Gen a n t
 genLiftFresh = Gen . lift . lift

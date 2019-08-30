@@ -206,9 +206,20 @@ defineFunction function =
         List.filter (not . flip Set.member names . functionName) $
         dictionaryFunctions dictionary
 
-    (funEnv', logs) <-
-      hoistEither . first QuerySourceError $
+      funResolved =
         Source.sourceCheckFunLog funEnv parsed
+
+    whenSet FlagTypeCheckLog $
+      case funResolved of
+        Left (_, failLogs) -> do
+          putPretty failLogs
+          liftIO $ IO.putStrLn ""
+        Right _ ->
+          pure ()
+
+    (funEnv', logs) <-
+      hoistEither . first (QuerySourceError . fst) $
+        funResolved
 
     let
       fundefs =
