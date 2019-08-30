@@ -1,8 +1,9 @@
 -- | Typecheck and generalise functions
-{-# LANGUAGE DoAndIfThenElse  #-}
+{-# LANGUAGE DoAndIfThenElse   #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE TupleSections     #-}
 module Icicle.Source.Checker.Function (
     checkF
   , checkFs
@@ -28,6 +29,7 @@ import qualified        Data.Set                as Set
 import qualified        Data.List               as List
 import                  Data.Hashable           (Hashable)
 
+import                  Control.Monad.Trans.Class (lift)
 import                  X.Control.Monad.Trans.Either
 
 type Funs a n = [((a, Name n), Exp a n)]
@@ -36,7 +38,7 @@ type FunEnvT a n = [ ResolvedFunction a n ]
 checkFs :: (Hashable n, Eq n, Pretty n)
         => FunEnvT a n
         -> Funs a n
-        -> EitherT (CheckError a n) (Fresh.Fresh n)
+        -> EitherT (CheckError a n, [CheckLog a n]) (Fresh.Fresh n)
                    (FunEnvT a n, [[CheckLog a n]])
 
 checkFs env functions
@@ -45,16 +47,16 @@ checkFs env functions
   go (env0,logs0) (name,fun)
    = do
     let envMap = Map.fromList $ fmap ((,) <$> functionName <*> functionType) env0
-    ((annotfun, funtype),logs') <- checkF envMap fun
+    (checkResult,logs') <- lift $ checkF envMap fun
+    (annotfun, funtype) <-  hoistEither $ first (,logs') checkResult
     if List.elem (snd name) (fmap functionName env0)
-    then hoistEither $ Left $ CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) []
+    then hoistEither $ Left $ (CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) [], [])
     else pure (env0 <> [ResolvedFunction (snd name) funtype annotfun], logs0 <> [logs'])
 
 checkF  :: (Hashable n, Eq n, Pretty n)
         => Map.Map (Name n) (Type n)
         -> Exp a n
-        -> EitherT (CheckError a n) (Fresh.Fresh n)
-                   ((Exp (Annot a n) n, Type n), [CheckLog a n])
+        -> (Fresh.Fresh n) (Either (CheckError a n) (Exp (Annot a n) n, Type n), [CheckLog a n])
 
 checkF env fun
  = evalGen $ checkF' fun env

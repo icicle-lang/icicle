@@ -262,14 +262,15 @@ sourceCheckF :: FunEnvT Parsec.SourcePos Var
              -> Funs    Parsec.SourcePos Var
              -> Either  Error (FunEnvT Parsec.SourcePos Var)
 sourceCheckF env parsedImport
- = second fst
+ = first fst
+ $ second fst
  $ sourceCheckFunLog env parsedImport
 
 sourceCheckFunLog :: FunEnvT Parsec.SourcePos Var
              -> Funs    Parsec.SourcePos Var
-             -> Either  Error (FunEnvT Parsec.SourcePos Var, [[Check.CheckLog Parsec.SourcePos Var]])
+             -> Either  (Error, [Check.CheckLog Parsec.SourcePos Var]) (FunEnvT Parsec.SourcePos Var, [[Check.CheckLog Parsec.SourcePos Var]])
 sourceCheckFunLog env parsedImport
- = first ErrorSourceCheck
+ = first (first ErrorSourceCheck)
  $ snd
  $ flip Fresh.runFresh (freshNamer "check")
  $ runEitherT
