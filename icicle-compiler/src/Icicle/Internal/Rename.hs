@@ -44,6 +44,7 @@ renameF f d
 renameX :: Hashable m => (n -> m) -> SQ.Exp a n -> SQ.Exp a m
 renameX f e = case e of
   SQ.Var a n     -> SQ.Var a (renameN f n)
+  SQ.Lam a n q   -> SQ.Lam a (renameN f n) (renameX f q)
   SQ.Nested a q  -> SQ.Nested a (renameQ f q)
   SQ.App a e1 e2 -> SQ.App a (renameX f e1) (renameX f e2)
   SQ.Prim a p    -> SQ.Prim a p

@@ -563,35 +563,29 @@ generateX
 generateX x env
  =   discharge annotOfExp substTX
  =<< case x of
-    -- Variables can only be values, not functions.
+    -- Variables can be values or functions
     Var a n
-     -> do (resT, cons') <- lookup a n env
+     -> do (_fErr, resT, cons') <- lookup a n env
 
-           --  when (anyArrows resT)
-           --    $ genHoistEither
-           --    $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+           -- when (anyArrows resT)
+           --  $ genHoistEither
+           --  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
            let x' = annotate cons' resT
                   $ \a' -> Var a' n
            return (x', Map.empty, cons')
 
-    -- Functions shouldn't sit by themselves unapplied.
-    Lam a n p
-      -> do t               <- freshType
-            let env'         = bindT n t env
-            (q, subs, cons) <- generateX p env'
+    -- Lambda functions by themselves are pretty trivial
+    Lam _ _ _
+      -> do (_fErr, resT, cons) <- lookupFunction x env
 
-            -- Lookup the argument in the new environment
-            -- with constraints solved
-            (argT, _)       <- lookup a n env'
-            let retT         = TypeArrow (substT subs argT) (annResult $ annotOfExp q)
-            let lam          = Lam (Annot a retT []) n q
-            return (lam, subs, cons)
-         where
-          freshType
-            =    Temporality <$> (TypeVar <$> fresh)
-            <*> (Possibility <$> (TypeVar <$> fresh)
-            <*>                  (TypeVar <$> fresh))
+            -- when (anyArrows resT)
+            --  $ genHoistEither
+            --  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+
+            let f' = annotate cons resT
+                   $ \a' -> reannot (const a') x
+            return (f', Map.empty, cons)
 
     -- Nested just has the type of its inner query.
     Nested _ q
@@ -634,7 +628,7 @@ generateX x env
                              rs        <- genXs xs (substE s env')
                              return ((xx',s,c) : rs)
 
-        in do   (resT, consf)        <- look
+        in do   (_fErr, resT, consf)       <- look
 
                 (args', subs', consxs)     <- unzip3 <$> genXs args env
                 let argsT'                  = fmap (annResult.annotOfExp) args'
@@ -655,7 +649,8 @@ generateX x env
 
     -- Unapplied primitives should be relatively easy
     Prim a p
-     -> do (resT, cons') <- primLookup a p
+     -> do (_fErr, resT, cons') <- primLookup a p
+
            let x' = annotate cons' resT
                   $ \a' -> Prim a' p
            return (x', Map.empty, cons')
@@ -806,7 +801,7 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
         return ( SumT l r , c, e' )
 
   goPat (PatLit l _) e
-   = do (resT, cons) <- primLookup ann (Lit l)
+   = do (_fErr, resT, cons) <- primLookup ann (Lit l)
         return (resT, cons, e)
 
   goPat _ _
@@ -892,7 +887,7 @@ appType ann errExp funT cons actT
 lookupFunction :: (Hashable n, Eq n, Pretty n)
                => Exp a n
                -> GenEnv n
-               -> Gen a n (Type n, GenConstraintSet a n)
+               -> Gen a n (Type n, Type n, GenConstraintSet a n)
 
 lookupFunction fun env
  = do let (arguments, body) = takeLams fun
@@ -904,12 +899,12 @@ lookupFunction fun env
       -- Look up the argument types after solving all constraints.
       -- Because they started as fresh unification variables,
       -- they will end up being unified to the actual types.
-      argTs    <- mapM (lookupArgT subs env') arguments
+      argTs           <- traverse (lookupArgT subs env') arguments
 
       -- Build the final type
-      let resT  = annResult $ annotOfExp q
-      let arrT  = foldr TypeArrow resT argTs
-      return (arrT, cons)
+      let resT         = annResult $ annotOfExp q
+      let arrT         = foldr TypeArrow resT argTs
+      return (arrT, arrT, cons)
  where
   bindArg cx (_,n)
    = do t <- freshType
@@ -921,5 +916,5 @@ lookupFunction fun env
    <*>                  (TypeVar <$> fresh))
 
   lookupArgT subs e (a, n)
-   = do (t,_) <- lookup a n e
+   = do (_,t,_) <- lookup a n e
         return (substT subs t)

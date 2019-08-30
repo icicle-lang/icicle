@@ -83,7 +83,7 @@ checkF' fun env
       -- Look up the argument types after solving all constraints.
       -- Because they started as fresh unification variables,
       -- they will end up being unified to the actual types.
-      args <- mapM (lookupArg subs env') arguments
+      args <- traverse (lookupArg subs env') arguments
 
       -- Find all leftover constraints
       let constrs = fmap snd cons
@@ -172,7 +172,7 @@ checkF' fun env
    <*>                  (TypeVar <$> fresh))
 
   lookupArg subs e (a,n)
-   = do (t,_) <- lookup a n e
+   = do (_,t,_) <- lookup a n e
         return (Annot a (substT subs t) [], n)
 
   dischargeInfo q cons subs =

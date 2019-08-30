@@ -242,17 +242,17 @@ introForalls
   :: (Hashable n, Eq n)
   => a
   -> Type n
-  -> Gen a n (Type n, GenConstraintSet a n)
+  -> Gen a n (Type n, Type n, GenConstraintSet a n)
 introForalls ann f
  = case f of
     TypeForall ns cs x -> do
       freshen <- Map.fromList <$> mapM mkSubst ns
       let cons = concatMap (require ann . substC freshen) cs
       let sub  = substT freshen
-      return (sub x, cons)
+      return (f, sub x, cons)
 
     _ ->
-      return (f, [])
+      return (f, f, [])
 
  where
   mkSubst n
@@ -266,7 +266,7 @@ lookup
   => a
   -> Name n
   -> GenEnv n
-  -> Gen a n (Type n, GenConstraintSet a n)
+  -> Gen a n (Type n, Type n, GenConstraintSet a n)
 lookup ann n env
  = case Map.lookup n env of
      Just t
