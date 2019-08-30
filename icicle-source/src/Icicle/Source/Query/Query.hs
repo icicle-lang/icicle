@@ -18,7 +18,7 @@ module Icicle.Source.Query.Query (
 
   , annotOfQuery
 
-  , allvarsX, allvarsC, allvarsQ
+  , allvarsX, allvarsC, allvarsQ, allvarsP
   ) where
 
 import qualified Data.Set                as Set
@@ -170,7 +170,7 @@ allvarsC ns c
 
     Let a p x
      -> let x' = allvarsX x
-            (p',nsX) = goPat p
+            (p',nsX) = allvarsP p
             ns' = Set.unions
                 [ ns, nsX, annX x' ]
         in  Let (a, ns') p' x'
@@ -178,7 +178,7 @@ allvarsC ns c
     LetFold a f
      -> let z'  = allvarsX (foldInit f)
             k'  = allvarsX (foldWork f)
-            (p',nsX) = goPat (foldBind f)
+            (p',nsX) = allvarsP (foldBind f)
             ns' = Set.unions
                 [ ns, nsX
                 , annX z', annX k' ]
@@ -192,8 +192,8 @@ allvarsC ns c
 
     GroupFold a nk nv x
      -> let x'  = allvarsX x
-            (nk',nkX) = goPat nk
-            (nv',nvX) = goPat nv
+            (nk',nkX) = allvarsP nk
+            (nv',nvX) = allvarsP nv
             ns' = Set.unions
                 [ ns, nkX, nvX, annX x' ]
         in  GroupFold (a,ns') nk' nv' x'
@@ -242,31 +242,33 @@ allvarsX x
    = ([], Set.empty)
   goPatXs ((p,xx):ps)
    = let (ps',ns') = goPatXs  ps
-         (p',np')  = goPat    p
+         (p',np')  = allvarsP p
          xx'       = allvarsX xx
          ns''      = Set.unions [ns', np', annX xx']
      in  ((p',xx') : ps', ns'')
 
 
-goPats :: Eq n => [Pattern n] -> ([Pattern n], Set.Set (Name n))
-goPats []
-  = ([], Set.empty)
-goPats (p:ps)
-  = let
-      (p',n')   = goPat p
-      (ps',ns') = goPats ps
-    in
-      (p' : ps', n' `Set.union` ns')
+allvarsP :: Eq n => Pattern n -> (Pattern n, Set.Set (Name n))
+allvarsP
+ = goPat
+ where
+   goPat p =
+    case p of
+     PatCon c ps
+       -> let (ps',ns') = goPats ps
+         in  (PatCon c ps', ns')
+     PatDefault
+       -> (PatDefault, Set.empty)
+     PatVariable n
+       -> (PatVariable n,  Set.singleton n)
+     PatLit l n
+       -> (PatLit l n, Set.empty)
 
-goPat :: Eq n => Pattern n -> (Pattern n, Set.Set (Name n))
-goPat p
- = case p of
-  PatCon c ps
-    -> let (ps',ns') = goPats ps
-       in  (PatCon c ps', ns')
-  PatDefault
-    -> (PatDefault, Set.empty)
-  PatVariable n
-    -> (PatVariable n,  Set.singleton n)
-  PatLit l n
-    -> (PatLit l n, Set.empty)
+   goPats []
+     = ([], Set.empty)
+   goPats (p:ps)
+     = let
+         (p',n')   = goPat p
+         (ps',ns') = goPats ps
+       in
+         (p' : ps', n' `Set.union` ns')

@@ -69,7 +69,11 @@ inlineTransform _ funs0
    = do (funs', x') <- tranx funs x
         dummy       <- fresh
         let inlining = Map.insert n x' funs'
-        return (inlining, Let ann (PatVariable dummy) (Prim ann (Lit (LitString "inlined"))))
+        return (inlining, Let ann (PatDefault) x)
+   | Let _ pat _ <- c
+   = return (foldl (flip Map.delete) funs (snd $ allvarsP pat), c)
+   | LetFold _ (Fold pat _ _ _) <- c
+   = return (foldl (flip Map.delete) funs (snd $ allvarsP pat), c)
    | otherwise
    = return (funs, c)
 

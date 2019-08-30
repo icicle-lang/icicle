@@ -114,12 +114,14 @@ invariantX ctx x
  = case x of
     Var a n
      -> goFun a n []
-    Lam a n p
-     -> goFun a n [p]
+    Lam a _ _
+     -> errorSuggestions
+         (ErrorSerialisedFunction a x)
+         [ Suggest "Function calls must be statically known in order to build the program." ]
     Nested _ q
      -> invariantQ ctx q
     App{}
-     | (f,xs) <- takeApps x
+     | (f,xs)  <- takeApps x
      , Var a n <- f
      -> goFun a n xs
     App _ p q
@@ -132,15 +134,15 @@ invariantX ctx x
  where
   goFun a n args
    | Just fun <- Map.lookup n $ checkBodies ctx
-   = let ctx' = foldl bindArg ctx (argumentsQ fun `zip` args)
+   = let ctx' = foldl bindArg ctx (argumentsX fun `zip` args)
      in  errorInFunctionEither a n
-       $ invariantQ ctx' fun
+       $ invariantX ctx' fun
    | otherwise
    = mapM_ (invariantX ctx) args
 
   bindArg ctx' ((_,n),def)
    = ctx'
-   { checkBodies = Map.insert n (Query [] def)
+   { checkBodies = Map.insert n def
                  $ checkBodies ctx'
    }
 
@@ -148,8 +150,3 @@ invariantX ctx x
   argumentsX (Lam a n p) =
     (a, n) : argumentsX p
   argumentsX _ = []
-
-  argumentsQ :: Query a n -> [(a, Name n)]
-  argumentsQ (Query [] (Lam a n p)) =
-    (a, n) : argumentsX p
-  argumentsQ _ = []

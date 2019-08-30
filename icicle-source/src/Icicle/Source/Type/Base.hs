@@ -266,11 +266,8 @@ instance Pretty n => Pretty (Type n) where
       parensWhenArg p $
         pretty $ PrettyFunType (fmap pretty cs) [] (pretty x)
     TypeArrow f x ->
-      let
-        mParens = if (anyArrows f) then parens else id
-      in
-        parensWhenArg p $
-          pretty $ PrettyFunType [] [mParens (pretty f)] (pretty x)
+      parensWhenArg p $
+          pretty $ PrettyFunType [] [parensWhen (anyArrows f) (pretty f)] (pretty x)
     Temporality a b ->
       prettyApp hsep p a [b]
     TemporalityPure ->
