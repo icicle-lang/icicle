@@ -21,7 +21,7 @@ import                  P
 primLookup
  :: (Hashable n, Eq n)
  => a -> Prim
- -> Gen a n (Type n, Type n, GenConstraintSet a n)
+ -> Gen a n (Type n, GenConstraintSet a n)
 primLookup ann p
  = do ft <- Gen . lift . lift $ primLookup' p
       introForalls ann ft

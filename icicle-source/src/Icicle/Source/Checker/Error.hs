@@ -52,6 +52,7 @@ data ErrorInfo a n
  | ErrorCaseBadPattern a (Pattern n)
  | ErrorResumableFoldNotAllowedHere a (Query a n)
  | ErrorInFunctionCall a (Name n) (ErrorInfo a n)
+ | ErrorSerialisedFunction a (Exp a n)
  deriving (Show, Eq, Generic)
 
 instance (NFData a, NFData n) => NFData (ErrorInfo a n)
@@ -87,7 +88,8 @@ annotOfError (CheckError e _)
      -> Just a
     ErrorInFunctionCall a _ _
      -> Just a
-
+    ErrorSerialisedFunction a _
+     -> Just a
 
 data ErrorSuggestion a n
  = AvailableFeatures UnresolvedInputId [(InputId, Type n)]
@@ -219,6 +221,12 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
         , pretty e'
         ]
 
+    ErrorSerialisedFunction a e' ->
+      vsep [
+          "Non-inlinable function call at" <+> pretty a
+        , mempty
+        , pretty e'
+        ]
    where
     inp x = align (pretty x)
 

@@ -41,14 +41,8 @@ prettyFunWithNames names typ
         PrettyFunType consX argsX typ1 =
           prettyFunWithNames names typ0
 
-        mParens =
-          if (anyArrows f) then
-            parens
-          else
-            id
-
       in
-        PrettyFunType consX (mParens (pretty $ prettyFunWithNames names f) : argsX) (pretty typ1)
+        PrettyFunType consX (parensWhen (anyArrows f) (pretty $ prettyFunWithNames names f) : argsX) (pretty typ1)
 
     TypeForall ns cons0 typ0 ->
       let

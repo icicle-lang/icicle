@@ -71,7 +71,7 @@ data CheckEnv a n
  -- | Mapping from variable names to whole types
    checkEnvironment :: Map.Map (Name n) (Type n)
  -- | Function bodies
- , checkBodies      :: Map.Map (Name n) (Query a n)
+ , checkBodies      :: Map.Map (Name n) (Exp a n)
  , checkInvariants  :: Invariants
  }
 
@@ -242,17 +242,17 @@ introForalls
   :: (Hashable n, Eq n)
   => a
   -> Type n
-  -> Gen a n (Type n, Type n, GenConstraintSet a n)
+  -> Gen a n (Type n, GenConstraintSet a n)
 introForalls ann f
  = case f of
     TypeForall ns cs x -> do
       freshen <- Map.fromList <$> mapM mkSubst ns
       let cons = concatMap (require ann . substC freshen) cs
       let sub  = substT freshen
-      return (f, sub x, cons)
+      return (sub x, cons)
 
     _ ->
-      return (f, f, [])
+      return (f, [])
 
  where
   mkSubst n
@@ -266,7 +266,7 @@ lookup
   => a
   -> Name n
   -> GenEnv n
-  -> Gen a n (Type n, Type n, GenConstraintSet a n)
+  -> Gen a n (Type n, GenConstraintSet a n)
 lookup ann n env
  = case Map.lookup n env of
      Just t

@@ -82,11 +82,10 @@ convertExp x
      -> convertPrim p (annAnnot ann) (annResult ann) []
 
     Lam ann n p
-     -> do  vArgT   <- convertValType (annAnnot ann) (annResult ann)
+     -> do  vArgT   <- convertFunctionArgType (annAnnot ann) (annResult ann)
             p'      <- convertWithInput n vArgT (convertExp p)
-            typ     <- convertFunctionArgType (annAnnot ann) $ annResult ann
             return $
-              CE.xLam n typ p'
+              CE.xLam n vArgT p'
 
     -- Only deal with flattened, single layer cases.
     -- We need a pass beforehand to simplify them.
