@@ -67,7 +67,6 @@ inlineTransform _ funs0
    | Let ann (PatVariable n) x <- c
    , anyArrows (annResult (annotOfExp x))
    = do (funs', x') <- tranx funs x
-        dummy       <- fresh
         let inlining = Map.insert n x' funs'
         return (inlining, Let ann (PatDefault) x)
    | Let _ pat _ <- c

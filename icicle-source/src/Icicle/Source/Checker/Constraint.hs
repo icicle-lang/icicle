@@ -578,9 +578,22 @@ generateX x env
            return (x', Map.empty, cons')
 
     -- Functions shouldn't sit by themselves unapplied.
-    Lam a _ _
-      -> do genHoistEither
-              $ errorNoSuggestions (ErrorSerialisedFunction a x)
+    Lam a n p
+      -> do t               <- freshType
+            let env'         = bindT n t env
+            (q, subs, cons) <- generateX p env'
+
+            -- Lookup the argument in the new environment
+            -- with constraints solved
+            (argT, _)       <- lookup a n env'
+            let retT         = TypeArrow (substT subs argT) (annResult $ annotOfExp q)
+            let lam          = Lam (Annot a retT []) n q
+            return (lam, subs, cons)
+         where
+          freshType
+            =    Temporality <$> (TypeVar <$> fresh)
+            <*> (Possibility <$> (TypeVar <$> fresh)
+            <*>                  (TypeVar <$> fresh))
 
     -- Nested just has the type of its inner query.
     Nested _ q
@@ -823,6 +836,7 @@ appType ann errExp funT cons actT
     -- Join function result and partial results.
     (tmpR',  consT)      <- checkTemp (purely tmpE) (purely tmpA) (purely tmpR)
     (tmpR'', consT')     <- checkTemp Nothing (purely tmpR') (purely tmpF)
+
     -- Prevent aggregate functions returning element arrows from being applied.
     (_     , consTX)     <- checkTemp Nothing (purely tmpF)  (purely tmpE)
     (posR',  consP)      <- checkPoss (definitely posE) (definitely posA) (definitely posR)

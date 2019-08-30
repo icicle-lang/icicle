@@ -17,8 +17,8 @@ import qualified        Icicle.Core as C
 
 import                  Icicle.Data.Name
 
-import                  Icicle.Source.Type
 import                  Icicle.Source.Checker.Base
+import                  Icicle.Source.Type
 
 import                  P
 
