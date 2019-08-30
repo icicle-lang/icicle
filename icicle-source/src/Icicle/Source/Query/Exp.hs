@@ -53,7 +53,6 @@ import           P
 class TraverseAnnot q where
   traverseAnnot :: Applicative f => (a -> f a') -> q a n -> f (q a' n)
 
-
 reannot :: TraverseAnnot q => (a -> a') -> q a n -> q a' n
 reannot = over traverseAnnot
 

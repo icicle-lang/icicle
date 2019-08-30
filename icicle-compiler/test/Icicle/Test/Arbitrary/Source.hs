@@ -341,7 +341,7 @@ genExp tgi
       ]
 
   primApps
-   = do p <- arbitrary
+   = do p      <- arbitrary
         let ft  = testFresh "" $ primLookup' p
         let num = lengthFunctionArguments ft
         xs     <- vectorOf num (genExp tgi)
