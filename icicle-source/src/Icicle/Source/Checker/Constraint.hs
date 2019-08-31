@@ -833,7 +833,7 @@ appType ann errExp funT cons actT
     (tmpR'', consT')     <- checkTemp Nothing (purely tmpR') (purely tmpF)
 
     -- Prevent aggregate functions returning element arrows from being applied.
-    (_     , consTX)     <- checkTemp Nothing (purely tmpF)  (purely tmpE)
+    (_     , consTX)     <- checkTemp Nothing (purely tmpF) (purely tmpE)
     (posR',  consP)      <- checkPoss (definitely posE) (definitely posA) (definitely posR)
     (posR'', consP')     <- checkPoss Nothing (definitely posR') (definitely posF)
 
@@ -842,10 +842,10 @@ appType ann errExp funT cons actT
   | let (tmpF,posF,datF) = decomposeT $ canonT funT
   , TypeVar _ <- datF
   = do
-    expT         <- TypeVar <$> fresh
-    resT         <- TypeVar <$> fresh
-    let funT'     = recomposeT (tmpF, posF, TypeArrow expT resT)
-    let funCons   = require ann (CEquals funT funT')
+    expT          <- TypeVar <$> fresh
+    resT          <- TypeVar <$> fresh
+    let funT'      = recomposeT (tmpF, posF, TypeArrow expT resT)
+    let funCons    = require ann (CEquals funT funT')
     (retT, consD) <- appType ann errExp funT' (cons <> funCons) actT
     return (retT, consD)
   | otherwise

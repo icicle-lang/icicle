@@ -82,8 +82,6 @@ data Invariants
    allowWindows    :: Bool
  -- | Unimplemented in Core: group-folds inside groups/windows/group-folds/latests
  , allowGroupFolds :: Bool
- -- | Unimplemented in Core: latest inside latest
- , allowLatest     :: Bool
  }
 
 -- | Initial environment at top-level, not inside a group, and allowing contexts

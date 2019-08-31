@@ -202,7 +202,6 @@ defineFunction function =
       names =
         Set.fromList $ fmap (snd . fst) parsed
 
-      -- Remove the old bindings with these names
       funEnv =
         List.filter (not . flip Set.member names . functionName) $
         dictionaryFunctions dictionary
