@@ -20,6 +20,7 @@ module Icicle.Source.Transform.Desugar
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Either
 
+import qualified Data.Map as Map
 import           Data.Hashable (Hashable)
 import           Data.Functor.Identity
 
@@ -30,6 +31,7 @@ import           Icicle.Common.Fresh
 
 import           Icicle.Source.Query
 import           Icicle.Source.Transform.Simp
+import           Icicle.Source.Transform.SubstX
 import           Icicle.Internal.Pretty
 
 import           P
@@ -189,6 +191,13 @@ desugarX xx
            checkOverlapping a pats (toList tree)
 
            treeToCase a patalts' tree
+
+    -- Beta Reduction
+    App _ (Lam _ n x1) x2
+      -> do x1' <- desugarX x1
+            x2' <- desugarX x2
+            xx' <- runFreshIdentity $ substX (Map.singleton n x2') x1'
+            return xx'
 
     App a x1 x2
       -> do x1' <- desugarX x1
