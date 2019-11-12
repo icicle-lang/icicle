@@ -11,6 +11,7 @@ module Icicle.Sorbet.Lexical.Syntax (
 import           Data.Data (Data)
 import qualified Data.List.NonEmpty as NonEmpty
 import           Data.Scientific (Scientific)
+import           Data.String (String)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as Lazy
 import qualified Data.Text.Lazy.Builder as Lazy
@@ -24,9 +25,6 @@ import           GHC.Generics (Generic)
 import           Icicle.Sorbet.Lexical.Escape
 
 import           P
-
-import           Text.Megaparsec (ShowToken(..))
-
 
 data Token =
   --
@@ -156,6 +154,6 @@ enquote :: [Char] -> [Char]
 enquote str =
   "\"" <> str <> "\""
 
-instance ShowToken Token where
-  showTokens =
-    T.unpack . T.unwords . fmap renderToken . NonEmpty.toList
+-- showSorbetTokens :: NonEmpty.NonEmpty Token -> String
+-- showSorbetTokens =
+--   T.unpack . T.unwords . fmap renderToken . NonEmpty.toList

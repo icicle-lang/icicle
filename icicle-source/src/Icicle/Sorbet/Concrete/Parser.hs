@@ -28,33 +28,22 @@ import           Icicle.Sorbet.Position
 
 import           P
 
-import           Text.Megaparsec (Dec, try, sepBy, choice, label)
-import           Text.Megaparsec (ErrorComponent(..), ShowErrorComponent(..))
+import           Text.Megaparsec (try, sepBy, choice, label)
 import qualified Text.Megaparsec as Mega
-import           Text.Megaparsec.Prim (MonadParsec)
+import           Text.Megaparsec (MonadParsec)
 
 
 type Parser s m =
   (MonadParsec ParserError s m, Mega.Token s ~ Positioned Token)
 
 data ParserError =
-    ParserDefault !Dec
+    ParserDefault
     deriving (Eq, Ord, Show)
 
 renderParserError :: ParserError -> Text
 renderParserError = \case
-  ParserDefault dec ->
-    T.pack $ showErrorComponent dec
-
-instance ErrorComponent ParserError where
-  representFail =
-    ParserDefault . representFail
-  representIndentation old ref actual =
-    ParserDefault $ representIndentation old ref actual
-
-instance ShowErrorComponent ParserError where
-  showErrorComponent =
-    T.unpack . renderParserError
+  ParserDefault ->
+    T.pack ""
 
 pRepl :: Parser s m => m (Repl Position)
 pRepl =
@@ -649,14 +638,11 @@ tryPosToken f  =
 tryPositioned :: Parser s m => (Positioned Token -> Maybe a) -> m a
 tryPositioned f =
   let
-    testToken p =
-      case f p of
-        Nothing ->
-          Left (Set.singleton (Mega.Tokens $ p :| []), Set.empty, Set.empty)
-        Just x ->
-          Right x
+    errFor =
+      Set.singleton (Mega.Label $ 't' :| "ry positioned")
+
   in
-    Mega.token testToken Nothing
+    Mega.token f errFor
 
 --
 -- Like liftA2 but allows 'a' to be derived from 'b'.
@@ -679,7 +665,7 @@ sepBy1 p sep =
 
 position :: Parser s m => m Position
 position = do
-  Mega.SourcePos file line col <- Mega.getPosition
+  Mega.SourcePos file line col <- Mega.getSourcePos
   pure $
     Position file
       (fromIntegral $ Mega.unPos line)

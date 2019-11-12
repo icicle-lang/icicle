@@ -5,14 +5,8 @@ packages: icicle-core/
           lib/jetski/
           lib/anemone/
           lib/zebra/zebra-cli/
-          lib/zebra/zebra-core/test/
           lib/zebra/zebra-core/
           lib/viking/
-          lib/disorder.hs/disorder-corpus/
-          lib/disorder.hs/disorder-aeson/
-          lib/disorder.hs/disorder-cli/
-          lib/disorder.hs/disorder-jack/
-          lib/disorder.hs/disorder-core/
           lib/snapper/
           lib/x/x-optparse/
           lib/x/x-bytestring/

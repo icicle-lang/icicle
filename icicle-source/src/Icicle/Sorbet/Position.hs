@@ -11,6 +11,8 @@ module Icicle.Sorbet.Position (
   , Position(..)
   ) where
 
+import qualified Data.List as List
+import           Data.Proxy (Proxy (..))
 import           Data.Data (Data)
 import           Data.Typeable (Typeable)
 
@@ -20,8 +22,8 @@ import           P
 
 import           System.IO (FilePath)
 
-import           Text.Megaparsec (ShowToken(..), Stream(..))
-import           Text.Megaparsec.Pos (SourcePos(..), unsafePos)
+import           Text.Megaparsec (Stream(..))
+import           Text.Megaparsec.Pos (SourcePos(..), mkPos)
 
 import           X.Text.Show (gshowsPrec)
 
@@ -48,25 +50,38 @@ instance Show Position where
   showsPrec =
     gshowsPrec
 
-instance ShowToken a => ShowToken (Positioned a) where
-  showTokens =
-    showTokens . fmap posTail
+instance (Ord a, Show a) => Stream [Positioned a] where
+  type Token [Positioned a] =
+    Positioned a
 
-instance Ord a => Stream [Positioned a] where
-  type Token [Positioned a] = Positioned a
+  type Tokens [Positioned a] =
+    [Positioned a]
 
-  uncons = \case
-    [] ->
-      Nothing
-    x : xs ->
-      Just (x, xs)
+  tokenToChunk Proxy =
+    pure
+  tokensToChunk Proxy =
+    id
+  chunkToTokens Proxy =
+    id
+  chunkLength Proxy =
+    length
+  chunkEmpty Proxy =
+    null
+  take1_ [] =
+    Nothing
+  take1_ (t:ts) =
+    Just (t, ts)
 
-  updatePos _ _ _ (Positioned start end _) =
-    (toSourcePos start, toSourcePos end)
+  takeN_ n s
+    | n <= 0
+    = Just ([], s)
+    | null s
+    = Nothing
+    | otherwise
+    = Just (splitAt n s)
 
-toSourcePos :: Position -> SourcePos
-toSourcePos = \case
-  Position file line col ->
-    SourcePos file
-      (unsafePos $ fromIntegral line)
-      (unsafePos $ fromIntegral col)
+  takeWhile_ =
+    List.span
+
+  showTokens _ =
+    show . fmap posTail

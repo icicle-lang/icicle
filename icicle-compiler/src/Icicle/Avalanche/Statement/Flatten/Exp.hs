@@ -119,7 +119,6 @@ flatX a_fresh xx stm
       XLam{}
        -> lift $ Left $ FlattenErrorBareLambda x'
 
-
       -- Convert expression lets into statement lets
       XLet _ n p q
        -> flatX' p

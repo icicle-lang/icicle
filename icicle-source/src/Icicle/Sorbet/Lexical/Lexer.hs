@@ -4,6 +4,8 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ExplicitForAll #-}
 module Icicle.Sorbet.Lexical.Lexer (
     Lexer
   , lexProgram
@@ -16,8 +18,9 @@ import qualified Data.Char as Char
 import           Data.Scientific (Scientific, scientific)
 import           Data.Map (Map)
 import qualified Data.Map as Map
+import           Data.Proxy (Proxy (..))
 import qualified Data.Set as Set
-import           Data.String (String)
+import           Data.String (String, IsString (..))
 import qualified Data.Text as T
 import           Data.Thyme (Day, YearMonthDay(..), gregorianValid)
 import           Data.Word (Word)
@@ -28,21 +31,21 @@ import           Icicle.Sorbet.Position
 
 import           P hiding (exp)
 
-import           Text.Megaparsec (Dec, try, manyTill)
-import           Text.Megaparsec (ErrorComponent(..), ShowErrorComponent(..))
+import           Text.Megaparsec (try, manyTill)
+-- import           Text.Megaparsec (ErrorComponent(..), ShowErrorComponent(..))
 import qualified Text.Megaparsec as Mega
-import qualified Text.Megaparsec.Lexer as Lexer
-import           Text.Megaparsec.Prim (MonadParsec)
+import qualified Text.Megaparsec.Char as Mega
+import qualified Text.Megaparsec.Char.Lexer as Lexer
+import           Text.Megaparsec (MonadParsec)
 import           Text.Printf (printf)
 
-
 type Lexer s m =
-  (MonadParsec LexerError s m, Mega.Token s ~ Char)
+  (MonadParsec LexerError s m, Mega.Token s ~ Char, IsString (Mega.Tokens s))
 
 data LexerError =
     LexerInvalidDate !YearMonthDay
   | LexerUnescapeError !UnescapeError
-  | LexerDefault !Dec
+  -- | LexerDefault !Dec
     deriving (Eq, Ord, Show)
 
 renderLexerError :: LexerError -> Text
@@ -53,18 +56,18 @@ renderLexerError = \case
       " is not a valid gregorian calendar date."
   LexerUnescapeError err ->
     renderUnescapeError err
-  LexerDefault dec ->
-    T.pack $ showErrorComponent dec
+  -- LexerDefault dec ->
+  --   T.pack $ showErrorComponent dec
 
-instance ErrorComponent LexerError where
-  representFail =
-    LexerDefault . representFail
-  representIndentation old ref actual =
-    LexerDefault $ representIndentation old ref actual
+-- instance ErrorComponent LexerError where
+--   representFail =
+--     LexerDefault . representFail
+--   representIndentation old ref actual =
+--     LexerDefault $ representIndentation old ref actual
 
-instance ShowErrorComponent LexerError where
-  showErrorComponent =
-    T.unpack . renderLexerError
+-- instance ShowErrorComponent LexerError where
+--   showErrorComponent =
+--     T.unpack . renderLexerError
 
 lexProgram :: Lexer s m => m [Positioned Token]
 lexProgram =
@@ -132,7 +135,7 @@ lexIdentifier f lexHead =
 
 lexIdentifierTail :: Lexer s m => m [Char]
 lexIdentifierTail =
-  many (Mega.alphaNumChar <|> Mega.oneOf "_'")
+  many (Mega.alphaNumChar <|> Mega.oneOf ['_', '\''])
 
 reservedIdentifiers :: Map [Char] Token
 reservedIdentifiers =
@@ -261,7 +264,7 @@ lexExponent :: Lexer s m => m Int
 lexExponent =
   Mega.char 'e' *> Lexer.signed (pure ()) lexDecimal
 
-lexInteger :: Lexer s m => m (Positioned Integer)
+lexInteger :: forall s m. Lexer s m => m (Positioned Integer)
 lexInteger =
   lexeme $ Mega.choice [
       lexDecimal
@@ -334,10 +337,10 @@ lexString =
 
 lexStringChar :: Lexer s m => m [Char]
 lexStringChar = do
-  c <- Mega.anyChar
+  c <- Mega.anySingle
   case c of
     '\\' ->
-      (c:) . (:[]) <$> Mega.anyChar
+      (c:) . (:[]) <$> Mega.anySingle
     '\"' ->
       mzero
     _ ->
@@ -349,7 +352,7 @@ lexeme p =
 
 symbol :: Lexer s m => String -> m (Positioned ())
 symbol sym =
-  fmap (const ()) <$> lexeme (Mega.string sym)
+  fmap (const ()) <$> lexeme (Mega.string (fromString sym))
 
 lexSpace :: Lexer s m => m ()
 lexSpace =
@@ -379,7 +382,7 @@ positioned lex = do
 
 position :: Lexer s m => m Position
 position = do
-  Mega.SourcePos file line col <- Mega.getPosition
+  Mega.SourcePos file line col <- Mega.getSourcePos
   pure $
     Position file
       (fromIntegral $ Mega.unPos line)
@@ -387,9 +390,9 @@ position = do
 
 diff :: Lexer s m => m a -> m (Int, Int, a)
 diff lex = do
-  Mega.SourcePos _ line0 col0 <- Mega.getPosition
+  Mega.SourcePos _ line0 col0 <- Mega.getSourcePos
   x <- lex
-  Mega.SourcePos _ line1 col1 <- Mega.getPosition
+  Mega.SourcePos _ line1 col1 <- Mega.getSourcePos
 
   let
     !n0 = fromIntegral $ Mega.unPos line0
@@ -404,8 +407,8 @@ diff lex = do
 
 failWith :: Lexer s m => LexerError -> m a
 failWith err =
-  Mega.failure Set.empty Set.empty (Set.singleton err)
+  Mega.customFailure err
 
 liftE :: Lexer s m => Either LexerError a -> m a
 liftE =
-  either (Mega.failure Set.empty Set.empty . Set.singleton) pure
+  either Mega.customFailure pure

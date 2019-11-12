@@ -18,12 +18,13 @@ library
                      , ambiata-x-templatehaskell
                      , ansi-terminal                   == 0.6.*
                      , annotated-wl-pprint             == 0.7.*
+                     , attoparsec
                      , containers                      == 0.5.*
-                     , hashable                        == 1.2.*
-                     , lens                            >= 4.7        && < 4.18
-                     , semigroups                      >= 0.16       && < 0.19
-                     , template-haskell                >= 2.9        && < 2.15
-                     , text                            == 1.2.*
+                     , hashable                        >= 1.2
+                     , lens                            >= 4.7
+                     , semigroups                      >= 0.16       && < 0.20
+                     , template-haskell                >= 2.9        && < 2.16
+                     , text                            >= 1.2
                      , thyme                           == 0.3.*
                      , time                            >= 1.5        && < 1.10
                      , time-locale-compat              == 0.1.*
@@ -31,17 +32,6 @@ library
                      , vector                          >= 0.11       && < 0.13
                      , vector-space                    >= 0.10
                      , wl-pprint-annotated             == 0.1.*
-
-                     -- Well, it might look very odd that we're using both attoparsec
-                     -- and parsec.
-                     -- The thing is, attoparsec only operates on raw strings, and our source parser
-                     -- for Icicle should operate over tokens.
-                     -- Going over tokens instead of strings simplifies the parser itself and makes everything
-                     -- a bit cleaner.
-                     -- As an added benefit, parsec will give us nicer error messages.
-                     , attoparsec                      >= 0.12       && < 0.14
-                     , megaparsec                      >= 5.0        && < 5.2
-                     ,     parsec                      == 3.1.*
 
   ghc-options:
                        -Wall
