@@ -653,6 +653,10 @@ generateX x env
     Prim a p
      -> do (_fErr, resT, cons') <- primLookup a p
 
+           -- when (anyArrows resT')
+           --   $ genHoistEither
+           --   $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
+
            let x' = annotate cons' resT
                   $ \a' -> Prim a' p
            return (x', Map.empty, cons')
@@ -846,8 +850,8 @@ appType ann errExp funT cons actT
     resT          <- TypeVar <$> fresh
     let funT'      = recomposeT (tmpF, posF, TypeArrow expT resT)
     let funCons    = require ann (CEquals funT funT')
-    (retT, consD) <- appType ann errExp funT' (cons <> funCons) actT
-    return (retT, consD)
+    -- Rerun with a type arrow requirement.
+    appType ann errExp funT' (cons <> funCons) actT
   | otherwise
   = genHoistEither
   $ errorNoSuggestions (ErrorFunctionWrongArgs ann errExp funT [actT])

@@ -53,6 +53,7 @@ data ErrorInfo a n
  | ErrorResumableFoldNotAllowedHere a (Query a n)
  | ErrorInFunctionCall a (Name n) (ErrorInfo a n)
  | ErrorSerialisedFunction a (Exp a n)
+ | ErrorRankNType a (Type n)
  deriving (Show, Eq, Generic)
 
 instance (NFData a, NFData n) => NFData (ErrorInfo a n)
@@ -89,6 +90,8 @@ annotOfError (CheckError e _)
     ErrorInFunctionCall a _ _
      -> Just a
     ErrorSerialisedFunction a _
+     -> Just a
+    ErrorRankNType a _
      -> Just a
 
 data ErrorSuggestion a n
@@ -226,6 +229,13 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
           "Non-inlinable function call at" <+> pretty a
         , mempty
         , pretty e'
+        ]
+
+    ErrorRankNType a typ ->
+      vsep [
+          "Higher ranked type at " <+> pretty a
+        , mempty
+        , "Type: " <> inp typ
         ]
    where
     inp x = align (pretty x)

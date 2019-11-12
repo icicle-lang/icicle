@@ -22,6 +22,7 @@ module Icicle.Source.Type.Base (
   , foldSourceType
   , mapSourceType
   , anyArrows
+  , anyForalls
   ) where
 
 import           Control.Lens.Fold      (foldMapOf)
@@ -72,6 +73,11 @@ data Type n
 
 instance NFData n => NFData (Type n)
 
+anyForalls :: Type n -> Bool
+anyForalls
+ = let go (TypeForall {}) = Any True
+       go x = foldSourceType go x
+   in getAny . go
 
 anyArrows :: Type n -> Bool
 anyArrows

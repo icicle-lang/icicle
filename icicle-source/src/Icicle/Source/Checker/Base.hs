@@ -231,6 +231,20 @@ fresh
 
 -- | Freshen function type by applying introduction rules to foralls.
 --
+-- We only support rank 1 polymorphism, so
+--
+--   forall a. a -> (forall b. b -> a)
+--
+-- is equivalent to
+--
+--   forall a b. a -> b -> a
+--
+-- while
+--
+--   (forall a. a -> a) -> (forall b. b -> b)
+--
+-- is not allowed and will yield an error.
+--
 -- This only works at the top level, which is fine for now, but might
 -- start becoming a challenge when the type system grows.
 introForalls
@@ -242,10 +256,19 @@ introForalls ann f
  = case f of
     TypeForall ns cs x -> do
       freshen <- Map.fromList <$> mapM mkSubst ns
+      (_,r,c) <- introForalls ann x
       let cons = concatMap (require ann . substC freshen) cs
-      let sub  = substT freshen
-      return (f, sub x, cons)
+      let sub  = substT freshen r
+      return (f, sub, c <> cons)
 
+    TypeArrow arg res -> do
+      when (anyForalls arg)
+        $ genHoistEither
+        $ errorSuggestions (ErrorRankNType ann f)
+          [Suggest "Icicle only supports rank 1 types"]
+
+      (_,res',c) <- introForalls ann res
+      return (f, TypeArrow arg res', c)
     _ ->
       return (f, f, [])
 
