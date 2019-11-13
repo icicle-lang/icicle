@@ -12,6 +12,7 @@ import           Icicle.Common.Exp
 import           Icicle.Common.Type
 import           Icicle.Common.Value
 import qualified Icicle.Common.Fresh                as Fresh
+import           Icicle.Common.NanEq
 
 import qualified Icicle.Core.Exp                as X
 import           Icicle.Core.Exp.Prim
@@ -20,10 +21,10 @@ import           Icicle.Core.Program.Program    as P
 import           Icicle.Test.Arbitrary.Data
 
 import qualified Test.QuickCheck.Hedgehog as Qc
+
 import qualified Icicle.Test.Gen.Core.Value as CoreGen
 import qualified Icicle.Test.Gen.Core.Program as CoreGen
 import qualified Icicle.Test.Gen.Core.Type as CoreGen
-import Icicle.Common.NanEq
 
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()

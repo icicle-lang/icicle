@@ -13,6 +13,7 @@ import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.Morph (hoist)
 import           Control.Monad.State (gets, modify)
 import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Either (EitherT, hoistEither, runEitherT)
 import           Control.Monad.Trans.Resource (MonadResource, runResourceT)
 
 import qualified Data.ByteString as ByteString
@@ -73,13 +74,12 @@ import           Viking (Stream, Of)
 import qualified Viking.ByteStream as ByteStream
 import qualified Viking.Stream as Stream
 
-import           X.Control.Monad.Trans.Either (EitherT, hoistEither, runEitherT, firstJoin)
-
 import           Zebra.Serial.Binary (BinaryStripedDecodeError)
 import qualified Zebra.Serial.Binary as Binary
 import           Zebra.Serial.Text (TextStripedEncodeError)
 import qualified Zebra.Serial.Text as Text
 import qualified Zebra.Table.Striped as Zebra
+import           Zebra.X.Either (firstJoin)
 
 
 data CompiledQuery =

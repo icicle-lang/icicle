@@ -48,6 +48,8 @@ import           Test.QuickCheck.Instances ()
 
 import           P
 
+import           Control.Monad.Trans.Either
+
 import qualified Data.Text as Text
 import qualified Data.List as List
 import qualified Data.Map as Map
@@ -55,7 +57,6 @@ import qualified Data.Maybe as Maybe
 import           Data.Functor.Identity
 import           Data.String   (String)
 
-import           X.Control.Monad.Trans.Either
 
 
 -- Fresh name helpers ---------------

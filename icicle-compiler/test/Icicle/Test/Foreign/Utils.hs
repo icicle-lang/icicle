@@ -9,6 +9,8 @@ module Icicle.Test.Foreign.Utils where
 
 import qualified Data.List as List
 
+import           Control.Monad.Trans.Either
+
 import           Disorder.Corpus
 
 import           Foreign
@@ -21,8 +23,6 @@ import           System.IO
 
 import           Test.QuickCheck
 import           Test.QuickCheck.Property
-
-import           X.Control.Monad.Trans.Either
 
 import           Icicle.Internal.Pretty
 import           Icicle.Data.Time

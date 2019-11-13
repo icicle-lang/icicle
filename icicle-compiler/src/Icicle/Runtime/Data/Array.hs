@@ -68,6 +68,7 @@ import qualified Anemone.Foreign.Mempool as Mempool
 
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Primitive (PrimState)
+import           Control.Monad.Trans.Either (EitherT, left)
 
 import           Data.Bits (countLeadingZeros, shiftL)
 import qualified Data.ByteString as ByteString
@@ -95,7 +96,6 @@ import qualified Prelude as Savage
 import           System.IO (IO)
 
 import           X.Text.Show (gshowsPrec)
-import           X.Control.Monad.Trans.Either (EitherT, left)
 
 
 -- | An Icicle runtime array.

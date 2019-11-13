@@ -417,11 +417,11 @@ growList len = \case
 
   StateArray xs ->
     let
-      diff =
+      difference =
         max 0 (fromIntegral len - length xs)
     in
       StateArray . List.take (fromIntegral len) $
-        xs <> List.replicate diff 0
+        xs <> List.replicate difference 0
 
 growArray :: (MonadGen n, MonadReader Mempool m, MonadIO m) => Command n m State
 growArray =

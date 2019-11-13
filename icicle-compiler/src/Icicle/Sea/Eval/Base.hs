@@ -21,6 +21,7 @@ module Icicle.Sea.Eval.Base (
   ) where
 
 import           Control.Monad.IO.Class (MonadIO(..))
+import           Control.Monad.Trans.Either (EitherT, hoistEither)
 
 import qualified Data.List.NonEmpty as NonEmpty
 import           Data.List.NonEmpty (NonEmpty(..))
@@ -50,9 +51,6 @@ import           P hiding (count)
 
 import           System.Environment (lookupEnv)
 import           System.IO (IO)
-
-import           X.Control.Monad.Trans.Either (EitherT)
-import           X.Control.Monad.Trans.Either (hoistEither)
 
 
 fromUseJetskiCache :: UseJetskiCache -> CacheLibrary

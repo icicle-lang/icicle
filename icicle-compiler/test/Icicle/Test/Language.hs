@@ -29,6 +29,8 @@ import           Icicle.Test.Arbitrary.NanEq
 
 import           Icicle.Internal.Pretty
 
+import           Control.Monad.Trans.Either
+
 import           Data.Maybe
 import           Data.Bitraversable
 import qualified Data.Map  as Map
@@ -42,7 +44,6 @@ import qualified Prelude as Savage
 
 import           System.IO (IO)
 
-import           X.Control.Monad.Trans.Either
 import           Disorder.Core.IO
 
 

@@ -72,6 +72,8 @@ import qualified Icicle.Source.Transform.Inline           as Inline
 import qualified Icicle.Source.Transform.ReifyPossibility as Reify
 import qualified Icicle.Source.Type                       as Type
 
+import           Control.Monad.Trans.Either
+
 import           Data.Functor.Identity
 import qualified Data.Map                                 as M
 import           Data.String
@@ -82,9 +84,6 @@ import qualified Text.ParserCombinators.Parsec            as Parsec
 import           GHC.Generics                             (Generic)
 
 import           P
-
-import           X.Control.Monad.Trans.Either
-
 
 
 type IsName v = (Hashable v, Eq v, IsString v, Pretty v, Show v, NFData v)

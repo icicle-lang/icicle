@@ -26,12 +26,11 @@ import           Icicle.Internal.Pretty (Pretty)
 import           P hiding (with)
 
 import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Either
 
 import           Data.Hashable                (Hashable)
 import           Data.List                    (unzip3, zip)
 import qualified Data.Map                     as Map
-
-import           X.Control.Monad.Trans.Either
 
 
 

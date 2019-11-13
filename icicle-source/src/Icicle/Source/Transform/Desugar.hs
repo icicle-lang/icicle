@@ -18,6 +18,7 @@ module Icicle.Source.Transform.Desugar
   ) where
 
 import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Either
 
 import           Data.Hashable (Hashable)
 import           Data.Functor.Identity
@@ -33,7 +34,6 @@ import           Icicle.Internal.Pretty
 
 import           P
 
-import           X.Control.Monad.Trans.Either
 
 
 data DesugarError a n

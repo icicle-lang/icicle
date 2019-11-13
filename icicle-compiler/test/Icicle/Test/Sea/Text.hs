@@ -12,6 +12,7 @@ import           Icicle.Test.Sea.Utils
 import           Icicle.Test.Arbitrary
 
 import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.Trans.Either (EitherT, runEitherT, firstEitherT, hoistEither)
 
 import           Data.String (String)
 import           Data.Word (Word64)
@@ -33,8 +34,6 @@ import           System.IO.Unsafe (unsafePerformIO)
 import           Test.QuickCheck (forAll, choose)
 import           Test.QuickCheck.Property (Property, (===), counterexample, failed, property)
 
-import           X.Control.Monad.Trans.Either (EitherT, runEitherT)
-import           X.Control.Monad.Trans.Either (firstEitherT, hoistEither)
 
 
 prop_text_read_int :: Int64 -> Property

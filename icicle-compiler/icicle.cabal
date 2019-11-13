@@ -23,7 +23,6 @@ library
                      , ambiata-p
                      , ambiata-piano
                      , ambiata-viking
-                     , ambiata-x-eithert
                      , ambiata-x-file-embed
                      , ambiata-x-show
                      , ambiata-x-vector
@@ -67,6 +66,7 @@ library
                      , time                            >= 1.5        && < 1.10
                      , time-locale-compat              == 0.1.*
                      , transformers                    >= 0.3        && < 0.6
+                     , transformers-either
                      , transformers-base               == 0.4.*
                      , unix                            == 2.7.*
                      , unordered-containers            == 0.2.*
@@ -192,7 +192,6 @@ executable icicle
                      , icicle-core
                      , ambiata-jetski
                      , ambiata-p
-                     , ambiata-x-eithert
                      , ambiata-x-optparse
                      , bytestring
                      , containers
@@ -207,6 +206,8 @@ executable icicle
                      , text
                      , time
                      , transformers
+                     , transformers-either
+
 
     other-modules:
                        Paths_icicle
@@ -248,7 +249,6 @@ test-suite test
                      , ambiata-disorder-jack
                      , ambiata-p
                      , ambiata-jetski
-                     , ambiata-x-eithert
                      , ambiata-x-file-embed
                      , ambiata-x-vector
                      , ambiata-anemone
@@ -278,6 +278,7 @@ test-suite test
                      , temporary
                      , text
                      , transformers
+                     , transformers-either
                      , unix
                      , vector
                      , semigroups
@@ -360,7 +361,6 @@ test-suite test-io
                      , ambiata-disorder-core
                      , ambiata-disorder-corpus
                      , ambiata-p
-                     , ambiata-x-eithert
                      , containers
                      , hashable
                      , text
@@ -370,6 +370,7 @@ test-suite test-io
                      , pretty-show
                      , temporary
                      , transformers
+                     , transformers-either
                      , filepath
 
 

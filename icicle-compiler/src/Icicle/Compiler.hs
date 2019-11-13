@@ -62,6 +62,7 @@ module Icicle.Compiler (
   ) where
 
 import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Either (EitherT, runEitherT, hoistEither)
 import           Control.Parallel.Strategies (withStrategy, parTraversable, rparWith, rdeepseq)
 
 import           Data.Functor.Identity (runIdentity)
@@ -119,7 +120,6 @@ import           P
 
 import qualified Text.ParserCombinators.Parsec as Parsec
 
-import           X.Control.Monad.Trans.Either (EitherT, runEitherT, hoistEither)
 
 
 --------------------------------------------------------------------------------

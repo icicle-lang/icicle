@@ -32,6 +32,7 @@ import           Control.Monad.Catch (MonadCatch)
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.Morph (hoist, lift, squash)
 import           Control.Monad.Trans.Control (MonadBaseControl)
+import           Control.Monad.Trans.Either (EitherT, hoistEither)
 import           Control.Monad.Trans.Resource (MonadResource, runResourceT)
 
 import           Data.ByteString (ByteString)
@@ -75,10 +76,9 @@ import           Viking (Stream, Of)
 import qualified Viking.ByteStream as ByteStream
 import qualified Viking.Stream as Stream
 
-import           X.Control.Monad.Trans.Either (EitherT, firstJoin, hoistEither)
-
 import qualified Zebra.Serial.Binary as Zebra
 import qualified Zebra.Table.Striped as Zebra
+import           Zebra.X.Either (firstJoin)
 
 
 data Query =

@@ -20,12 +20,13 @@ import                  Icicle.Internal.Pretty (Pretty, pretty)
 
 import                  P
 
+import                  Control.Monad.Trans.Either
+
 import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
 import qualified        Data.List               as List
 import                  Data.Hashable           (Hashable)
 
-import                  X.Control.Monad.Trans.Either
 
 type Funs a n = [((a, Name n), Function a n)]
 type FunEnvT a n = [ ResolvedFunction a n ]

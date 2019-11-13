@@ -6,6 +6,8 @@
 {-# LANGUAGE TypeOperators #-}
 
 import           Paths_icicle (version)
+import           Control.Monad.Trans.Either.Exit (orDie)
+
 import           Data.Version (showVersion)
 
 import           Data.String (String, fromString)
@@ -23,7 +25,6 @@ import           P
 import           System.IO (IO, FilePath, BufferMode(..))
 import           System.IO (hSetBuffering, stdout, stderr)
 
-import           X.Control.Monad.Trans.Either.Exit (orDie)
 import           X.Options.Applicative (Parser, Mod, CommandFields)
 import qualified X.Options.Applicative as Options
 

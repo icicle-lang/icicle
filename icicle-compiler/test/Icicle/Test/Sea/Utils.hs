@@ -17,6 +17,7 @@ import           Icicle.Test.Arbitrary        ()
 
 import           Control.Exception            (finally)
 import           Control.Monad.IO.Class       (liftIO)
+import           Control.Monad.Trans.Either
 
 import           Data.IORef                   (IORef, newIORef, readIORef,
                                                writeIORef)
@@ -28,8 +29,6 @@ import           P
 
 import           System.IO
 import           System.IO.Unsafe             (unsafePerformIO)
-
-import           X.Control.Monad.Trans.Either
 
 ------------------------------------------------------------------------
 

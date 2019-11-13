@@ -20,7 +20,6 @@ library
                      , icicle-core
                      , ambiata-anemone
                      , ambiata-p
-                     , ambiata-x-eithert
                      , ambiata-x-show
                      , aeson                           >= 0.8        && < 1.5
                      , ansi-terminal                   == 0.6.*
@@ -40,6 +39,7 @@ library
                      , time                            >= 1.5        && < 1.10
                      , time-locale-compat              == 0.1.*
                      , transformers                    >= 0.3        && < 0.6
+                     , transformers-either
                      , validation                      >= 1          && < 1.2
                      , vector
                      -- Well, it might look very odd that we're using both attoparsec

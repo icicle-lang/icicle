@@ -20,6 +20,7 @@ module Icicle.Command.Compile (
   ) where
 
 import           Control.Monad.IO.Class (MonadIO(..))
+import           Control.Monad.Trans.Either (EitherT, hoistEither)
 
 import qualified Data.ByteString as ByteString
 import qualified Data.IORef as IORef
@@ -45,8 +46,6 @@ import qualified Icicle.Storage.Dictionary.Toml as Toml
 import           P
 
 import           System.IO as IO (IO, FilePath)
-
-import           X.Control.Monad.Trans.Either (EitherT, hoistEither)
 
 
 data Compile =

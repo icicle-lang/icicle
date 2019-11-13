@@ -33,6 +33,7 @@ import           Icicle.Storage.Dictionary.Toml.TomlDictionary
 import           Icicle.Storage.Dictionary.Toml.Types
 
 import qualified Control.Exception                             as E
+import           Control.Monad.Trans.Either
 
 import           Data.FileEmbed (embedFile)
 import qualified Data.Map.Strict                               as Map
@@ -51,8 +52,6 @@ import qualified Text.Parsec                                   as Parsec
 import qualified Text.Parsec.Pos                               as Parsec
 
 import           P
-
-import           X.Control.Monad.Trans.Either
 
 
 data DictionaryImportError

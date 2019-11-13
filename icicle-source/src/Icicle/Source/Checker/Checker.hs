@@ -25,11 +25,10 @@ import qualified        Icicle.Common.Fresh     as Fresh
 
 import                  P
 
+import                  Control.Monad.Trans.Either
+
 import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
-
-import                  X.Control.Monad.Trans.Either
-
 
 
 type Result r a n = EitherT (CheckError a n) (Fresh.Fresh n) (r, Type n)

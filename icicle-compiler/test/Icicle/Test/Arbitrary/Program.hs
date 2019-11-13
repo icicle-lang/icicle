@@ -34,6 +34,7 @@ import qualified Icicle.Core.Program.Program as Core
 import qualified Icicle.Compiler as Compiler
 
 import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.Trans.Either (EitherT, bracketExceptionT)
 
 import           Data.Map (Map)
 import           Data.Maybe
@@ -56,7 +57,6 @@ import           Disorder.Corpus
 
 import           Test.QuickCheck (Gen, Arbitrary(..), Positive(..), elements, suchThat)
 
-import           X.Control.Monad.Trans.Either (EitherT, bracketEitherT')
 
 
 -- | inputType = SumT ErrorT factType
@@ -491,7 +491,7 @@ withSystemTempDirectory :: FilePath -> (FilePath -> EitherT e IO a) -> EitherT e
 withSystemTempDirectory template action = do
   let acquire = liftIO (getTemporaryDirectory >>= \tmp -> createTempDirectory tmp template)
       release = liftIO . removeDirectoryRecursive
-  bracketEitherT' acquire release action
+  bracketExceptionT acquire release action
 
 
 genMissingValue :: Gen (Maybe Text)

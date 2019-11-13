@@ -14,7 +14,6 @@ packages: icicle-core/
           lib/snapper/
           lib/x/x-optparse/
           lib/x/x-bytestring/
-          lib/x/x-eithert/
           lib/x/x-attoparsec/
           lib/x/x-exception/
           lib/x/x-conduit/

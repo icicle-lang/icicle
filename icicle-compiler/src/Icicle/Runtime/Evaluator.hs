@@ -37,6 +37,7 @@ import qualified Anemone.Foreign.Mempool as Mempool
 
 import           Control.Exception.Lifted (bracket)
 import           Control.Monad.IO.Class (MonadIO(..))
+import           Control.Monad.Trans.Either (EitherT, hoistEither, left)
 
 import qualified Data.Foldable as Foldable
 import qualified Data.List as List
@@ -84,7 +85,6 @@ import           System.IO (IO)
 
 import           Text.Show.Pretty (ppShow)
 
-import           X.Control.Monad.Trans.Either (EitherT, hoistEither, left)
 import qualified X.Data.Vector.Cons as Cons
 import           X.Text.Show (gshowsPrec)
 

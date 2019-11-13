@@ -37,6 +37,7 @@ import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.Morph (hoist)
 import           Control.Monad.State.Class (get, put)
 import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Either (EitherT, runEitherT, left, hoistEither)
 import           Control.Monad.Trans.State.Strict (StateT(..))
 
 import qualified Data.ByteString as ByteString
@@ -66,7 +67,6 @@ import           P hiding (lefts, rights, empty, length, splitAt)
 
 import           System.IO (IO)
 
-import           X.Control.Monad.Trans.Either (EitherT, runEitherT, left, hoistEither)
 import           X.Data.Vector.Cons (Cons)
 import qualified X.Data.Vector.Cons as Cons
 import qualified X.Data.Vector.Storable as Storable

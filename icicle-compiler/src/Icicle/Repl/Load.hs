@@ -9,6 +9,7 @@ module Icicle.Repl.Load (
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.Morph (hoist)
 import           Control.Monad.State (modify, gets)
+import           Control.Monad.Trans.Either (runEitherT)
 import           Control.Monad.Trans.Resource (runResourceT)
 
 import qualified Data.ByteString as ByteString
@@ -34,10 +35,9 @@ import qualified System.IO as IO
 
 import qualified Viking.ByteStream as ByteStream
 
-import           X.Control.Monad.Trans.Either (runEitherT, firstJoin)
-
 import qualified Zebra.Serial.Binary as Binary
 import qualified Zebra.Table.Schema as Schema
+import           Zebra.X.Either (firstJoin)
 
 
 data LoadType =

@@ -11,7 +11,7 @@ module Icicle.Test.Foreign.Array where
 
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Exception (bracket)
-import           X.Control.Monad.Trans.Either (bracketEitherT')
+import           Control.Monad.Trans.Either (bracketExceptionT)
 
 import qualified Data.List as List
 
@@ -253,7 +253,7 @@ runProp input fun args = do
   defaultOpts <- getCompilerOptions
   let opts = ["-DICICLE_ASSERT=1"] <> defaultOpts
   -- Cache the output, because we're likely to reuse the same type in another test 
-  bracketEitherT' (compileLibrary CacheLibrary opts fs) releaseLibrary $ \lib -> runRight $ do
+  bracketExceptionT (compileLibrary CacheLibrary opts fs) releaseLibrary $ \lib -> runRight $ do
     ptr   <- liftIO $ allocInput pool input
     f     <- Jetski.function lib fun retBool
     args' <- liftIO $ args pool ptr

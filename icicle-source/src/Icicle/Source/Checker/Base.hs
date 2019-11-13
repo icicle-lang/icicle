@@ -54,13 +54,11 @@ import           Icicle.Internal.Pretty
 import           P
 
 import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Either
+import           Control.Monad.Trans.State.Lazy
 
 import qualified Data.Map                    as Map
 import           Data.Hashable (Hashable)
-
-import           X.Control.Monad.Trans.Either
-
-import           Control.Monad.Trans.State.Lazy
 
 
 -- | Type checking environment.

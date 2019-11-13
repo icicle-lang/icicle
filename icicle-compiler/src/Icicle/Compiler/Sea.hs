@@ -14,6 +14,8 @@ module Icicle.Compiler.Sea (
   , renderCompilerSeaError
   ) where
 
+import           Control.Monad.Trans.Either (EitherT, hoistEither)
+
 import qualified Data.List as List
 import           Data.List.NonEmpty (NonEmpty(..))
 import           Data.Map (Map)
@@ -48,7 +50,6 @@ import           System.IO (IO)
 import           P
 
 import           Control.Monad.Trans.Class (lift)
-import           X.Control.Monad.Trans.Either (EitherT, hoistEither)
 
 
 data CompilerSeaError =

@@ -38,8 +38,7 @@ import qualified Prelude
 
 import qualified Control.Monad.Reader as Reader
 import qualified Control.Monad.State as State
-import           Control.Monad.Trans.Class (lift)
-import           Control.Monad.Morph (MFunctor(..), MMonad(..), generalize)
+import           Control.Monad.Morph (MFunctor(..), generalize)
 
 newtype Priority = Priority { getPriority :: Int }
 
