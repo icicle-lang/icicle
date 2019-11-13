@@ -38,7 +38,6 @@ library
                      , boxes                           == 0.1.*
                      , bytestring                      == 0.10.*
                      , containers                      == 0.5.*
-                    --  , dates                           == 0.2.*
                      , deepseq                         >= 1.3        && < 1.5
                      , directory                       >= 1.2        && < 1.4
                      , exceptions                      >= 0.8
@@ -268,8 +267,8 @@ test-suite test
                      , parsec
                      , pretty-show
                      , hashable
-                     , hedgehog                        >= 0.5        && < 0.7
-                     , hedgehog-quickcheck             == 0.1
+                     , hedgehog
+                     , hedgehog-quickcheck
                      , unordered-containers
                      , QuickCheck
                      , quickcheck-instances
@@ -283,6 +282,61 @@ test-suite test
                      , vector
                      , semigroups
 
+  other-modules:
+                       Icicle.Test.Arbitrary
+                       Icicle.Test.Arbitrary.Base
+                       Icicle.Test.Arbitrary.Core
+                       Icicle.Test.Arbitrary.Corpus
+                       Icicle.Test.Arbitrary.Data
+                       Icicle.Test.Arbitrary.NanEq
+                       Icicle.Test.Arbitrary.Program
+                       Icicle.Test.Arbitrary.Run
+                       Icicle.Test.Arbitrary.Source
+                       Icicle.Test.Arbitrary.SourceWithCore
+                       Icicle.Test.Avalanche.CheckCommutes
+                       Icicle.Test.Avalanche.EvalCommutes
+                       Icicle.Test.Avalanche.Flatten
+                       Icicle.Test.Avalanche.Melt
+                       Icicle.Test.Avalanche.MeltPrim
+                       Icicle.Test.Avalanche.SimpCommutes
+                       Icicle.Test.Common.Data
+                       Icicle.Test.Core.Exp.Alpha
+                       Icicle.Test.Core.Exp.Check
+                       Icicle.Test.Core.Exp.Eval
+                       Icicle.Test.Core.Exp.Simp
+                       Icicle.Test.Core.Program.Condense
+                       Icicle.Test.Core.Program.Eval
+                       Icicle.Test.Core.Program.Fusion
+                       Icicle.Test.Data.Time
+                       Icicle.Test.Encoding
+                       Icicle.Test.Foreign.Array
+                       Icicle.Test.Foreign.Utils
+                       Icicle.Test.Gen.Core.Prim
+                       Icicle.Test.Gen.Core.Program
+                       Icicle.Test.Gen.Core.Type
+                       Icicle.Test.Gen.Core.Value
+                       Icicle.Test.Gen.Data.Fact
+                       Icicle.Test.Gen.Data.Name
+                       Icicle.Test.Gen.Runtime.Data
+                       Icicle.Test.Internal.EditDistance
+                       Icicle.Test.Language
+                       Icicle.Test.Runtime.Corpus
+                       Icicle.Test.Runtime.Data.Any
+                       Icicle.Test.Runtime.Data.Array
+                       Icicle.Test.Runtime.Data.IO
+                       Icicle.Test.Runtime.Data.Schema
+                       Icicle.Test.Runtime.Data.Striped
+                       Icicle.Test.Runtime.Evaluator
+                       Icicle.Test.Runtime.Serial.Psv.Schema
+                       Icicle.Test.Runtime.Serial.Zebra
+                       Icicle.Test.Sea.Name
+                       Icicle.Test.Sea.Text
+                       Icicle.Test.Sea.Utils
+                       Icicle.Test.Serial
+                       Icicle.Test.Source.Convert
+                       Icicle.Test.Source.MaxMapSize
+                       Icicle.Test.Source.PrettyParse
+                       Icicle.Test.Source.Progress
 
 test-suite test-io
   type:

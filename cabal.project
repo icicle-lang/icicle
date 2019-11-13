@@ -1,11 +1,15 @@
 packages: icicle-core/
           icicle-source/
           icicle-compiler/
+          lib/disorder.hs/disorder-core
+          lib/disorder.hs/disorder-corpus
+          lib/disorder.hs/disorder-jack
           lib/piano/
           lib/jetski/
           lib/anemone/
           lib/zebra/zebra-cli/
           lib/zebra/zebra-core/
+          lib/zebra/zebra-core/test/
           lib/viking/
           lib/snapper/
           lib/x/x-optparse/
@@ -23,6 +27,11 @@ packages: icicle-core/
           lib/p/
           icicle-data/
 
+          lib/haskell-hedgehog/hedgehog
+
 constraints:
   cabal > 2
+
+package icicle
+  tests: True
 

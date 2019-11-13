@@ -19,9 +19,9 @@ import           Icicle.Core.Exp.Combinators
 import           Icicle.Core.Stream
 import           Icicle.Core.Program.Program
 
-import Icicle.Test.Gen.Core.Prim
-import Icicle.Test.Gen.Core.Type
-import Icicle.Test.Gen.Core.Value
+import           Icicle.Test.Gen.Core.Prim
+import           Icicle.Test.Gen.Core.Type
+import           Icicle.Test.Gen.Core.Value
 import qualified Icicle.Common.Exp.Prim.Minimal as PM
 
 import           Icicle.Test.Arbitrary.Data
@@ -38,6 +38,8 @@ import qualified Prelude
 
 import qualified Control.Monad.Reader as Reader
 import qualified Control.Monad.State as State
+import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Morph (MFunctor(..), MMonad(..), generalize)
 
 newtype Priority = Priority { getPriority :: Int }
 
@@ -53,7 +55,6 @@ freshName' n = do
   State.put (i + 1)
   return $ nameOf $ NameBase $ Var n i
 
-
 freshBind :: C m => ValType -> Priority -> (Name Var -> m a) -> m a
 freshBind t pri m = do
   v <- freshName
@@ -61,7 +62,7 @@ freshBind t pri m = do
 
 runCoreGen :: ValType -> GenT' a -> Gen a
 runCoreGen t m = Gen.sized $ \s -> Gen.resize (sqrt' s) $ do
-  primmap <- Gen.lift $ genPrimLookupList $ genDerivedTypeTop t
+  primmap <- hoist generalize $ genPrimLookupList $ genDerivedTypeTop t
   Reader.runReaderT (State.evalStateT m 0) (Map.empty, primmap)
  where
   sqrt' = truncate . (sqrt :: Double -> Double) . fromIntegral
@@ -249,7 +250,7 @@ genPrimConstructor t
     Just c' -> return c'
 
   genArrayOfBuf a = do
-    n <- Gen.lift genBufLength
+    n <- Gen.integral (Range.linear 1 5)
     (xPrim' $ PrimLatest  $ PrimLatestRead n a) `pApp` genExpForValType (BufT n a)
 
   genArrayOfMap p tk tv =

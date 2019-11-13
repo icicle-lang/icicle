@@ -82,14 +82,14 @@ instance Arbitrary Entity where
 instance Arbitrary Namespace where
   arbitrary = do
     -- fail violently if not the case
-    Just ns <- parseNamespace <$> elements simpsons
-    pure ns
+    ns <- parseNamespace <$> elements simpsons
+    pure $ Maybe.fromJust ns
 
 instance Arbitrary InputName where
   arbitrary = do
     -- fail violently if not the case
-    Just a <- parseInputName <$> elements weather
-    return a
+    a <- parseInputName <$> elements weather
+    return $ Maybe.fromJust a
 
 instance Arbitrary InputId where
   arbitrary =

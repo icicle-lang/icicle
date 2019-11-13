@@ -51,6 +51,7 @@ import           P
 import qualified Data.Text as Text
 import qualified Data.List as List
 import qualified Data.Map as Map
+import qualified Data.Maybe as Maybe
 import           Data.Functor.Identity
 import           Data.String   (String)
 
@@ -154,7 +155,7 @@ genQueryWithFeatureTypedGen tableflipPercent
       -- This was causing issues with conversion from Source, because
       -- part of the resulting Core was using the ValType with Bufs, and
       -- part was using the Source-converted type with Arrays.
-      Just t <- (valTypeOfType . typeOfValType) <$> Qc.hedgehog CoreGen.genValType
+      t      <- (Maybe.fromJust . valTypeOfType . typeOfValType) <$> Qc.hedgehog CoreGen.genValType
       k      <- genQueryKey t
       return $ QueryWithFeature q (Just now) o t nm iid tm k
 
@@ -171,7 +172,7 @@ genQueryWithFeatureArbitrary
       q   <- arbitrary
       o   <- arbitrary
       -- See "Note: Convert to Source type and back in generator" above
-      Just t <- (valTypeOfType . typeOfValType) <$> Qc.hedgehog CoreGen.genValType
+      t      <- (Maybe.fromJust . valTypeOfType . typeOfValType) <$> Qc.hedgehog CoreGen.genValType
       k      <- genQueryKey t
       return $ QueryWithFeature q (Just now) o t nm iid tm k
 
