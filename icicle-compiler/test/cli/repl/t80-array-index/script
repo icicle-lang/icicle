@@ -17,8 +17,8 @@ feature salary ~> let arr = (latest 3 ~> value) ~> index arr (-1)
 feature salary ~> let arr = (latest 3 ~> time) ~> let a = index arr 2 ~> days a
 
 -- Array is Possibly of Definitely
-feature salary ~> let arr = box (Some (latest 3 ~> time)) ~> let a = index arr 2 ~> days a
+feature salary ~> let arr = get (Some (latest 3 ~> time)) ~> let a = index arr 2 ~> days a
 
 -- Array is Possibly of Possibly
-feature salary ~> let arr = box (Some (latest 3 ~> value)) ~> let a = index arr 2 ~> a
+feature salary ~> let arr = get (Some (latest 3 ~> value)) ~> let a = index arr 2 ~> a
 

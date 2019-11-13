@@ -29,8 +29,8 @@ out_schema_1=`mktemp -t icicle-out-schema-1-XXXXXX`
 drop=`mktemp -t icicle-drop-XXXXXX`
 
 echo "Zebra v3"
-dist/build/icicle/icicle compile --input-toml $dict --output-c $out_c
-dist/build/icicle/icicle query --dictionary-c $out_c --input-zebra $zebra_v3 --output-psv $out_psv_1 --output-psv-schema $out_schema_1 $common_args
+cabal run --verbose=0 icicle:icicle -- compile --input-toml $dict --output-c $out_c
+cabal run --verbose=0 icicle:icicle -- query --dictionary-c $out_c --input-zebra $zebra_v3 --output-psv $out_psv_1 --output-psv-schema $out_schema_1 $common_args
 
 diff_update $expected_psv $out_psv_1
 diff_update $expected_schema $out_schema_1

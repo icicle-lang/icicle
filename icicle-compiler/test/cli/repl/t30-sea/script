@@ -1,6 +1,3 @@
--- Show everything
-:set +flatten +c
-
 -- Enable C evaluation
 :set +c-eval
 
