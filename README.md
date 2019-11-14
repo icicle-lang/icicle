@@ -1,7 +1,11 @@
-Icicle
-======
+<div align="center">
 
-The Icicle Streaming Query Language.
+# Icicle
+### The Icicle Streaming Query Language.
+
+[![Build Status](https://api.travis-ci.com/icicle-lang/icicle.svg?branch=master)](https://travis-ci.com/icicle-lang/icicle)
+
+</div>
 
 Purpose
 -------

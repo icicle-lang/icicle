@@ -85,7 +85,7 @@ prop_core_simp_type = property $ do
   typeExp0 coreFragment x === typeExp0 coreFragment simple
 
 -- Core simplification preserves result
-prop_core_simp_eval = withTests 10000 $ property $ do
+prop_core_simp_eval = withTests 500 $ property $ do
   x <- forAll (fst <$> genExpTop)
   annotate (show . pretty $ x)
   let x' = snd

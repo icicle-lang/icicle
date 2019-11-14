@@ -308,7 +308,7 @@ renameReads a_fresh statements
 -- here, simply substituting would change the meaning.
 --
 -- Instead we need to rename the local let
--- 
+--
 -- > let banana' = 5
 -- > in subst monkey := banana
 -- > in (subst banana := banana' in monkey)

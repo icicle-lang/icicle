@@ -1,6 +1,7 @@
 packages: icicle-core/
           icicle-source/
           icicle-compiler/
+          lib/disorder.hs/disorder-aeson
           lib/disorder.hs/disorder-core
           lib/disorder.hs/disorder-corpus
           lib/disorder.hs/disorder-jack
@@ -17,7 +18,6 @@ packages: icicle-core/
           lib/x/x-attoparsec/
           lib/x/x-exception/
           lib/x/x-conduit/
-          lib/x/x-htoml/
           lib/x/x-vector/
           lib/x/x-templatehaskell/
           lib/x/x-show/

@@ -1,30 +1,30 @@
-[submodule "lib/x"]
-	path = lib/x
-	url = https://github.com/HuwCampbell/x
 [submodule "lib/p"]
 	path = lib/p
-	url = https://github.com/HuwCampbell/p
+	url = ../p
+[submodule "lib/x"]
+	path = lib/x
+	url = ../x
 [submodule "lib/disorder.hs"]
 	path = lib/disorder.hs
-	url = https://github.com/HuwCampbell/disorder.hs
+	url = ../disorder
 [submodule "lib/jetski"]
 	path = lib/jetski
-	url = https://github.com/HuwCampbell/jetski
+	url = ../jetski
 [submodule "lib/anemone"]
 	path = lib/anemone
-	url = https://github.com/HuwCampbell/anemone
+	url = ../anemone
 [submodule "lib/zebra"]
 	path = lib/zebra
-	url = https://github.com/HuwCampbell/zebra
+	url = ../zebra
 [submodule "lib/snapper"]
 	path = lib/snapper
-	url = https://github.com/HuwCampbell/snapper
+	url = ../snapper
 [submodule "lib/piano"]
 	path = lib/piano
-	url = https://github.com/HuwCampbell/piano
+	url = ../piano
 [submodule "lib/viking"]
 	path = lib/viking
-	url = https://github.com/HuwCampbell/viking
+	url = ../viking
 [submodule "lib/haskell-hedgehog"]
 	path = lib/haskell-hedgehog
 	url = https://github.com/hedgehogqa/haskell-hedgehog.git
