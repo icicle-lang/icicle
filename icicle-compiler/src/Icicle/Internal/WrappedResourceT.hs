@@ -19,7 +19,7 @@ import           Control.Monad.Catch (MonadThrow, MonadCatch)
 import           Control.Monad.IO.Class (MonadIO)
 import           Control.Monad.Trans.Class (MonadTrans (..))
 import           Control.Monad.Trans.Resource.Internal (ResourceT (..), MonadResource)
-import           Control.Monad.Trans.Control (MonadTransControl (..),MonadBaseControl (..), defaultRestoreM)
+import           Control.Monad.Trans.Control (MonadTransControl (..), MonadBaseControl (..), defaultRestoreM)
 import           Control.Monad.Base (MonadBase, liftBase)
 
 newtype WrappedResourceT m a =

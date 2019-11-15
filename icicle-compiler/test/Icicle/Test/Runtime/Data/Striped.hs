@@ -60,7 +60,7 @@ prop_roundtrip_striped_arrays =
     schema <- forAll genSchema
     column0 <- forAll (genColumn schema)
 
-    test . runResourceT $ do
+    test . hoist runResourceT $ do
       pool <- newMempool
 
       arrays <- evalExceptT . hoist liftIO $ Striped.toArrays pool column0
@@ -74,7 +74,7 @@ prop_roundtrip_striped_anys =
     schema <- forAll genSchema
     (_, column0) <- forAll (genSingleton schema)
 
-    test . runResourceT $ do
+    test . hoist runResourceT $ do
       pool <- newMempool
 
       anys <- evalExceptT . hoist liftIO $ Striped.headAnys pool column0

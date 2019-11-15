@@ -11,6 +11,7 @@ import qualified Anemone.Foreign.Mempool as Mempool
 
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.Trans.Resource (MonadResource, runResourceT, allocate)
+import           Control.Monad.Morph (hoist)
 
 import qualified Data.ByteString as ByteString
 
@@ -54,7 +55,7 @@ prop_any_string =
   withTests 1000 . property $ do
     x0 <- forAll . fmap (ByteString.filter (/= 0)) $ Gen.bytes (Range.linear 0 20)
 
-    test . runResourceT $ do
+    test . hoist runResourceT $ do
       pool <- newMempool
       any <- liftIO $ Any.fromString pool x0
       x <- liftIO $ Any.toString any

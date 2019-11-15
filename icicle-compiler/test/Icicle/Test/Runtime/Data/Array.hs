@@ -51,7 +51,7 @@ prop_roundtrip_writes :: Property
 prop_roundtrip_writes =
   property $ do
     xs0 <- forAll . Gen.list (Range.linear 0 100) $ Gen.int64 Range.linearBounded
-    test . runResourceT $ do
+    test . hoist runResourceT $ do
       pool <- newMempool
       array <- liftIO $ Array.new pool (fromIntegral (List.length xs0))
 
@@ -66,7 +66,7 @@ prop_roundtrip_writes_grow :: Property
 prop_roundtrip_writes_grow =
   property $ do
     xs0 <- forAll . Gen.list (Range.linear 0 100) $ Gen.int64 Range.linearBounded
-    test . runResourceT $ do
+    test . hoist runResourceT $ do
       pool <- newMempool
       array00 <- liftIO $ Array.new pool 0
 
@@ -84,7 +84,7 @@ prop_roundtrip_reads :: Property
 prop_roundtrip_reads =
   property $ do
     xs0 <- forAll . Gen.list (Range.linear 0 100) $ Gen.int64 Range.linearBounded
-    test . runResourceT $ do
+    test . hoist runResourceT $ do
       pool <- newMempool
       array <- evalExceptT . hoist liftIO $ Array.fromList pool xs0
 
@@ -98,7 +98,7 @@ prop_roundtrip_lists :: Property
 prop_roundtrip_lists =
   property $ do
     xs0 <- forAll . Gen.list (Range.linear 0 100) $ Gen.int64 Range.linearBounded
-    test . runResourceT $ do
+    test . hoist runResourceT $ do
       pool <- newMempool
 
       array <- evalExceptT . hoist liftIO $ Array.fromList pool xs0
@@ -110,7 +110,7 @@ prop_roundtrip_string_segments0 :: Property
 prop_roundtrip_string_segments0 =
   property $ do
     bss0 <- forAll $ Gen.list (Range.linear 0 100) (Gen.element muppets)
-    test . runResourceT $ do
+    test . hoist runResourceT $ do
       pool <- newMempool
 
       let
@@ -132,7 +132,7 @@ prop_roundtrip_string_segments1 :: Property
 prop_roundtrip_string_segments1 =
   property $ do
     bss0 <- forAll $ Gen.list (Range.linear 0 100) (Gen.element muppets)
-    test . runResourceT $ do
+    test . hoist runResourceT $ do
       pool <- newMempool
 
       let
@@ -159,7 +159,7 @@ prop_roundtrip_array_segments0 =
       Gen.list (Range.linear 0 10) $
       Gen.int64 Range.linearBounded
 
-    test . runResourceT $ do
+    test . hoist runResourceT $ do
       pool <- newMempool
       xs0 <- evalExceptT . hoist liftIO . Array.fromList pool $ concat xss0
 
@@ -184,7 +184,7 @@ prop_roundtrip_array_segments1 =
       Gen.list (Range.linear 0 10) $
       Gen.int64 Range.linearBounded
 
-    test . runResourceT $ do
+    test . hoist runResourceT $ do
       pool <- newMempool
       xs <- evalExceptT . hoist liftIO . Array.fromList pool $ concat xss0
 
@@ -488,7 +488,7 @@ prop_array_state_machine =
         , growArray
         ]
 
-    test . runResourceT $ do
+    test . hoist runResourceT $ do
       pool <- newMempool
       executeSequential initialState actions `runReaderT` pool
 
