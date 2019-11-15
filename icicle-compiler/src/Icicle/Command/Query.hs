@@ -59,6 +59,7 @@ import qualified Icicle.Runtime.Evaluator as Runtime
 import qualified Icicle.Runtime.Serial.Psv as SerialPsv
 import qualified Icicle.Runtime.Serial.Zebra as SerialZebra
 import qualified Icicle.Sea.Data as Sea
+import           Icicle.Internal.WrappedResourceT (WrappedResourceT (..))
 
 import           P
 
@@ -344,7 +345,7 @@ readChordDescriptor path = do
 execute :: Query -> Runtime -> EitherT QueryError IO QuerySummary
 execute query runtime = do
   ref <- liftIO $ IORef.newIORef mempty
-  hoist runResourceT $ do
+  hoist (runResourceT . usingResourceT) $ do
     case queryInput query of
       QueryInputZebra qinput -> do
         decode <- hoistEither $ decodeZebra runtime
@@ -463,12 +464,12 @@ renderSummary summary duration =
 icicleQuery :: Query -> EitherT QueryError IO ()
 icicleQuery query = do
   finishCompile <- startTimer_ "Compiling C -> x86_64"
-  runtime <- compile query
+  runtime       <- compile query
   finishCompile
 
-  finishQuery <- startTimer "Executing Query"
-  summary <- execute query runtime
-  duration <- finishQuery
+  finishQuery   <- startTimer "Executing Query"
+  summary       <- execute query runtime
+  duration      <- finishQuery
 
   liftIO . Text.putStr . Text.unlines . fmap ("icicle: " <>) . ("" :) . Text.lines $
     renderSummary summary duration

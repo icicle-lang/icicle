@@ -46,7 +46,7 @@ import qualified Icicle.Test.Foreign.Array
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
 
-import           Disorder.Core.Main
+import           Hedgehog.Main
 
 import           System.Environment (lookupEnv)
 
@@ -116,7 +116,7 @@ runTestSuite x = do
   putStrLn $ "🚀 Running " ++ (suiteName x) ++ " test suite 🚀"
   putStrLn "────────────────────────────────────────────────────────────"
   putStrLn ""
-  disorderMain (suiteTests x)
+  defaultMain (suiteTests x)
 
 main :: IO ()
 main = do

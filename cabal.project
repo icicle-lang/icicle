@@ -17,7 +17,6 @@ packages: icicle-core/
           lib/x/x-bytestring/
           lib/x/x-attoparsec/
           lib/x/x-exception/
-          lib/x/x-conduit/
           lib/x/x-vector/
           lib/x/x-templatehaskell/
           lib/x/x-show/
