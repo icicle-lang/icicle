@@ -90,7 +90,7 @@ emptyCheckEnv
  = CheckEnv Map.empty Map.empty emptyInvariants
 
 emptyInvariants :: Invariants
-emptyInvariants = Invariants True True True
+emptyInvariants = Invariants True True
 
 --------------------------------------------------------------------------------
 

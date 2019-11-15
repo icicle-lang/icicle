@@ -17,6 +17,7 @@ module Icicle.Source.Type.Constraints (
 
 import           Control.Monad.Trans.Maybe (MaybeT (..))
 import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Either
 
 import           Data.Hashable (Hashable)
 import           Data.List (nubBy)
@@ -32,8 +33,6 @@ import           Icicle.Source.Type.Subst
 import           Icicle.Internal.Pretty
 
 import           P hiding (join)
-
-import           X.Control.Monad.Trans.Either
 
 -- | Result of discharging a single constraint
 data DischargeResult n
