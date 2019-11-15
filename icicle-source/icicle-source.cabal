@@ -1,6 +1,7 @@
 name:                  icicle-source
 version:               0.0.1
-license:               AllRightsReserved
+license:               BSD3
+license-file:          LICENSE
 author:                Ambiata <info@ambiata.com>
 maintainer:            Ambiata <info@ambiata.com>
 copyright:             (c) 2015 Ambiata.
@@ -8,7 +9,7 @@ synopsis:              Icicle Source language parser and type checker.
 category:              System
 cabal-version:         >= 1.8
 build-type:            Simple
-description:           Icicle Source language parser and type checker.
+description:           Icicle Source language parser, type checker, and elaborator.
 
 extra-source-files:
   data/libs/prelude.icicle

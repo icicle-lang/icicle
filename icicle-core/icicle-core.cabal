@@ -1,6 +1,7 @@
 name:                  icicle-core
 version:               0.0.1
-license:               AllRightsReserved
+license:               BSD3
+license-file:          LICENSE
 author:                Ambiata <info@ambiata.com>
 maintainer:            Ambiata <info@ambiata.com>
 copyright:             (c) 2015 Ambiata.
@@ -8,7 +9,7 @@ synopsis:              Icicle Core language definition.
 category:              System
 cabal-version:         >= 1.8
 build-type:            Simple
-description:           Icicle Core language definition.
+description:           Icicle Core language definition and optimisations.
 
 library
   build-depends:
