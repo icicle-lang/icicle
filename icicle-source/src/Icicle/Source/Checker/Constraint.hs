@@ -26,7 +26,6 @@ import           Icicle.Internal.Pretty       (Pretty)
 
 import           P hiding (with)
 
-import           Control.Monad.Trans.Class    (lift)
 import           Control.Monad.Trans.Either
 
 import           Data.Hashable                (Hashable)
@@ -567,23 +566,23 @@ generateX x env
  =<< case x of
     -- Variables can be values or functions
     Var a n
-     -> do (_fErr, resT, cons') <- lookup a n env
+     -> do (fErr, resT, cons') <- lookup a n env
 
-           -- when (anyArrows resT)
-           --  $ genHoistEither
-           --  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+           when (anyArrows resT)
+            $ genHoistEither
+            $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
            let x' = annotate cons' resT
                   $ \a' -> Var a' n
            return (x', Map.empty, cons')
 
     -- Lambda functions by themselves are pretty trivial
-    Lam _ _ _
-      -> do (_fErr, resT, cons) <- lookupFunction x env
+    Lam a _ _
+      -> do (fErr, resT, cons) <- lookupFunction x env
 
-            -- when (anyArrows resT)
-            --  $ genHoistEither
-            --  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+            when (anyArrows resT)
+             $ genHoistEither
+             $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
             let f' = annotate cons resT
                    $ \a' -> reannot (const a') x
@@ -630,7 +629,7 @@ generateX x env
                              rs        <- genXs xs (substE s env')
                              return ((xx',s,c) : rs)
 
-        in do   (_fErr, resT, consf)       <- look
+        in do   (fErr, resT, consf)       <- look
 
                 (args', subs', consxs)     <- unzip3 <$> genXs args env
                 let argsT'                  = fmap (annResult.annotOfExp) args'
@@ -638,9 +637,9 @@ generateX x env
                 let go                      = uncurry (appType a x)
                 (resT', consap)            <- foldM go (resT, []) argsT'
 
-                -- when (anyArrows resT')
-                --   $ genHoistEither
-                --   $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
+                when (anyArrows resT')
+                  $ genHoistEither
+                  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
 
                 let s' = foldl compose Map.empty subs'
                 let cons' = concat (consf : consap : consxs)
@@ -651,11 +650,11 @@ generateX x env
 
     -- Unapplied primitives should be relatively easy
     Prim a p
-     -> do (_fErr, resT, cons') <- primLookup a p
+     -> do (fErr, resT, cons') <- primLookup a p
 
-           -- when (anyArrows resT')
-           --   $ genHoistEither
-           --   $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
+           when (anyArrows resT)
+             $ genHoistEither
+             $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
            let x' = annotate cons' resT
                   $ \a' -> Prim a' p
