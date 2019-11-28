@@ -568,9 +568,9 @@ generateX x env
     Var a n
      -> do (fErr, resT, cons') <- lookup a n env
 
-           when (anyArrows resT)
-            $ genHoistEither
-            $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+           --  when (anyArrows resT)
+           --   $ genHoistEither
+           --   $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
            let x' = annotate cons' resT
                   $ \a' -> Var a' n
@@ -640,7 +640,7 @@ generateX x env
                 let go                      = uncurry (appType a x)
                 (resT', consap)            <- foldM go (resT, []) argsT'
 
-                when (anyArrows resT')
+                when (isArrow resT')
                   $ genHoistEither
                   $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
 
@@ -709,6 +709,9 @@ generateX x env
     =    Temporality <$> (TypeVar <$> fresh)
     <*> (Possibility <$> (TypeVar <$> fresh)
     <*>                  (TypeVar <$> fresh))
+
+  isArrow TypeArrow {} = True
+  isArrow _ = False
 
 generateP
   :: (Hashable n, Eq n, Pretty n)

@@ -65,7 +65,7 @@ inlineTransform _ funs0
 
   tranc funs c
    | Let ann (PatVariable n) x <- c
-   , anyArrows (annResult (annotOfExp x))
+   , Lam {} <- x
    = do (funs', x') <- tranx funs x
         let inlining = Map.insert n x' funs'
         return (inlining, Let ann (PatDefault) x)
@@ -73,6 +73,8 @@ inlineTransform _ funs0
    = return (foldl (flip Map.delete) funs (snd $ allvarsP pat), c)
    | LetFold _ (Fold pat _ _ _) <- c
    = return (foldl (flip Map.delete) funs (snd $ allvarsP pat), c)
+   | GroupFold _ k v _ <- c
+   = return (foldl (flip Map.delete) funs (snd $ allvarsP (PatCon ConTuple [k, v])), c)
    | otherwise
    = return (funs, c)
 

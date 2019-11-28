@@ -100,8 +100,8 @@ invariantX ctx x
  = case x of
     Var a n
      -> goFun a n []
-    Lam a n x
-     -> goFun a n [x]
+    Lam a n q
+     -> goFun a n [q]
     Nested _ q
      -> invariantQ ctx q
     App{}

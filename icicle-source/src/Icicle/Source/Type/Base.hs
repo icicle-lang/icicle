@@ -236,7 +236,6 @@ annotDiscardConstraints ann
  = (annAnnot ann, annResult ann)
 
 
-
 instance Pretty n => Pretty (Type n) where
   prettyPrec p = \case
     IntT ->

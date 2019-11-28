@@ -11,7 +11,7 @@ int_div x y
   = trunc (double x / double y).
 
 # Time statements
-newest v = latest 1 ~> fold1 s = v : v ~> s.
+newest v = fold1 s = v : v ~> s.
 oldest v = fold1 s = v : s ~> s.
 
 # check if a day is a weekend.
@@ -57,34 +57,44 @@ sum v = fold s = 0 : v + s ~> s.
 count v = fold c = 0 : seq v (c + 1) ~> c.
 
 # Numerically stable mean
-mean v = let v_ = double v
-      ~> fold1 s = (v_, 1) : case s | (m, n) -> (m + (v_ - m) / (n + 1), n + 1) end
-      ~> case s | (m, _) -> m end.
+mean v =
+   let
+     v_ =
+       double v
+~> fold1 (m, n) = (v_, 1) : m + (v_ - m) / (n + 1), n + 1
+~> m.
 
 max v = fold1 s = v : case v > s | True -> v | False -> s end ~> s.
 min v = fold1 s = v : case v < s | True -> v | False -> s end ~> s.
 
+min_by a b =
+ fold1 (a1, b1)
+   = (a, b)
+   : case a < a1 | True -> (a,b) | False -> (a1,b1) end
+~> b1.
 
-min_by a b = fold1 s = (a, b)
-   :  case s | (a1, b1) -> (case a < a1 | True -> (a,b) | False -> (a1,b1) end) end
-   ~> case s | (a1, b1) -> b1 end.
-
-max_by a b = fold1 s = (a, b)
-   :  case s | (a1, b1) -> (case a > a1 | True -> (a,b) | False -> (a1,b1) end) end
-   ~> case s | (a1, b1) -> b1 end.
+max_by a b =
+ fold1 (a1, b1)
+   = (a, b)
+   : case a > a1 | True -> (a,b) | False -> (a1,b1) end
+   ~> b1.
 
 # Numerically stable variance
 variance v =
-  let v_ = double v ~>
-  fold a = ((0, 0.0), 0.0)
-     :  case a | ((n,m),m2) -> (
-                   let nn = n + 1 ~>
-                   let d = v_ - m ~>
-                   let mm = m + d / nn ~>
-                   let m22 = m2 + d * (v_ - mm) ~>
-                   ((nn, mm), m22)
-                  ) end
-     ~> case a | ((x,_),y)  -> y / (x - 1) end.
+  let
+    v_ =
+      double v
+
+~> fold (n, m, m2)
+     = (0, 0, 0)
+     : (
+       let nn = n + 1 ~>
+       let d = v_ - m ~>
+       let mm = m + d / nn ~>
+       let m22 = m2 + d * (v_ - mm) ~>
+       (nn, mm, m22)
+       )
+~> m2 / (n - 1).
 
 sd v = sqrt (variance v).
 
@@ -92,17 +102,17 @@ sd v = sqrt (variance v).
 covariance a b =
   let a_ = double a ~>
   let b_ = double b ~>
-  fold x = (((0, 0.0), 0.0), 0.0)
-     :  case x | (((n,m1),m2),m12) -> (
-                    let nn  = n + 1 ~>
-                    let d1 = (a_ - m1) / nn ~>
-                    let mm1 = m1 + d1 ~>
-                    let d2 = (b_ - m2) / nn ~>
-                    let mm2 = m2 + d2 ~>
-                    let mm12 = m12 + n * d1 * d2 - m12 / nn ~>
-                    (((nn, mm1), mm2),mm12)
-                 ) end
-     ~> case x | (((n,_),_),m12) -> m12 * n / (n - 1) end.
+  fold (n,m1,m2,m12) = (0, 0.0, 0.0, 0.0)
+     : (
+        let nn  = n + 1 ~>
+        let d1 = (a_ - m1) / nn ~>
+        let mm1 = m1 + d1 ~>
+        let d2 = (b_ - m2) / nn ~>
+        let mm2 = m2 + d2 ~>
+        let mm12 = m12 + n * d1 * d2 - m12 / nn ~>
+        (nn, mm1, mm2,mm12)
+        )
+     ~> m12 * n / (n - 1).
 
 # Pearson's product-moment correlation coefficient.
 correlation a b = covariance a b / (sd a * sd b).
@@ -111,12 +121,12 @@ correlation a b = covariance a b / (sd a * sd b).
 gradient a b = covariance a b / variance b.
 
 # Version of num flips which should fail upon finding a tombstone value.
-numflips v = fold1 s = (v,0) : case s | (s0,i) -> (case (s0 == v) | True -> (v,i) | False -> (v,i+1) end) end ~> case s | (s0,i) -> i end.
+numflips v = fold1 (s,i) = (v,0) : case (s == v) | True -> (v,i) | False -> (v,i+1) end ~> i.
 
 # Version of num flips which will accommodate tombstone values. Must have the tombstone feature passed to it.
 numflips' v t
  = fold1 s
-   = case t | True -> (None,0) | False -> (Some(v),0) end
+   = case t | True ->  (None,0) | False -> (Some(v),0) end
    : case t | True  -> (case s | (Some(s0),i) -> (None,i+1)
                                | (None,i) -> (None,i)
                                end )
