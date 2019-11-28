@@ -100,10 +100,8 @@ invariantX ctx x
  = case x of
     Var a n
      -> goFun a n []
-    Lam a _ _
-     -> errorSuggestions
-         (ErrorSerialisedFunction a x)
-         [ Suggest "Function calls must be statically known in order to build the program." ]
+    Lam a n x
+     -> goFun a n [x]
     Nested _ q
      -> invariantQ ctx q
     App{}

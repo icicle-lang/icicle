@@ -81,7 +81,7 @@ checkPat exp =
 
       -- Tuple commas are parsed as the operator,
       -- need to change it to the constructor.
-      | Just (p, _, xs) <- Q.takePrimApps exp
+      | Just (p, _, xs@[_,_]) <- Q.takePrimApps exp
       , Q.Op Q.TupleComma <- p
       -> Q.PatCon Q.ConTuple <$> traverse checkPat xs
 

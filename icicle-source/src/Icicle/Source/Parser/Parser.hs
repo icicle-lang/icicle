@@ -63,7 +63,7 @@ context
    <|> pKeyword T.Distinct *> (flip Q.Distinct <$> exp      <*> getPosition)
    <|> pKeyword T.Filter   *> (flip Q.Filter   <$> exp      <*> getPosition)
    <|> pKeyword T.Latest   *> (flip Q.Latest   <$> pLitInt  <*> getPosition)
-   <|> pKeyword T.Let      *> clet
+   <|> pKeyword T.Let      *> (try clet        <|> cpatternbinding)
    <|> cletfold
 
   cwindowed
@@ -89,7 +89,14 @@ context
         pEq T.TEqual
         e <- exp
         return $ Q.GroupFold p k v e
+
   clet
+   = do n <- pVariable                                      <?> "function binding name"
+        p <- getPosition
+        x <- function                                       <?> "let definition expression"
+        return $ Q.Let p (Q.PatVariable n) x
+
+  cpatternbinding
    = do n <- pattern                                        <?> "binding pattern"
         p <- getPosition
         pEq T.TEqual

@@ -576,17 +576,20 @@ generateX x env
                   $ \a' -> Var a' n
            return (x', Map.empty, cons')
 
-    -- Lambda functions by themselves are pretty trivial
-    Lam a _ _
-      -> do (fErr, resT, cons) <- lookupFunction x env
+    -- Lambda functions by themselves are pretty easy
+    -- We summon a fresh type for the named variable
+    -- and push it through.
+    Lam _ n body
+      -> do typ              <- freshType
+            let env'          = bindT n typ env
+            (q, subs, cons)  <- generateX body env'
 
-            when (anyArrows resT)
-             $ genHoistEither
-             $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+            let resT          = annResult $ annotOfExp q
+            let arrT          = TypeArrow typ resT
+            let f' = annotate cons arrT
+                   $ \a' -> Lam a' n q
 
-            let f' = annotate cons resT
-                   $ \a' -> reannot (const a') x
-            return (f', Map.empty, cons)
+            return (f', subs, cons)
 
     -- Nested just has the type of its inner query.
     Nested _ q
@@ -702,6 +705,10 @@ generateX x env
    = let a' = Annot (annotOfExp x) t' cs
      in  f a'
 
+  freshType
+    =    Temporality <$> (TypeVar <$> fresh)
+    <*> (Possibility <$> (TypeVar <$> fresh)
+    <*>                  (TypeVar <$> fresh))
 
 generateP
   :: (Hashable n, Eq n, Pretty n)
@@ -886,40 +893,13 @@ appType ann errExp funT cons actT
   definitely pos = pos
 
 
--- | Typecheck a function definition, pulling out all constraints
--- This is closely related to checkF', but does quite a bit less,
--- as these will never be displayed.
+-- | Typecheck a function definition, pulling out the type and constraints
 lookupFunction :: (Hashable n, Eq n, Pretty n)
                => Exp a n
                -> GenEnv n
                -> Gen a n (Type n, Type n, GenConstraintSet a n)
 
 lookupFunction fun env
- = do let (arguments, body) = takeLams fun
-      -- Give each argument a fresh type variable
-      env'            <- foldM bindArg env $ arguments
-      -- Get the type annotated body
-      (q, subs, cons) <- generateX body env'
-
-      -- Look up the argument types after solving all constraints.
-      -- Because they started as fresh unification variables,
-      -- they will end up being unified to the actual types.
-      argTs           <- traverse (lookupArgT subs env') arguments
-
-      -- Build the final type
+ = do (q, _, cons)    <- generateX fun env
       let resT         = annResult $ annotOfExp q
-      let arrT         = foldr TypeArrow resT argTs
-      return (arrT, arrT, cons)
- where
-  bindArg cx (_,n)
-   = do t <- freshType
-        return (bindT n t cx)
-
-  freshType
-   =    Temporality <$> (TypeVar <$> fresh)
-   <*> (Possibility <$> (TypeVar <$> fresh)
-   <*>                  (TypeVar <$> fresh))
-
-  lookupArgT subs e (a, n)
-   = do (_,t,_) <- lookup a n e
-        return (substT subs t)
+      return (resT, resT, cons)
