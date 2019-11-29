@@ -68,7 +68,8 @@ inlineTransform _ funs0
    , Lam {} <- x
    = do (funs', x') <- tranx funs x
         let inlining = Map.insert n x' funs'
-        return (inlining, Let ann (PatDefault) x)
+        return (inlining, Let ann PatDefault x)
+
    | Let _ pat _ <- c
    = return (foldl (flip Map.delete) funs (snd $ allvarsP pat), c)
    | LetFold _ (Fold pat _ _ _) <- c

@@ -83,18 +83,27 @@ max_by a b =
 variance v =
   let
     v_ =
-      double v
+      double v ~>
 
-~> fold (n, m, m2)
-     = (0, 0, 0)
-     : (
+  let
+    zero =
+      (0, 0 ,0) ~>
+
+  let
+    kons n m m2 =
+      (
        let nn = n + 1 ~>
        let d = v_ - m ~>
        let mm = m + d / nn ~>
        let m22 = m2 + d * (v_ - mm) ~>
        (nn, mm, m22)
-       )
-~> m2 / (n - 1).
+      ) ~>
+
+  fold (n, m, m2)
+     = zero
+     : kons n m m2 ~>
+
+  m2 / (n - 1).
 
 sd v = sqrt (variance v).
 

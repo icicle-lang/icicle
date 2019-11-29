@@ -568,9 +568,9 @@ generateX x env
     Var a n
      -> do (fErr, resT, cons') <- lookup a n env
 
-           --  when (anyArrows resT)
-           --   $ genHoistEither
-           --   $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+           when (anyArrows resT)
+            $ genHoistEither
+            $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
            let x' = annotate cons' resT
                   $ \a' -> Var a' n
@@ -632,15 +632,15 @@ generateX x env
                              rs        <- genXs xs (substE s env')
                              return ((xx',s,c) : rs)
 
-        in do   (fErr, resT, consf)       <- look
+        in do   (fErr, resT, consf)        <- look
 
                 (args', subs', consxs)     <- unzip3 <$> genXs args env
-                let argsT'                  = fmap (annResult.annotOfExp) args'
+                let argsT'                  = fmap (annResult . annotOfExp) args'
 
                 let go                      = uncurry (appType a x)
                 (resT', consap)            <- foldM go (resT, []) argsT'
 
-                when (isArrow resT')
+                when (anyArrows resT')
                   $ genHoistEither
                   $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
 
@@ -846,17 +846,18 @@ appType ann errExp funT cons actT
     (tmpR'', consT')     <- checkTemp Nothing (purely tmpR') (purely tmpF)
 
     -- Prevent aggregate functions returning element arrows from being applied.
-    (_     , consTX)     <- checkTemp Nothing (purely tmpF) (purely tmpE)
+    (_, consTX)          <- checkTemp Nothing (purely tmpF) (purely tmpE)
     (posR',  consP)      <- checkPoss (definitely posE) (definitely posA) (definitely posR)
     (posR'', consP')     <- checkPoss Nothing (definitely posR') (definitely posF)
 
     let t = recomposeT (tmpR'', posR'', datR)
     return (t, concat [cons, consD, consT, consT', consP, consP', consTX])
+
   | let (tmpF,posF,datF) = decomposeT $ canonT funT
-  , TypeVar _ <- datF
+  , TypeVar _     <- datF
   = do
-    expT          <- TypeVar <$> fresh
-    resT          <- TypeVar <$> fresh
+    expT          <- freshType
+    resT          <- freshType
     let funT'      = recomposeT (tmpF, posF, TypeArrow expT resT)
     let funCons    = require ann (CEquals funT funT')
     -- Rerun with a type arrow requirement.
@@ -888,6 +889,10 @@ appType ann errExp funT cons actT
         let j = joinMode ignore (maybe pureMode id modE) (maybe pureMode id modA)
         return (modR, require ann j)
 
+  freshType
+    =    Temporality <$> (TypeVar <$> fresh)
+    <*> (Possibility <$> (TypeVar <$> fresh)
+    <*>                  (TypeVar <$> fresh))
 
   purely (Just TemporalityPure) = Nothing
   purely tmp = tmp
