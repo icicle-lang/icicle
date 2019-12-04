@@ -60,6 +60,7 @@ allSimp a_fresh
       >=> caseConstants a_fresh
       >=> unshuffleLets a_fresh
       >=> inlineLets a_fresh
+      >=> ifShuffle a_fresh
 
 -- | Constant folding for some primitives
 simpX :: (Monad m, Hashable n, Eq n)
@@ -319,7 +320,7 @@ caseOfScrutinisedCase a_fresh = go []
 --   a single use, and are likely to be
 --   able to be optimised away.
 --
---   If the binding is irrefutible, or could
+--   If the binding is irrefutable, or could
 --   be part of the case in case optimisation,
 --   inline it instead.
 inlineLets :: (Hashable n, Eq n)
@@ -343,6 +344,60 @@ inlineLets _ xx
     = True
     | otherwise
     = False
+
+-- | Merge pathological if blocks
+--
+-- ```
+-- if#
+--   (\_ ->
+--     if#
+--       (\_ -> Right Result))
+--       (\_ -> Left ExceptCannotCompute)
+--       (InnerScrut))
+--   (\_ -> Left ExceptCannotCompute)
+--   OuterScut
+-- ```
+--
+-- to
+--
+-- ```
+-- let
+--   Scrut =
+--     and# OuterScut InnerScrut
+-- in
+--   if#
+--     (\_ -> Right Result))
+--     (\_ -> Left ExceptCannotCompute)
+--     Scrut
+-- ```
+--
+-- With the other optimisations, this essentially means that
+-- big maps can be created in the precomputation, and all of the
+-- map insert binary search logic will be elided and replaced
+-- with a constant.
+--
+-- This works very well, but is brittle against source level
+-- let bindings, which prevent inlining from occurring.
+ifShuffle :: (Hashable n, Eq n)
+          => a -> C.Exp a n -> FixT (Fresh n) (C.Exp a n)
+ifShuffle a_fresh xx
+  | Just (PrimFold PrimFoldBool ret'typ, [XLam _ _ _ toExp, fExp@(XLam _ _ _ foExp), oScrutinee]) <- takePrimApps xx
+  , Just (PrimFold PrimFoldBool _,       [tExp,                   XLam _ _ _ fiExp , iScrutinee]) <- takePrimApps toExp
+  , foExp `alphaEquality` fiExp
+  = do let
+         n'Scrutinee =
+           xand `xapp` oScrutinee `xapp` iScrutinee
+
+       progress $
+         xprim (PrimFold PrimFoldBool ret'typ) `xapp` tExp `xapp` fExp `xapp` n'Scrutinee
+
+  | otherwise
+  = return xx
+
+ where
+    xapp  = XApp  a_fresh
+    xprim = XPrim a_fresh
+    xand  = xprim $ PrimMinimal (Min.PrimLogical Min.PrimLogicalAnd)
 
 subsNameInExp :: Eq n => Name n -> Name n -> Exp a n p -> Exp a n p
 subsNameInExp old new =
