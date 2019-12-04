@@ -135,6 +135,13 @@ dischargeC c
     CReturnOfLetTemporalities ret def body
      | def == body
      -> dischargeC (CEquals ret def)
+
+    -- Pure joins with everything
+    CReturnOfLetTemporalities ret def TemporalityPure
+     -> dischargeC $ CEquals ret def
+    CReturnOfLetTemporalities ret TemporalityPure body
+     -> dischargeC $ CEquals ret body
+
     CReturnOfLetTemporalities _ (TypeVar _) _
      -> return $ DischargeLeftover c
     CReturnOfLetTemporalities _ _ (TypeVar _)

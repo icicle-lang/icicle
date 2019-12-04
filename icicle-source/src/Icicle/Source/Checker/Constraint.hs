@@ -578,7 +578,8 @@ generateX x env
 
     -- Lambda functions by themselves are pretty easy
     -- We summon a fresh type for the named variable
-    -- and push it through.
+    -- and push it into the environment we check the
+    -- body in.
     Lam _ n body
       -> do typ              <- freshType
             let env'          = bindT n typ env
