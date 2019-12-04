@@ -6,7 +6,7 @@
 
 #if __GLASGOW_HASKELL__ >= 800
 #if darwin_HOST_OS
--- Disable pattern checks on OS/X because goX' below hits a pathalogical case
+-- Disable pattern checks on OS/X because goX' below hits a pathological case
 -- in GHC and we don't want to wait for it on our dev machines.
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 {-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
