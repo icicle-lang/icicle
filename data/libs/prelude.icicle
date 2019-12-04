@@ -172,47 +172,35 @@ quantile_on_sorted p array
 
 # Helper function for 'days_in' below
 map_update_days_in state previous_time current_time state_days =
-  let
-    n =
-      days between previous_time current_time
-  ~>
-  case map_lookup state state_days
-  | None ->
-      map_insert state n state_days
-  | Some n0 ->
-      map_insert state (n0 + n) state_days
-  end.
+   let n = days between previous_time current_time
+~> case map_lookup state state_days
+   | None ->
+       map_insert state n state_days
+   | Some n0 ->
+       map_insert state (n0 + n) state_days
+   end.
 
 # Count the days that an entity has spent in different states.
 # e.g. days_in state time now = [("NSW", 20), ("QLD", 1)]
 days_in state fact_time query_time =
-  fold1
-    stm =
-        ((state, fact_time), map_create)
-      : case stm | ((s, t), m) ->
-          ((state, fact_time), map_update_days_in s t fact_time m)
-        end
-  ~>
-  case stm | ((s, t), m) ->
-    map_update_days_in s t query_time m
-  end.
+  fold1 (s, t, m)
+      = (state, fact_time, map_create)
+      : (state, fact_time, map_update_days_in s t fact_time m)
+
+  ~> map_update_days_in s t query_time m.
 
 # The offsets (in days) of facts.
 date_offset_days time
- =  fold1 offsets
+ =  fold1 (map,begin)
      = (map_insert 0 0 map_create, time)
-     : (  let begin = snd offsets
-       ~> let map   = fst offsets
-       ~> let ds    = days between begin time
+     : (  let ds    = days between begin time
        ~> (map_insert ds 0 map, begin))
- ~> keys (fst offsets).
+ ~> keys map.
 
 # The offsets (in weeks) of facts.
 date_offset_weeks time
- =  fold1 offsets
+ =  fold1 (map,begin)
      = (map_insert 0 0 map_create, time)
-     : (  let begin = snd offsets
-       ~> let map   = fst offsets
-       ~> let ds    = round (double (days between begin time) / 7)
+     : (  let ds    = round (double (days between begin time) / 7)
        ~> (map_insert ds 0 map, begin))
- ~> keys (fst offsets).
+ ~> keys map.
