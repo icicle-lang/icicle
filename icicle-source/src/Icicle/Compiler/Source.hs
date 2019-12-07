@@ -46,10 +46,6 @@ module Icicle.Compiler.Source
   , sourceCheckFunLog
   , sourceInline
 
-
-    -- * Works on Sorbet programs
-  , readSorbetLibrary
-
     -- * Helpers
   , freshNamer
   , annotOfError
@@ -68,10 +64,8 @@ import qualified Icicle.Dictionary                        as Dict
 
 import           Icicle.Internal.Pretty
 
-import           Icicle.Sorbet.Position                   (toParsec)
-import qualified Icicle.Sorbet.Parse                      as Sorbet
-
-
+import qualified Icicle.Sorbet.Parse                      as Parse
+import qualified Icicle.Sorbet.Position                   as Parse
 import qualified Icicle.Source.Checker                    as Check
 import qualified Icicle.Source.Parser                     as Parse
 import qualified Icicle.Source.Query                      as Query
@@ -90,7 +84,7 @@ import           Data.Hashable                            (Hashable)
 import qualified Data.Text.IO                             as Text
 
 import qualified Text.ParserCombinators.Parsec            as Parsec
-import           System.IO
+import qualified Text.Parsec.Pos                          as Parsec
 
 import           GHC.Generics                             (Generic)
 
@@ -140,7 +134,6 @@ defaultFusionOptions = FusionOptions 100
 
 data ErrorSource var
  = ErrorSourceParse       !Parse.ParseError
- | ErrorSorbetParse       !Sorbet.ParseError
  | ErrorSourceDesugar     !(Desugar.DesugarError Parsec.SourcePos var)
  | ErrorSourceCheck       !(Check.CheckError     Parsec.SourcePos var)
  | ErrorSourceResolveError !UnresolvedInputId
@@ -154,9 +147,6 @@ annotOfError :: ErrorSource a -> Maybe Parsec.SourcePos
 annotOfError e
  = case e of
     ErrorSourceParse sp
-     -> Just
-      $ Parsec.errorPos sp
-    ErrorSorbetParse _
      -> Nothing
     ErrorSourceDesugar e'
      -> Desugar.annotOfError e'
@@ -168,13 +158,6 @@ annotOfError e
 instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) where
   pretty = \case
     ErrorSourceParse p ->
-      vsep [
-          reannotate AnnErrorHeading $ prettyH2 "Parse error"
-        , mempty
-        , indent 2 . vsep . fmap text . lines . show $ p
-        ]
-
-    ErrorSorbetParse p ->
       vsep [
           reannotate AnnErrorHeading $ prettyH2 "Parse error"
         , mempty
@@ -321,20 +304,3 @@ readIcicleLibrary _name source input
           = Dict.dictionaryFunctions Dict.emptyDictionary
 
       sourceCheckF env input'
-
-readSorbetLibrary :: FilePath -> EitherT (ErrorSource Var, [Check.CheckLog Parsec.SourcePos Var]) IO (FunEnvT Parsec.SourcePos Var)
-readSorbetLibrary libpath = do
-  contents <- liftIO $ Text.readFile libpath
-  parsed   <- firstEitherT (\perr -> (ErrorSorbetParse perr, [])) $ hoistEither $ fmap (fmap (Query.reannot toParsec)) $ Sorbet.sorbetFunctions libpath contents
-  let
-    env
-      = Dict.dictionaryFunctions Dict.emptyDictionary
-
-  hoistEither
-   $ second fst
-   $ first (first ErrorSourceCheck)
-   $ snd
-   $ flip Fresh.runFresh (freshNamer "check")
-   $ runEitherT
-   $ Check.checkFs env
-   $ parsed

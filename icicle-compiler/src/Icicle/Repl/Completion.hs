@@ -55,7 +55,7 @@ completionCommands =
   , (":help", Haskeline.noCompletion)
   , (":quit", Haskeline.noCompletion)
   , (":let", completeLetExpression)
-  , ("feature", completeFeatureExpression)
+  , ("from", completeFeatureExpression)
   ]
 
 -- | Completer for the icicle REPL
@@ -117,7 +117,7 @@ completeFeatureExpression (prefix0, suffix) = do
          in  wrapPure " " candidates (prefix0, suffix)
     -- If we've written that, then we need a flows
     -- into before the query can begin.
-    3 -> wrapPure " " ["~>"] (prefix0, suffix)
+    3 -> wrapPure " " ["in"] (prefix0, suffix)
     -- Now we're inside the query, and the second
     -- item lexed is the fact name. So we will look
     -- up the fact in the dictionary so we can then
