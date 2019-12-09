@@ -41,8 +41,13 @@ function
  = do   vs <- many ((,) <$> getPosition <*> pVariable)      <?> "function variables"
         pEq T.TEqual                                        <?> "equals"
         q <- (,) <$> getPosition <*> query
-        let lams = foldr (uncurry Q.Lam) (uncurry Q.Nested q) vs
+        let lams = foldr (uncurry Q.Lam) (uncurry simpNested q) vs
         return lams
+ where
+  simpNested _ (Q.Query [] x)
+   = x
+  simpNested p q
+   = Q.Nested p q
 
 query :: Parser (Q.Query T.SourcePos Var)
 query
