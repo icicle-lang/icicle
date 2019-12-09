@@ -49,6 +49,7 @@ function
   simpNested p q
    = Q.Nested p q
 
+
 query :: Parser (Q.Query T.SourcePos Var)
 query
  = do   cs <- many context                                  <?> "contexts"

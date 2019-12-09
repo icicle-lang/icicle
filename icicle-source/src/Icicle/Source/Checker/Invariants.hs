@@ -114,6 +114,8 @@ invariantX ctx x
      -> return ()
     Case _ s ps
      -> invariantX ctx s >> mapM_ (invariantX ctx . snd) ps
+    If _ s t f
+     -> invariantX ctx s >> invariantX ctx t >> invariantX ctx f
 
  where
   goFun a n args

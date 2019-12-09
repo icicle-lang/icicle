@@ -117,4 +117,6 @@ checkResumableX ctx x
      -> return ()
     Case _ s ps
      -> checkResumableX ctx s >> mapM_ (checkResumableX ctx . snd) ps
+    If _ s t f
+     -> checkResumableX ctx s >> checkResumableX ctx t >> checkResumableX ctx f
 

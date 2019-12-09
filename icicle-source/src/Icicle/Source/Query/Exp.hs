@@ -50,23 +50,62 @@ import           Icicle.Common.Base
 
 import           P
 
+-- | Icicle Source Language Constructs.
+data Exp' q a n
+
+  -- | Bound variable
+  = Var a (Name n)
+
+  -- | Function abstraction.
+  | Lam a (Name n) (Exp' q a n)
+
+  -- | Nested query
+  | Nested a (q a n)
+
+  -- | Function application.
+  | App  a (Exp' q a n) (Exp' q a n)
+
+  -- | Source Primitive
+  | Prim a Prim
+
+  -- | If then else block
+  | If a (Exp' q a n) (Exp' q a n) (Exp' q a n)
+
+  -- | Case matching with patterns
+  | Case a (Exp' q a n) [(Pattern n, Exp' q a n)]
+
+  deriving (Show, Eq, Ord, Generic)
+
+instance (NFData (q a n), NFData a, NFData n) => NFData (Exp' q a n)
+
+-- | Icicle Source Language Primitives
+data Prim
+
+  -- | Operators
+  = Op Op
+
+  -- | Literals, such as Int and String
+  | Lit Lit
+
+  -- | Primitive functions
+  | Fun BuiltinFun
+
+  -- | Type constructors
+  | PrimCon Constructor
+
+  deriving (Show, Eq, Ord, Generic)
+
+instance NFData Prim
+
+-- | Built-in Source functions
+type Fun = BuiltinFun
+
+
 class TraverseAnnot q where
   traverseAnnot :: Applicative f => (a -> f a') -> q a n -> f (q a' n)
 
 reannot :: TraverseAnnot q => (a -> a') -> q a n -> q a' n
 reannot = over traverseAnnot
-
-
-data Exp' q a n
- = Var a (Name n)
- | Lam a (Name n) (Exp' q a n)
- | Nested a (q a n)
- | App  a (Exp' q a n) (Exp' q a n)
- | Prim a Prim
- | Case a (Exp' q a n) [(Pattern n, Exp' q a n)]
- deriving (Show, Eq, Ord, Generic)
-
-instance (NFData (q a n), NFData a, NFData n) => NFData (Exp' q a n)
 
 instance TraverseAnnot q => TraverseAnnot (Exp' q)  where
   traverseAnnot f xx =
@@ -76,9 +115,12 @@ instance TraverseAnnot q => TraverseAnnot (Exp' q)  where
       Nested a q   -> Nested <$> f a <*> traverseAnnot f q
       App    a x y -> App    <$> f a <*> traverseAnnot f x <*> traverseAnnot f y
       Prim   a p   -> Prim   <$> f a <*> pure p
+      If     a pred true false
+        -> If <$> f a <*> traverseAnnot f pred
+              <*> traverseAnnot f true <*> traverseAnnot f false
       Case a scrut pats
-       -> Case <$> f a <*> traverseAnnot f scrut
-               <*> traverse (\(p,x) -> (p,) <$> traverseAnnot f x) pats
+        -> Case <$> f a <*> traverseAnnot f scrut
+                <*> traverse (\(p,x) -> (p,) <$> traverseAnnot f x) pats
 
 takeLams :: Exp' q a n -> ([(a, Name n)], Exp' q a n)
 takeLams (Lam a n x) =
@@ -114,29 +156,17 @@ takePrimApps x
 annotOfExp :: Exp' q a n -> a
 annotOfExp x
  = case x of
-   Var    a _   -> a
-   Lam    a _ _ -> a
-   Nested a _   -> a
-   App    a _ _ -> a
-   Prim   a _   -> a
-   Case   a _ _ -> a
+   Var    a _     -> a
+   Lam    a _ _   -> a
+   Nested a _     -> a
+   App    a _ _   -> a
+   Prim   a _     -> a
+   If     a _ _ _ -> a
+   Case   a _ _   -> a
 
 mkApp :: Exp' q a n -> Exp' q a n -> Exp' q a n
 mkApp x y
  = App (annotOfExp x) x y
-
-
-data Prim
- = Op Op
- | Lit Lit
- | Fun Fun
- | PrimCon Constructor
- deriving (Show, Eq, Ord, Generic)
-
-instance NFData Prim
-
--- | Built-in Source functions
-type Fun = BuiltinFun
 
 instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
   prettyPrec outer_prec xx =
@@ -167,6 +197,14 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
 
         Nested _ q ->
           pretty q
+
+        If _ pred true false ->
+          vsep [
+              prettyKeyword "if" <+> pretty pred <+> prettyKeyword "then"
+            , indent 2 $ pretty true
+            , prettyKeyword "else"
+            , indent 2 $ pretty false
+            ]
 
         Case _ scrut pats ->
           vsep [
@@ -242,6 +280,8 @@ precedenceOfX xx
      -> precedenceAlwaysParens
     Prim{}
      -> precedenceNeverParens
+    If{}
+     -> precedenceApplication
     Case{}
      -> precedenceApplication
 

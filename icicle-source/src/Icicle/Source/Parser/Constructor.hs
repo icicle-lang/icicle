@@ -5,6 +5,7 @@
 module Icicle.Source.Parser.Constructor (
     constructor
   , checkPat
+  , constructors
   ) where
 
 import qualified        Icicle.Source.Lexer.Token  as T
@@ -119,3 +120,6 @@ checkPat exp =
 
     Q.Case {}
       -> fail "unable to parse case expressions as a pattern"
+
+    Q.If {}
+      -> fail "unable to parse if expression as a pattern"

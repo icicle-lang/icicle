@@ -54,6 +54,7 @@ data ErrorInfo a n
  | ErrorInFunctionCall a (Name n) (ErrorInfo a n)
  | ErrorSerialisedFunction a (Exp a n)
  | ErrorRankNType a (Type n)
+ | ErrorImpossible a
  deriving (Show, Eq, Generic)
 
 instance (NFData a, NFData n) => NFData (ErrorInfo a n)
@@ -92,6 +93,8 @@ annotOfError (CheckError e _)
     ErrorSerialisedFunction a _
      -> Just a
     ErrorRankNType a _
+     -> Just a
+    ErrorImpossible a
      -> Just a
 
 data ErrorSuggestion a n
@@ -236,6 +239,11 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
           "Higher ranked type at " <+> pretty a
         , mempty
         , "Type: " <> inp typ
+        ]
+
+    ErrorImpossible a ->
+      vsep [
+          "Impossible error at " <+> pretty a
         ]
    where
     inp x = align (pretty x)

@@ -406,6 +406,37 @@ convertReduce xx
  = (,) mempty <$> convertFreshenLookup ann v
 
 
+ | If (Annot { annAnnot = ann, annResult = retty }) scrut true false <- xx
+ = do   scrut' <- convertReduce scrut
+
+        -- Because the alternatives can contain more folds and stuff, we need to
+        -- use convertReduce on them.
+        true'  <- convertReduce true
+        false' <- convertReduce false
+
+        -- The folds, pre- and post- computations for all the components
+        let bs' = fst scrut' <> fst true' <> fst false'
+
+        resT   <- convertValType ann $ retty
+
+        -- The core fold expression over the resulting name from the scrutinee,
+        -- applied to the names of the true and false branches.
+        sn     <- lift fresh
+        let x'  = (CE.xPrim $ C.PrimFold C.PrimFoldBool resT)
+                    CE.@~ CE.xLam sn T.UnitT (CE.xVar $ snd true')
+                    CE.@~ CE.xLam sn T.UnitT (CE.xVar $ snd false')
+                    CE.@~ (CE.xVar $ snd scrut')
+
+        -- If everything is pure, then it can be a pre-computation;
+        -- otherwise, it must be a post computation.
+        nm     <- lift fresh
+        let b'  | TemporalityPure <- getTemporalityOrPure retty
+                = pre nm x'
+                | otherwise
+                = post nm x'
+
+        return (bs' <> b', nm)
+
  | Case (Annot { annAnnot = ann, annResult = retty }) scrut patalts <- xx
  = do   scrut' <- convertReduce scrut
 

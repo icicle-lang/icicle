@@ -74,7 +74,13 @@ transformC t cc
         -> do x' <- goX x
               return (s, GroupBy a x')
        GroupFold a k v x
-        -> do x' <- goX x
+        -- Note: expression x does not see the outer state
+        --       context in its transformation as it happens
+        --       `before` the group fold operation.
+        --       This is important for the inliner, as
+        --       > group fold (k, sum) = sum severity in sum
+        --       should have the original sum inside.
+        -> do x' <- goX x -- transformX t x
               return (s, GroupFold a k v x')
        Distinct a x
         -> do x' <- goX x
@@ -120,6 +126,11 @@ transformX t xx
               return $ App a p' q'
        Prim{}
         -> return xx'
+       If a scr true false
+        -> do scr'   <- goX scr
+              true'  <- goX true
+              false' <- goX false
+              return $ If a scr' true' false'
        Case a scr pats
         -> do scr'  <- goX scr
               pats' <- mapM goP pats

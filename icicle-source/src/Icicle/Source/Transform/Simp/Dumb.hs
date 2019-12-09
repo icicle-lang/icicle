@@ -87,6 +87,9 @@ simpDumbCases xx
     App a x y
      -> App a (simpX x) (simpX y)
 
+    If a s t f
+     -> If a (simpX s) (simpX t) (simpX f)
+
     Lam a n x
      -> Lam a n (simpX x)
 
@@ -150,9 +153,16 @@ simpDumbLets xx
         -> Nested a $ substQ x y q
       App a e1 e2
         -> App a (substX x y e1) (substX x y e2)
+      If a scr true false
+        -> If a (substX x y scr) (substX x y true) (substX x y false)
       Case a e pats
         -> Case a (substX x y e) (fmap (substA x y) pats)
-      _ -> bd
+      Lam {}
+        -> bd
+      Var {}
+        -> bd
+      Prim {}
+        -> bd
 
   substA x y (pat, e)
    | x `elem` varsIn pat = (pat, e)

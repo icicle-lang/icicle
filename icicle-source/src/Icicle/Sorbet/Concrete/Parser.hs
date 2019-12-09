@@ -9,9 +9,6 @@ module Icicle.Sorbet.Concrete.Parser (
     Parser
   , pRepl
   , pExtra
-
-  , ParserError(..)
-  , renderParserError
   ) where
 
 import           Data.List.NonEmpty (NonEmpty(..), some1)
@@ -20,6 +17,7 @@ import           Data.Scientific (Scientific)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import           Data.Thyme (Day)
+import           Data.Void (Void)
 
 import           Icicle.Sorbet.Concrete.Annotation
 import           Icicle.Sorbet.Concrete.Syntax
@@ -32,18 +30,8 @@ import           Text.Megaparsec (try, sepBy, choice, label)
 import qualified Text.Megaparsec as Mega
 import           Text.Megaparsec (MonadParsec)
 
-
 type Parser s m =
-  (MonadParsec ParserError s m, Mega.Token s ~ Positioned Token)
-
-data ParserError =
-    ParserDefault
-    deriving (Eq, Ord, Show)
-
-renderParserError :: ParserError -> Text
-renderParserError = \case
-  ParserDefault ->
-    T.pack ""
+  (MonadParsec Void s m, Mega.Token s ~ Positioned Token)
 
 pRepl :: Parser s m => m (Repl Position)
 pRepl =

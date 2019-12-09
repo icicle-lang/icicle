@@ -62,6 +62,8 @@ substX' s x
      -> App a <$> substX' s p <*> substX' s q
     Prim{}
      -> return x
+    If a p t f
+     -> If a <$> substX' s p <*> substX' s t <*> substX' s f
     Case a scrut pats
      -> Case a <$> substX' s scrut <*> mapM goPat pats
 

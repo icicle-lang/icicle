@@ -6,27 +6,37 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards #-}
 module Icicle.Sorbet.Position (
     Positioned(..)
   , Position(..)
+  , PositionedStream(..)
+
+  , renderPosition
+  , toParsec
   ) where
 
+import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.List as List
 import           Data.Proxy (Proxy (..))
 import           Data.Data (Data)
 import           Data.Typeable (Typeable)
+import qualified Data.Text as Text
 
 import           GHC.Generics (Generic)
+
+import           Icicle.Internal.Pretty
 
 import           P
 
 import           System.IO (FilePath)
 
-import           Text.Megaparsec (Stream(..))
-import           Text.Megaparsec.Pos (SourcePos(..), mkPos)
+import           Text.Megaparsec (Stream(..), PosState (..))
+import           Text.Megaparsec.Pos (SourcePos(..), mkPos, unPos)
+import qualified Text.Parsec.Pos as Parsec
 
 import           X.Text.Show (gshowsPrec)
-
 
 data Positioned a =
   Positioned {
@@ -50,11 +60,19 @@ instance Show Position where
   showsPrec =
     gshowsPrec
 
-instance (Ord a, Show a) => Stream [Positioned a] where
-  type Token [Positioned a] =
+
+data PositionedStream a =
+  PositionedStream {
+    streamText :: Text
+  , streamToks :: [Positioned a]
+  } deriving (Eq, Show)
+
+
+instance (Pretty a, Ord a) => Stream (PositionedStream a) where
+  type Token (PositionedStream a) =
     Positioned a
 
-  type Tokens [Positioned a] =
+  type Tokens (PositionedStream a) =
     [Positioned a]
 
   tokenToChunk Proxy =
@@ -67,21 +85,71 @@ instance (Ord a, Show a) => Stream [Positioned a] where
     length
   chunkEmpty Proxy =
     null
-  take1_ [] =
-    Nothing
-  take1_ (t:ts) =
-    Just (t, ts)
-
-  takeN_ n s
-    | n <= 0
-    = Just ([], s)
-    | null s
+  take1_ (PositionedStream _ [])
     = Nothing
-    | otherwise
-    = Just (splitAt n s)
+  take1_ (PositionedStream str (t:ts))
+    = Just ( t , PositionedStream str ts)
 
-  takeWhile_ =
-    List.span
+  takeN_ n (PositionedStream str s)
+    | n <= 0    = Just ([], PositionedStream str s)
+    | null s    = Nothing
+    | otherwise =
+        let (x, s') = splitAt n s
+         in Just (x, PositionedStream str s')
+
+  takeWhile_ f (PositionedStream str s) =
+    let (x, s') = List.span f s
+     in (x, PositionedStream str s')
+
 
   showTokens _ =
-    show . fmap posTail
+    List.intercalate " " . NonEmpty.toList . fmap (show . pretty . posTail)
+
+
+  reachOffset o (PosState input offset sourcePos tabWidth _) =
+    ( newSourcePos
+    , thisLine
+    , PosState
+        { pstateInput = PositionedStream (streamText input) post
+        , pstateOffset = max offset o
+        , pstateSourcePos = newSourcePos
+        , pstateTabWidth = tabWidth
+        , pstateLinePrefix = ""
+        }
+    )
+    where
+      newSourcePos =
+        case post of
+          [] ->    sourcePos
+          (x:_) -> toSourcePos $ posStart x
+
+      post =
+        drop (o - offset) (streamToks input)
+
+      thisLine = Text.unpack $
+        Text.lines (streamText input) List.!! (unPos (sourceLine newSourcePos) - 1)
+
+toSourcePos :: Position -> SourcePos
+toSourcePos = \case
+  Position file srcLine srcCol ->
+    SourcePos file
+      (mkPos srcLine)
+      (mkPos srcCol)
+
+
+toParsec :: Position -> Parsec.SourcePos
+toParsec = \case
+  Position file srcLine srcCol ->
+    Parsec.newPos file srcLine srcCol
+
+instance Pretty Position where
+  pretty =
+    pretty . renderPosition
+
+renderPosition :: Position -> Text
+renderPosition sp =
+  Text.pack (show . posLine $ sp) <> ":" <>Text.pack (show . posColumn $ sp)
+    <> (if posFile sp == ""
+        then ""
+        else ":" <> Text.pack (posFile sp))
+

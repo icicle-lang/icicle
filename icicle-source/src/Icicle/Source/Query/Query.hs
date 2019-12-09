@@ -104,6 +104,7 @@ simplifyNestedX xx
  = case xx of
     Nested _ (Query [] x)
      -> simplifyNestedX x
+
     Nested a q
      -> Nested a $ simplifyNestedQ q
 
@@ -115,8 +116,12 @@ simplifyNestedX xx
 
     Var{}
      -> xx
+
     Prim{}
      -> xx
+
+    If a p t f
+     -> If a (simplifyNestedX p) (simplifyNestedX t) (simplifyNestedX f)
 
     Case a scrut pats
      -> Case a (simplifyNestedX scrut)
@@ -230,6 +235,11 @@ allvarsX x
         in  App (a, Set.union (annX p') (annX q')) p' q'
     Prim a p
      -> Prim (a, Set.empty) p
+    If a p t f
+     -> let p' = allvarsX p
+            t' = allvarsX t
+            f' = allvarsX f
+        in  If (a, Set.unions [annX p', annX t', annX f']) p' t' f'
     Case a s ps
      -> let s'        = allvarsX s
             (ps',ns') = goPatXs ps

@@ -61,6 +61,9 @@ library
                        src
 
   exposed-modules:
+
+                       Icicle.Sorbet.Abstract.Parser
+                       Icicle.Sorbet.Abstract.Tokens
                        Icicle.Sorbet.Concrete.Annotation
                        Icicle.Sorbet.Concrete.Parser
                        Icicle.Sorbet.Concrete.Pretty
@@ -70,6 +73,7 @@ library
                        Icicle.Sorbet.Lexical.Lexer
                        Icicle.Sorbet.Lexical.Syntax
                        Icicle.Sorbet.Position
+                       Icicle.Sorbet.Parse
 
                        Icicle.Source.Eval
                        Icicle.Source.Query

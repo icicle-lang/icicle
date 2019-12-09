@@ -22,7 +22,7 @@ import                  Icicle.Internal.Pretty
 import                  P
 
 import                  Data.String
-import                  Data.List (splitAt, zip)
+import                  Data.List (zip)
 import qualified        Data.Map as Map
 import qualified        Data.Text as T
 import                  Data.Hashable (Hashable)

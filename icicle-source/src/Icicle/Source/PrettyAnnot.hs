@@ -71,6 +71,14 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
                 ]
           , prettyKeyword "end"
           ]
+
+      If a scrut true false ->
+        vsep [
+            prettyAnnotK "if" a <+> pretty (PrettyAnnot scrut) <+> prettyAnnotK "then" a
+          , indent 4 $ pretty (PrettyAnnot true)
+          , prettyAnnotK "else" a
+          , indent 4 $ pretty (PrettyAnnot false)
+          ]
    where
     annotPrim a p
      | primRequiresAnnot p

@@ -64,6 +64,7 @@ import qualified Icicle.Dictionary                        as Dict
 
 import           Icicle.Internal.Pretty
 
+-- import qualified Icicle.Sorbet.Parse                      as Parse
 import qualified Icicle.Source.Checker                    as Check
 import qualified Icicle.Source.Parser                     as Parse
 import qualified Icicle.Source.Query                      as Query
@@ -128,7 +129,7 @@ defaultFusionOptions = FusionOptions 100
 --------------------------------------------------------------------------------
 
 data ErrorSource var
- = ErrorSourceParse       !Parsec.ParseError
+ = ErrorSourceParse       !Parse.ParseError
  | ErrorSourceDesugar     !(Desugar.DesugarError Parsec.SourcePos var)
  | ErrorSourceCheck       !(Check.CheckError     Parsec.SourcePos var)
  | ErrorSourceResolveError !UnresolvedInputId

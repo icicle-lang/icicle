@@ -92,9 +92,45 @@ reifyPossibilityX' wrap x
       Prim a p
        -> return $ Prim a p
 
-      -- Lambdas shouldn't be in here after inlining. Just force a left error.
-      Lam ann p q
-       -> return $ Lam ann p q
+      -- Lambdas shouldn't be in here after inlining and desugaring.
+      Lam a p q
+       -> return $ Lam a p q
+
+      -- If the scrutinee is possibly, we need to unwrap it before performing the case:
+      -- > if scrut then ...
+      -- ==>
+      -- > case scrut
+      -- | Left e -> Left e
+      -- | Right scrut' -> if scrut' ...
+      If a scrut t f
+       | typ <- annResult $ annotOfExp scrut
+       , PossibilityPossibly <- getPossibilityOrDefinitely typ
+       -> do  nError <- fresh
+              nValue <- fresh
+              scrut' <- reifyPossibilityX' wrap scrut
+              let a'  = wrapAnnot a
+                  a'E = typeAnnot a ErrorT
+                  a'D = definiteAnnot $ annotOfExp scrut
+
+                  vError = Var a'E nError
+                  vValue = Var a'D nValue
+
+              t'  <- wrap a <$> reifyPossibilityX' wrap t
+              f'  <- wrap a <$> reifyPossibilityX' wrap f
+
+              return $ Case (wrapAnnot a) scrut'
+                            [ ( PatCon ConLeft  [ PatVariable nError ]
+                              , con1 a' ConLeft $ vError )
+                            , ( PatCon ConRight [ PatVariable nValue ]
+                              , If (wrapAnnot a) vValue t' f' ) ]
+       -- Scrutinee is definite
+       | otherwise
+       -> do  scrut' <-  reifyPossibilityX' wrap scrut
+              -- If the return of the case is a Possibly, then at least one of the alternatives must be possibly.
+              -- For the non-possibly alternatives, wrap them as a Right.
+              t'     <-  wrapRightIfAnnot a <$> reifyPossibilityX' wrap t
+              f'     <-  wrapRightIfAnnot a <$> reifyPossibilityX' wrap f
+              return $ If  (wrapAnnot a) scrut' t' f'
 
       -- If the scrutinee is possibly, we need to unwrap it before performing the case:
       -- > case scrut | alt -> ...

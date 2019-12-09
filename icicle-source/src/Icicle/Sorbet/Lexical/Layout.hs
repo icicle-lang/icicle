@@ -1,10 +1,12 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Sorbet.Lexical.Layout (
     layoutProgram
 
   , LayoutError(..)
+  , renderLayoutError
   ) where
 
 import           Icicle.Sorbet.Lexical.Syntax
@@ -16,6 +18,17 @@ import           P
 data LayoutError =
     UnexpectedEndOfScope !ScopeType !ScopeEnv !(Positioned Token)
     deriving (Eq, Ord, Show)
+
+
+renderLayoutError :: LayoutError -> Text
+renderLayoutError = \case
+  UnexpectedEndOfScope _ env _ ->
+    mconcat [
+      "Unexpected end of scope of `"
+    , renderToken . posTail . envLineStart $ env
+    , "` beginning at: "
+    , renderPosition (posStart . envLineStart $ env)
+    ]
 
 data ScopeEnv =
   ScopeEnv {
@@ -189,7 +202,7 @@ layoutTokens env = \case
   --     }in
   --
   x@(Positioned _ _ Tok_Let) : y : xs
-    | (notLBrace y)
+    | notLBrace y
     ->
       x <:> before y Tok_LBrace <:>
       layoutTokens (startImplicit y $ startExplicit Context env) (y : xs)
@@ -288,6 +301,10 @@ takeOpenScope = \case
     Just Context
   Tok_Let ->
     Just Context
+  Tok_Fold ->
+    Just Context
+  Tok_Fold1 ->
+    Just Context
   Tok_Windowed ->
     Just Context
   Tok_Group ->
@@ -340,7 +357,11 @@ onSameLineAs x y =
 
 before :: Positioned b -> a -> Positioned a
 before (Positioned s _ _) x =
-  Positioned s s x
+  Positioned s (before' s) x
+
+before' :: Position -> Position
+before' (Position file line col) =
+  Position file line (col - 1)
 
 nextLine :: Positioned a -> Positioned a
 nextLine (Positioned s e x) =

@@ -48,6 +48,8 @@ renameX f e = case e of
   SQ.Nested a q  -> SQ.Nested a (renameQ f q)
   SQ.App a e1 e2 -> SQ.App a (renameX f e1) (renameX f e2)
   SQ.Prim a p    -> SQ.Prim a p
+  SQ.If a e1 e2 e3
+   -> SQ.If a (renameX f e1) (renameX f e2) (renameX f e3)
   SQ.Case a scrut pats
    -> SQ.Case a (renameX f scrut)
     $ fmap (renamePat f *** renameX f) pats

@@ -261,7 +261,7 @@ renderTime = T.pack . C.showGregorian . Thyme.fromThyme . julianDay
 renderOutputTime  :: Time -> Text
 renderOutputTime t
  = let fmt = "%Y-%m-%dT%H:%M:%SZ"
-       t' = Thyme.fromThyme (getDateTime t) :: C.UTCTime 
+       t' = Thyme.fromThyme (getDateTime t) :: C.UTCTime
        str = C.formatTime C.defaultTimeLocale fmt t'
    in  T.pack str
 

@@ -204,6 +204,12 @@ desugarX xx
             x2' <- desugarX x2
             return $ App a x1' x2'
 
+    If a x1 x2 x3
+      -> do x1' <- desugarX x1
+            x2' <- desugarX x2
+            x3' <- desugarX x3
+            return $ If a x1' x2' x3'
+
     Lam a n x1
       -> do x1' <- desugarX x1
             return $ Lam a n x1'

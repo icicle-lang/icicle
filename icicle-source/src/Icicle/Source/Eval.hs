@@ -188,6 +188,14 @@ evalX x vs env
     Prim a p
      -> evalP a p [] vs env
 
+    Lam a _ _
+     -> Left $ EvalErrorApplicationOfNonPrimitive a x
+
+    If _ scrut true false
+     -> do scrut' <- evalX scrut vs env
+           let e = if (scrut' == VBool True) then true else false
+           evalX e vs env
+
     Case _ scrut pats
      -> do scrut' <- evalX scrut vs env
            goPats scrut' pats

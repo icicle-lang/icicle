@@ -11,6 +11,7 @@ module Icicle.Sorbet.Lexical.Lexer (
   , lexProgram
 
   , LexerError(..)
+  , LexerBundle
   , renderLexerError
   ) where
 
@@ -18,8 +19,6 @@ import qualified Data.Char as Char
 import           Data.Scientific (Scientific, scientific)
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import           Data.Proxy (Proxy (..))
-import qualified Data.Set as Set
 import           Data.String (String, IsString (..))
 import qualified Data.Text as T
 import           Data.Thyme (Day, YearMonthDay(..), gregorianValid)
@@ -32,7 +31,7 @@ import           Icicle.Sorbet.Position
 import           P hiding (exp)
 
 import           Text.Megaparsec (try, manyTill)
--- import           Text.Megaparsec (ErrorComponent(..), ShowErrorComponent(..))
+import           Text.Megaparsec (ShowErrorComponent(..), ParseErrorBundle)
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Mega
 import qualified Text.Megaparsec.Char.Lexer as Lexer
@@ -42,10 +41,12 @@ import           Text.Printf (printf)
 type Lexer s m =
   (MonadParsec LexerError s m, Mega.Token s ~ Char, IsString (Mega.Tokens s))
 
+type LexerBundle s =
+  ParseErrorBundle s LexerError
+
 data LexerError =
     LexerInvalidDate !YearMonthDay
   | LexerUnescapeError !UnescapeError
-  -- | LexerDefault !Dec
     deriving (Eq, Ord, Show)
 
 renderLexerError :: LexerError -> Text
@@ -56,18 +57,10 @@ renderLexerError = \case
       " is not a valid gregorian calendar date."
   LexerUnescapeError err ->
     renderUnescapeError err
-  -- LexerDefault dec ->
-  --   T.pack $ showErrorComponent dec
 
--- instance ErrorComponent LexerError where
---   representFail =
---     LexerDefault . representFail
---   representIndentation old ref actual =
---     LexerDefault $ representIndentation old ref actual
-
--- instance ShowErrorComponent LexerError where
---   showErrorComponent =
---     T.unpack . renderLexerError
+instance ShowErrorComponent LexerError where
+  showErrorComponent =
+    T.unpack . renderLexerError
 
 lexProgram :: Lexer s m => m [Positioned Token]
 lexProgram =
@@ -141,6 +134,7 @@ reservedIdentifiers :: Map [Char] Token
 reservedIdentifiers =
   Map.fromList [
       ("_", Tok_Wild)
+    , ("case", Tok_Case)
     , ("of", Tok_Of)
     , ("if", Tok_If)
     , ("then", Tok_Then)
@@ -148,6 +142,8 @@ reservedIdentifiers =
     , ("from", Tok_From)
     , ("in", Tok_In)
     , ("let", Tok_Let)
+    , ("fold", Tok_Fold)
+    , ("fold1", Tok_Fold1)
     , ("windowed", Tok_Windowed)
     , ("group", Tok_Group)
     , ("distinct", Tok_Distinct)

@@ -61,4 +61,3 @@ prettyParse name inp
  = case parseQueryTop name inp of
     Left e -> "Error: " <> show e
     Right r -> show (pretty r)
-

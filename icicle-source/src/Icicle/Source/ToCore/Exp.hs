@@ -87,6 +87,18 @@ convertExp x
             return $
               CE.xLam n vArgT p'
 
+    If ann scrut true false
+     -> do  scrut' <- convertExp scrut
+            true'  <- convertExp true
+            false' <- convertExp false
+            resT   <- convertValType (annAnnot ann) $ annResult ann
+            sn     <- lift fresh
+            return
+              ((CE.xPrim $ C.PrimFold C.PrimFoldBool resT)
+                CE.@~ CE.xLam sn T.UnitT true'
+                CE.@~ CE.xLam sn T.UnitT false'
+                CE.@~ scrut')
+
     -- Only deal with flattened, single layer cases.
     -- We need a pass beforehand to simplify them.
     Case ann scrut pats
