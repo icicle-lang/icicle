@@ -42,10 +42,12 @@ import           Icicle.Sorbet.Position
 
 import           Icicle.Common.Base as Common
 import           Icicle.Data.Name
+import           Icicle.Data.Time (Date (..), midnight)
 import           Icicle.Source.Query
 import           Icicle.Source.Type
 import           Icicle.Source.Parser.Constructor (checkPat, constructors)
 import           Icicle.Source.Parser.Operators
+import           Icicle.Source.Checker.Function (Decl (..))
 
 import           P
 
@@ -53,20 +55,6 @@ import           Text.Megaparsec (choice)
 import qualified Text.Megaparsec as Mega
 
 type Var = Variable
-
-data Decl p
-  = DeclFun p (Name Var) (Exp p Var)
-  | DeclType p (Name Var) (Type (Name Var))
-
-
-instance Pretty (Decl p) where
-  pretty = \case
-    DeclFun _ n x ->
-      let (args, rest) = takeLams x
-       in pretty n <+> sep (fmap (pretty . snd) args) <+> "=" <+> pretty rest
-
-    DeclType _ n t ->
-      pretty n <+> ":" <+> pretty t
 
 
 pTop :: Parser s m => OutputId -> m (QueryTop Position Var)
@@ -86,7 +74,7 @@ pQuery = do
 
 
 
-pDecls :: Parser s m => m (Position, [Decl Position])
+pDecls :: Parser s m => m (Position, [Decl Position Var])
 pDecls =
   (,)
     <$> pToken Tok_LBrace
@@ -94,7 +82,7 @@ pDecls =
     <*  pToken Tok_RBrace
 
 
-pDecl :: Parser s m => m (Decl Position)
+pDecl :: Parser s m => m (Decl Position Var)
 pDecl = do
   (pos, var) <- pVariable
   DeclFun pos var <$> pFunction
@@ -108,8 +96,8 @@ pDecl = do
 
 
 
-pType :: Parser s m => m (Type (Name Var))
-pType = pToken Tok_Colon >> Mega.takeWhile1P Nothing (\t -> posTail t /= Tok_Semi) >> pure UnitT
+pType :: Parser s m => m (Type Var)
+pType = pToken Tok_Colon >> Mega.takeWhile1P Nothing (\t -> posTail t /= Tok_Semi) >> pure (IntT `TypeArrow` IntT `TypeArrow` Possibility PossibilityPossibly IntT)
 
 
 
@@ -343,17 +331,19 @@ pUnresolvedInputId :: Parser s m => m UnresolvedInputId
 pUnresolvedInputId
  = tryToken get <?> "input identifier"
  where
-  get _ (Tok_VarId v) = parseUnresolvedInputId v
-  get _ (Tok_ConId v) = parseUnresolvedInputId v
-  get _ _             = Nothing
+  get _ (Tok_VarId v)  = parseUnresolvedInputId v
+  get _ (Tok_ConId v)  = parseUnresolvedInputId v
+  get _ (Tok_String v) = parseUnresolvedInputId v
+  get _ _              = Nothing
 
 
 primitives :: Parser s m => m (Position, Prim)
 primitives
- =   (second (Lit . LitInt . fromInteger)     <$> pInteger)
- <|> (second (Lit . LitDouble . toRealFloat)  <$> pRational)
- <|> (second (Lit . LitString)                <$> pString)
- <|> second PrimCon                           <$> pConstructor
+ =   (second (Lit . LitInt . fromInteger)      <$> pInteger)
+ <|> (second (Lit . LitDouble . toRealFloat)   <$> pRational)
+ <|> (second (Lit . LitString)                 <$> pString)
+ <|> (second (Lit . LitTime . midnight . Date) <$> pDate)
+ <|> second PrimCon                            <$> pConstructor
  <?> "primitive"
 
 
@@ -363,6 +353,23 @@ pConstructor
       case List.lookup n constructors of
         Just c -> return (p, c)
         Nothing -> fail ("Not a known constructor: " <> show n)
+
+
+
+timePrimitives :: Parser s m => m Prim
+timePrimitives
+ =   Mega.try  (Fun (BuiltinTime DaysBetween)
+            <$ pToken Tok_Days
+            <* pToken Tok_Between)
+ <|> Mega.try  (Fun (BuiltinTime DaysJulianEpoch)
+             <$ pToken Tok_Days
+             <* Mega.notFollowedBy (pToken Tok_Before <|> pToken Tok_After))
+ <|> Mega.try  (Fun (BuiltinTime SecondsBetween)
+            <$ pToken Tok_Seconds
+            <* pToken Tok_Between)
+ <|> Mega.try  (Fun (BuiltinTime SecondsJulianEpoch)
+             <$ pToken Tok_Seconds
+             <* Mega.notFollowedBy (pToken Tok_Before <|> pToken Tok_After))
 
 
 pWindowSizeUnit :: Parser s m => m Common.WindowUnit

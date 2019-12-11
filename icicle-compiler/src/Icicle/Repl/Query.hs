@@ -60,6 +60,7 @@ import qualified Icicle.Sea.FromAvalanche.Program as Sea
 import qualified Icicle.Sea.Preamble as Sea
 import qualified Icicle.Serial as Serial
 import qualified Icicle.Source.PrettyAnnot as Source
+import qualified Icicle.Sorbet.Render as Sorbet
 import qualified Icicle.Source.Query.Query as Source
 
 import           P
@@ -268,7 +269,7 @@ compileQuery query = do
         (Pretty.pretty sourceType)
 
   whenSet FlagAnnotated $
-    putSection "Annotated" (Source.PrettyAnnot annot)
+    putSection "Annotated" (Sorbet.PrettySorbet annot)
 
   let
     inlined =

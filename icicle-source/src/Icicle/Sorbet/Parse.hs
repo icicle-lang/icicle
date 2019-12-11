@@ -38,7 +38,7 @@ import           Text.Megaparsec (MonadParsec)
 
 
 
-sorbetFunctions :: String -> Text -> Either ParseError [Decl Position]
+sorbetFunctions :: String -> Text -> Either ParseError [Decl Position Variable]
 sorbetFunctions source input = do
   lexed  <- first LexParseError $ Mega.runParser (consumeAll lexProgram) source input
   layed  <- first LayoutParseError $ layoutProgram lexed
@@ -86,6 +86,7 @@ instance Pretty ParseError where
 
     AbstractParseError bundle ->
       pretty (Mega.errorBundlePretty bundle)
+
 
 annotOfParseError :: ParseError -> Maybe Parsec.SourcePos
 annotOfParseError = \case

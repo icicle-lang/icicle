@@ -274,7 +274,8 @@ sourceCheckFunLog env parsedImport
  $ snd
  $ flip Fresh.runFresh (freshNamer "check")
  $ runEitherT
- $ Check.checkFs env parsedImport
+ $ Check.checkFs env
+ $ fmap (\((a,n), x) -> Check.DeclFun a n x ) parsedImport
 
 sourceInline :: Inline.InlineOption
              -> Dictionary

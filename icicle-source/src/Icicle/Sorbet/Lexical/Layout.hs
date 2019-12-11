@@ -208,6 +208,15 @@ layoutTokens env = \case
       layoutTokens (startImplicit y $ startExplicit Context env) (y : xs)
 
   --
+  -- Open group fold special case.
+  -- We only want to open one Context environment here, rather than
+  -- the two for both group and fold.
+  --
+  x@(Positioned _ _ Tok_Group) : y@(Positioned _ _ Tok_Fold) : xs
+    ->
+      x <:> y <:> layoutLine (startExplicit Context env) xs
+
+  --
   -- Open brace / paren / bracket / context / if.
   --
   x@(Positioned _ _ tok) : xs

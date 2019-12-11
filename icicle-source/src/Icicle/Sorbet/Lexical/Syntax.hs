@@ -71,7 +71,10 @@ data Token =
   | Tok_Latest
   --
   | Tok_Between
+  | Tok_Before
+  | Tok_After
   | Tok_And
+  | Tok_Seconds
   | Tok_Days
   | Tok_Months
   | Tok_Weeks
@@ -133,7 +136,10 @@ renderToken = \case
   Tok_Filter            -> "filter"
   Tok_Latest            -> "latest"
   Tok_Between           -> "between"
+  Tok_Before            -> "before"
+  Tok_After             -> "after"
   Tok_And               -> "and"
+  Tok_Seconds           -> "seconds"
   Tok_Days              -> "days"
   Tok_Months            -> "months"
   Tok_Weeks             -> "weeks"

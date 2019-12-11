@@ -9,6 +9,7 @@ module Icicle.Source.Checker.Function (
   , checkFs
 
   , checkF'
+  , Decl (..)
   ) where
 
 import                  Icicle.Source.Checker.Base
@@ -32,8 +33,26 @@ import qualified        Data.Set                as Set
 import qualified        Data.List               as List
 import                  Data.Hashable           (Hashable)
 
-type Funs a n = [((a, Name n), Exp a n)]
+
+data Decl a n
+  = DeclFun a (Name n) (Exp a n)
+  | DeclType a (Name n) (Type n)
+  deriving (Eq, Show)
+
+
+-- instance Pretty (Decl p n) where
+--   pretty = \case
+--     DeclFun _ n x ->
+--       let (args, rest) = takeLams x
+--        in pretty n <+> sep (fmap (pretty . snd) args) <+> "=" <+> pretty rest
+
+--     DeclType _ n t ->
+--       pretty n <+> ":" <+> pretty t
+
+
+type Funs a n = [Decl a n]
 type FunEnvT a n = [ ResolvedFunction a n ]
+
 
 checkFs :: (Hashable n, Eq n, Pretty n)
         => FunEnvT a n
@@ -41,25 +60,54 @@ checkFs :: (Hashable n, Eq n, Pretty n)
         -> EitherT (CheckError a n, [CheckLog a n]) (Fresh.Fresh n)
                    (FunEnvT a n, [[CheckLog a n]])
 
-checkFs env functions
+checkFs env decls
  = foldlM go (env,[]) functions
  where
+  functions = [((a, n), x) | DeclFun a n x <- decls]
+  sigs = Map.fromList [(n, t) | DeclType _ n t <- decls]
+
   go (env0,logs0) (name,fun)
    = do
     let envMap = Map.fromList $ fmap ((,) <$> functionName <*> functionType) env0
-    (checkResult,logs') <- lift $ checkF envMap fun
-    (annotfun, funtype) <-  hoistEither $ first (,logs') checkResult
+    (checkResult,logs') <- lift $ checkF envMap sigs name fun
+    (annotfun, funtype) <- hoistEither $ first (,logs') checkResult
     if List.elem (snd name) (fmap functionName env0)
     then hoistEither $ Left $ (CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) [], [])
     else pure (env0 <> [ResolvedFunction (snd name) funtype annotfun], logs0 <> [logs'])
 
 checkF  :: (Hashable n, Eq n, Pretty n)
         => Map.Map (Name n) (Type n)
+        -> Map.Map (Name n) (Type n)
+        -> (a, Name n)
         -> Exp a n
         -> (Fresh.Fresh n) (Either (CheckError a n) (Exp (Annot a n) n, Type n), [CheckLog a n])
 
-checkF env fun
- = evalGen $ checkF' fun env
+checkF env sigs name fun
+ = evalGen $ checkF' fun env >>= constrain sigs name
+
+
+constrain :: (Hashable n, Eq n, Pretty n)
+          => Map.Map (Name n) (Type n)
+          -> (a, Name n)
+          -> (Exp (Annot a n) n, Type n)
+          -> Gen a n (Exp (Annot a n) n, Type n)
+constrain sigs (ann, nm) (x, inferred) = do
+  case Map.lookup nm sigs of
+    -- No explicit type signature
+    -- Return the inferred result.
+    Nothing ->
+      return (x, inferred)
+
+    -- We have a type, check it and substitute
+    Just explicit -> do
+      let cons = require ann (CEquals explicit inferred)
+      genLiftFresh (runEitherT (dischargeCS' dischargeC'toplevel cons)) >>= \case
+        Left errs
+          -> genHoistEither
+          $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot (annotOfExp x)) errs)
+        Right (sub, _)
+         -> do x' <- genLiftFresh (substTX sub x)
+               return (x', (annResult (annotOfExp x)))
 
 
 -- | Typecheck a function definition, generalising types and pulling out constraints
