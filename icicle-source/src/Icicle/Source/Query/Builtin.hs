@@ -10,12 +10,12 @@ import           Icicle.Internal.Pretty
 import           P
 
 data BuiltinFun
- = BuiltinMath  !BuiltinMath
- | BuiltinText  !BuiltinText
- | BuiltinTime  !BuiltinTime
- | BuiltinData  !BuiltinData
- | BuiltinArray !BuiltinArray
- | BuiltinMap   !BuiltinMap
+ = BuiltinMath   !BuiltinMath
+ | BuiltinText   !BuiltinText
+ | BuiltinTime   !BuiltinTime
+ | BuiltinData   !BuiltinData
+ | BuiltinArray  !BuiltinArray
+ | BuiltinMap    !BuiltinMap
  deriving (Show, Eq, Ord, Generic)
 
 -- | Functions wired into the Parser.
@@ -25,7 +25,7 @@ data BuiltinFun
 --   directly written in by the Parser.
 listOfWiredFuns :: [BuiltinFun]
 listOfWiredFuns = concat
-  [ fmap BuiltinTime    [minBound..maxBound]
+  [ fmap BuiltinTime    [DaysBetween, DaysJulianEpoch, SecondsBetween, SecondsJulianEpoch]
   ]
 
 -- | Functions wired in through the type
@@ -39,6 +39,7 @@ listOfIntroducedFuns = concat
   , fmap BuiltinData    [minBound..maxBound]
   , fmap BuiltinArray   [minBound..maxBound]
   , fmap BuiltinMap     [minBound..maxBound]
+  , fmap BuiltinTime    [ProjectDay, ProjectMonth, ProjectYear]
   ]
 
 data BuiltinMath

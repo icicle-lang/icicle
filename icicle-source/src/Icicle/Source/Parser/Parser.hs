@@ -203,8 +203,7 @@ primitives
 
 timePrimitives :: Parser Q.Prim
 timePrimitives
- =   asum (fmap (\(k,q) -> pKeyword k *> return q) simpleTime)
- <|> try  (Q.Fun (Q.BuiltinTime Q.DaysBetween)
+ =   try  (Q.Fun (Q.BuiltinTime Q.DaysBetween)
             <$ pKeyword T.Days
             <* pKeyword T.Between)
  <|> try  (Q.Fun (Q.BuiltinTime Q.DaysJulianEpoch)
@@ -216,10 +215,3 @@ timePrimitives
  <|> try  (Q.Fun (Q.BuiltinTime Q.SecondsJulianEpoch)
              <$ pKeyword T.Seconds
              <* notFollowedBy (pKeyword T.Before <|> pKeyword T.After))
-
-simpleTime :: [(T.Keyword, Q.Prim)]
-simpleTime
- = [ (T.Day_Of,      Q.Fun (Q.BuiltinTime  Q.ProjectDay ))
-   , (T.Month_Of,    Q.Fun (Q.BuiltinTime  Q.ProjectMonth ))
-   , (T.Year_Of,     Q.Fun (Q.BuiltinTime  Q.ProjectYear ))
-   ]

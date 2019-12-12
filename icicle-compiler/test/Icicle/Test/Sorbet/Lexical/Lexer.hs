@@ -38,7 +38,7 @@ prop_lexer_roundtrip =
       counterexample (ppShow tokens0) .
       counterexample "" .
       counterexample "=== Roundtrip ===" .
-      counterexample (either Mega.parseErrorPretty ppShow tokens) $
+      counterexample (either Mega.errorBundlePretty ppShow tokens) $
         Right tokens0 == tokens
 
 return []

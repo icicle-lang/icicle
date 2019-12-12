@@ -54,12 +54,12 @@ prop_extra_braces =
     law_parser_roundtrip (ppExtra Braces) pExtra
 
 law_parser_roundtrip ::
-  forall f.
+  forall f a.
   Eq (f X) =>
   Show (f X) =>
   Functor f =>
   (f X -> Doc a) ->
-  Mega.Parsec ParserError [Positioned Token] (f Position) ->
+  Mega.Parsec Mega.ParseErrorBundle [Positioned Token] (f Position) ->
   f X ->
   Property
 law_parser_roundtrip pp p ast0 =

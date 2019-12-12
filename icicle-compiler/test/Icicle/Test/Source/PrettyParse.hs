@@ -12,12 +12,15 @@ import           Icicle.Source.Parser
 import           P
 
 import qualified Data.Text as T
+import           Data.String
 
 import           System.IO
 
 import           Test.QuickCheck
 
-import           Icicle.Source.Query
+import           Icicle.Common.Base
+import           Icicle.Source.Query as Query
+import           Icicle.Source.Transform.Base
 
 prop_parse_pretty_same :: Property
 prop_parse_pretty_same
@@ -31,7 +34,7 @@ check_pretty :: QueryWithFeature -> Property
 check_pretty qwf
  = counterexample pp
  $ counterexample pp'
- $ parsed' === Right q
+ $ parsed' === normalised
  where
   q  = qwfQueryTop qwf
   pp = show $ pretty q
@@ -41,8 +44,31 @@ check_pretty qwf
   parsed' = second (reannot (const ())) parsed
 
   pp'  = case parsed of
-          Left e -> show e
-          Right q' -> show $ pretty q'
+        Left e -> show e
+        Right q' -> show $ pretty q'
+
+  replacePrim () x
+    | Prim a (Query.Fun p) <- x
+    , p `elem` listOfIntroducedFuns
+    = return ((), Query.Var a (name p))
+    | otherwise
+    = return ((), x)
+
+
+  name builtin
+    = nameOf . NameBase . fromString . show . pretty $ builtin
+
+  -- Replace introduced primitives in the generated
+  -- query with vars with the same name, as we will
+  -- actually inline them to the primitive at a later
+  -- phase.
+  rewriter =
+    idTransform {
+      transformExp = replacePrim
+    }
+
+  normalised =
+    transformQT rewriter q
 
 return []
 tests :: IO Bool

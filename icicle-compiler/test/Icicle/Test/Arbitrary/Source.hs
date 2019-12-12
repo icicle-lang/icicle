@@ -533,7 +533,7 @@ instance Arbitrary Prim where
         ]
 
    funs
-    = fmap Query.Fun listOfWiredFuns
+    = fmap Query.Fun (listOfWiredFuns <> listOfIntroducedFuns)
 
    cons
     = fmap PrimCon

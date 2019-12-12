@@ -111,7 +111,8 @@ sd v = sqrt (variance v).
 covariance a b =
   let a_ = double a ~>
   let b_ = double b ~>
-  fold (n,m1,m2,m12) = (0, 0.0, 0.0, 0.0)
+  fold (n,m1,m2,m12)
+     = (0, 0.0, 0.0, 0.0)
      : (
         let nn  = n + 1 ~>
         let d1 = (a_ - m1) / nn ~>

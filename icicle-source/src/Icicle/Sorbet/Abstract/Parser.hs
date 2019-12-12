@@ -34,7 +34,6 @@ module Icicle.Sorbet.Abstract.Parser (
 import qualified Data.List as List
 import           Data.Scientific (toRealFloat)
 
-import           Icicle.Internal.Pretty
 import           Icicle.Sorbet.Abstract.Tokens
 
 import           Icicle.Sorbet.Lexical.Syntax
@@ -344,6 +343,7 @@ primitives
  <|> (second (Lit . LitString)                 <$> pString)
  <|> (second (Lit . LitTime . midnight . Date) <$> pDate)
  <|> second PrimCon                            <$> pConstructor
+ <|> (flip (,) <$> timePrimitives <*> position)
  <?> "primitive"
 
 

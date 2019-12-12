@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Icicle.Test.Sorbet.Lexical.Jack (
     jToken
@@ -161,7 +162,7 @@ jConOp =
 
 jVarOpHead :: Jack Char
 jVarOpHead =
-  elements "!#$%&*+./<=>?@\\^-~|"
+  elements ("!#$%&*+./<=>?@\\^-~|" :: [Char])
 
 jConOpHead :: Jack Char
 jConOpHead =
@@ -169,7 +170,7 @@ jConOpHead =
 
 jOpTail :: Jack Char
 jOpTail =
-  elements ":!#$%&*+./<=>?@\\^-~|"
+  elements (":!#$%&*+./<=>?@\\^-~|" :: [Char])
 
 jHeadTail :: Jack Char -> Jack Char -> Jack Text
 jHeadTail jHead jTail =

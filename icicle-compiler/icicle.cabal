@@ -276,14 +276,16 @@ test-suite test
                      , quickcheck-instances
                      , resourcet
                      , mmorph
+                     , semigroups
+                     , scientific
                      , template-haskell
                      , temporary
                      , text
+                     , thyme
                      , transformers
                      , transformers-either
                      , unix
                      , vector
-                     , semigroups
 
   other-modules:
                        Icicle.Test.Arbitrary
@@ -340,6 +342,9 @@ test-suite test
                        Icicle.Test.Source.MaxMapSize
                        Icicle.Test.Source.PrettyParse
                        Icicle.Test.Source.Progress
+                       Icicle.Test.Sorbet.Lexical.Jack
+                       Icicle.Test.Sorbet.Lexical.Lexer
+                       Icicle.Test.Sorbet.PrettyParse
 
 test-suite test-io
   type:

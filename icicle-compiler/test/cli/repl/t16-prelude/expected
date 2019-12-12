@@ -1,6 +1,6 @@
 Queries will no longer be evaluated using the C evaluator.
 Snapshot mode activated with a snapshot date of 2017-01-01.
-Loaded dictionary with 5 inputs, 0 outputs, 70 functions.
+Loaded dictionary with 5 inputs, 0 outputs, 73 functions.
 Selected psv file as input: test/cli/repl/data.psv
 
   ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
@@ -56,7 +56,7 @@ C evaluation
 homer|300.0
 marge|10.0
 
-λ λ -- min_by / min example
+λ λ -- minby / min example
 λ Core evaluation
 ---------------
 
@@ -67,7 +67,7 @@ C evaluation
 
 homer|("head", 1)
 
-λ λ -- max_by / max example
+λ λ -- maxby / max example
 λ Core evaluation
 ---------------
 
