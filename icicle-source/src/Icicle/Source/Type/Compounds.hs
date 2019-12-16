@@ -24,6 +24,7 @@ import                  Icicle.Source.Type.Base
 
 import                  P
 
+import                  Control.Lens.Fold      (foldMapOf)
 import                  Data.List (zipWith, zip)
 import qualified        Data.Map as Map
 import qualified        Data.Set as Set
@@ -33,60 +34,14 @@ import                  Data.Hashable (Hashable)
 freeT :: (Hashable n, Eq n) => Type n -> Set.Set (Name n)
 freeT t
  = case t of
-    BoolT                   -> Set.empty
-    TimeT                   -> Set.empty
-    DoubleT                 -> Set.empty
-    IntT                    -> Set.empty
-    StringT                 -> Set.empty
-    UnitT                   -> Set.empty
-    ErrorT                  -> Set.empty
-
-    ArrayT      a           -> freeT a
-    GroupT      a b         -> Set.union (freeT a) (freeT b)
-    OptionT     a           -> freeT a
-    PairT       a b         -> Set.union (freeT a) (freeT b)
-    SumT        a b         -> Set.union (freeT a) (freeT b)
-    StructT ms              -> Set.unions
-                             $ fmap freeT
-                             $ Map.elems ms
-
-    Temporality a b         -> Set.union (freeT a) (freeT b)
-    TemporalityPure         -> Set.empty
-    TemporalityElement      -> Set.empty
-    TemporalityAggregate    -> Set.empty
-
-    Possibility a b         -> Set.union (freeT a) (freeT b)
-    PossibilityPossibly     -> Set.empty
-    PossibilityDefinitely   -> Set.empty
-
-    TypeVar n               -> Set.singleton n
-    TypeForall ns cs b      -> Set.difference (Set.union (Set.unions (fmap freeC cs)) (freeT b)) (Set.fromList ns)
-    TypeArrow f b           -> Set.union (freeT f) (freeT b)
+    TypeVar n             -> Set.singleton n
+    TypeForall ns cs b    -> Set.difference (Set.union (Set.unions (fmap freeC cs)) (freeT b)) (Set.fromList ns)
+    _                     -> foldSourceType freeT t
 
 
 freeC :: (Hashable n, Eq n) => Constraint n -> Set.Set (Name n)
-freeC c
- = case c of
-    CEquals p q             -> Set.union (freeT p) (freeT q)
-    CIsNum              t   -> freeT t
-    CPossibilityOfNum p t   -> Set.union (freeT p) (freeT t)
-    CReturnOfLetTemporalities
-                    p q r   -> Set.unions
-                             $ fmap freeT
-                             [ p, q, r ]
-    CDataOfLatest   p q r s -> Set.unions
-                             $ fmap freeT
-                             [ p, q, r, s ]
-    CPossibilityOfLatest
-                    p q r   -> Set.unions
-                             $ fmap freeT
-                             [ p, q, r ]
-    CPossibilityJoin p q r  -> Set.unions
-                             $ fmap freeT
-                             [ p, q, r ]
-    CTemporalityJoin p q r  -> Set.unions
-                             $ fmap freeT
-                             [ p, q, r ]
+freeC
+ = foldMapOf traverseType freeT
 
 
 canonT :: Type n -> Type n
@@ -145,7 +100,7 @@ getTemporality tt
 
     TypeVar _             -> Nothing
     TypeForall _ _ _      -> Nothing
-    TypeArrow _ _         -> Nothing -- wrap2 go TypeArrow f a
+    TypeArrow _ _         -> Nothing
 
  where
   go = getTemporality
@@ -193,7 +148,7 @@ getPossibility tt
 
     TypeVar _             -> Nothing
     TypeForall _ _ _      -> Nothing
-    TypeArrow _ _         -> Nothing -- wrap2 go TypeArrow f a
+    TypeArrow _ _         -> Nothing
 
  where
   go = getPossibility
