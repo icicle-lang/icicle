@@ -13,6 +13,7 @@ import                  Icicle.Common.Base
 import qualified        Icicle.Common.Fresh         as Fresh
 
 import                  Icicle.Internal.Pretty
+
 import                  Icicle.Source.Query.Builtin
 import                  Icicle.Source.Query.Prim
 import                  Icicle.Source.Query.Query
@@ -34,14 +35,6 @@ builtinDefinitions a_fresh = do
   traverse (buildResolved a_fresh) listOfIntroducedFuns
 
 -- | Build an individual function from its primitive definition.
---
---   This is a little bit tricky, as we can't under apply function
---   definitions, so we need to create the arguments to the function
---   as well. It's as if we wrote something like this in the prelude
---   @
---   sin x = sin# x
---   @
---   and then type checked it.
 buildResolved :: (IsString n, Hashable n) => a -> BuiltinFun -> Fresh.Fresh n (ResolvedFunction a n)
 buildResolved a_fresh builtin = do
   typ
@@ -55,3 +48,15 @@ buildResolved a_fresh builtin = do
       = Prim annot (Fun builtin)
   return $
     ResolvedFunction name typ prim
+
+
+instance Pretty n => Pretty (ResolvedFunction a n) where
+  pretty (ResolvedFunction n t exp) =
+    align $
+      vsep [
+        pretty n <+> prettyPunctuation ":" <+> pretty t
+      , pretty n <+> prettyPunctuation "=" <+> pretty exp
+      ]
+
+  prettyList =
+    align . vsep . fmap pretty

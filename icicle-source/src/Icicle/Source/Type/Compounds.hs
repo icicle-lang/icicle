@@ -98,12 +98,13 @@ getTemporality tt
     PossibilityPossibly   -> Nothing
     PossibilityDefinitely -> Nothing
 
-    TypeVar _             -> Nothing
-    TypeForall _ _ _      -> Nothing
-    TypeArrow _ _         -> Nothing
+    TypeVar {}            -> Nothing
+    TypeForall {}         -> Nothing
+    TypeArrow {}          -> Nothing
 
  where
   go = getTemporality
+
 
 getTemporalityOrPure :: Type n -> Type n
 getTemporalityOrPure t
@@ -146,9 +147,9 @@ getPossibility tt
     PossibilityPossibly   -> Nothing
     PossibilityDefinitely -> Nothing
 
-    TypeVar _             -> Nothing
-    TypeForall _ _ _      -> Nothing
-    TypeArrow _ _         -> Nothing
+    TypeVar {}            -> Nothing
+    TypeForall {}         -> Nothing
+    TypeArrow {}          -> Nothing
 
  where
   go = getPossibility
@@ -185,9 +186,9 @@ getBaseType tt
     PossibilityPossibly   -> Nothing
     PossibilityDefinitely -> Nothing
 
-    TypeVar _             -> Just tt
-    TypeForall _ _ _      -> Just tt
-    TypeArrow _ _         -> Just tt
+    TypeVar {}            -> Nothing
+    TypeForall {}         -> Nothing
+    TypeArrow {}          -> Nothing
 
 -- Temporality and possibility helpers --
 

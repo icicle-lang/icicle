@@ -40,7 +40,6 @@ import qualified Icicle.Test.Source.MaxMapSize
 
 import qualified Icicle.Test.Sorbet.PrettyParse
 import qualified Icicle.Test.Sorbet.Lexical.Lexer
--- import qualified Icicle.Test.Sorbet.Concrete.Parser
 
 import qualified Icicle.Test.Sea.Name
 import qualified Icicle.Test.Sea.Text
@@ -111,7 +110,6 @@ sorbet =
   TestSuite "sorbet" [
     Icicle.Test.Sorbet.PrettyParse.tests
   , Icicle.Test.Sorbet.Lexical.Lexer.tests
-  -- , Icicle.Test.Sorbet.Concrete.Parser
   ]
 
 suites :: Map String TestSuite

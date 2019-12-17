@@ -196,9 +196,10 @@ reservedOperators =
       ("<-", Tok_LArrowDash)
     , ("->", Tok_RArrowDash)
     , ("=>", Tok_RArrowEquals)
-    , ("=", Tok_Equals)
-    , (":", Tok_Colon)
-    , ("@", Tok_At)
+    , ("=",  Tok_Equals)
+    , (":",  Tok_Colon)
+    , ("=:", Tok_EqualsColon)
+    , ("@",  Tok_At)
     ]
 
 lexLiteral :: Lexer s m => m (Positioned Token)

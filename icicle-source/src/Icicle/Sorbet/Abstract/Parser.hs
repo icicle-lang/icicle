@@ -35,6 +35,7 @@ import qualified Data.List as List
 import           Data.Scientific (toRealFloat)
 
 import           Icicle.Sorbet.Abstract.Tokens
+import           Icicle.Sorbet.Abstract.Type
 
 import           Icicle.Sorbet.Lexical.Syntax
 import           Icicle.Sorbet.Position
@@ -83,20 +84,18 @@ pDecls =
 
 pDecl :: Parser s m => m (Decl Position Var)
 pDecl = do
+  -- Read a variable first, this is the function name
+  -- in either its definition or type.
   (pos, var) <- pVariable
-  DeclFun pos var <$> pFunction
-    <|> DeclType pos var <$> pType
+
+  -- Read the rest of the function or type signature.
+  DeclFun pos var <$> pFunction <|> DeclType pos var <$> pDeclType
 
 
-
--- pDeclFun :: Parser s m => m (Decl Position)
--- pDeclFun =
---   uncurry DeclFun <$> pVariable <*> pFunction
-
-
-
-pType :: Parser s m => m (Type Var)
-pType = pToken Tok_Colon >> Mega.takeWhile1P Nothing (\t -> posTail t /= Tok_Semi) >> pure (IntT `TypeArrow` IntT `TypeArrow` Possibility PossibilityPossibly IntT)
+pDeclType :: Parser s m => m (Type Var)
+pDeclType = do
+  _ <- pToken Tok_Colon
+  pConstrainedType
 
 
 
@@ -122,7 +121,8 @@ pContexts = do
 --   here a more custom "many" and "some" to operate on these.
 pSomeContexts :: Parser s m => m [Context Position Var]
 pSomeContexts = do
-  cs   <- pContextLet <|> some (pSingleContext <* pToken Tok_In)
+  cs   <- pContextLet <|> some pSingleContext
+  _    <- pToken Tok_In
   rest <- pContexts
   pure  $ cs <> rest
 
@@ -154,7 +154,6 @@ pContextLet = do
 
   ret <- letE  `Mega.sepEndBy1` pToken Tok_Semi
   _   <- pToken Tok_RBrace
-  _   <- pToken Tok_In
   return ret
 
 

@@ -33,7 +33,10 @@ import                  Data.Hashable (Hashable)
 type SubstT n = Map.Map (Name n) (Type n)
 
 
---- | Substitute into a type.
+-- | Substitute into a type.
+--
+--   TODO: Move into a Fresh monad as quantified
+--         types can capture.
 substT :: Eq n => SubstT n -> Type n -> Type n
 substT ss
  = canonT . go ss
@@ -43,13 +46,14 @@ substT ss
       | Just t' <- Map.lookup n ss
       -> t'
     TypeForall ns cs r
-      -> let ss1  = ss Map.\\ Map.fromList ((,()) <$> ns)
+      -> let ss1  = foldr Map.delete ss ns
              cs1  = fmap (substC ss1) cs
              r1   = go ss1 r
          in  TypeForall ns cs1 r1
     t
       -> mapSourceType (go ss0) t
 
+-- | Substitute into a constraint.
 substC :: Eq n => SubstT n -> Constraint n -> Constraint n
 substC ss
  = over traverseType (substT ss)

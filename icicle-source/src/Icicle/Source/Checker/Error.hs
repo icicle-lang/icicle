@@ -45,6 +45,7 @@ data ErrorInfo a n
  | ErrorApplicationNotFunction a (Exp a n)
  | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
  | ErrorConstraintLeftover      a [(a, Constraint n)]
+ | ErrorCantInferConstraints    a [(a, Constraint n)] [(a, Constraint n)]
  | ErrorReturnNotAggregate a (Type n)
  | ErrorDuplicateFunctionNames a (Name n)
  | ErrorEmptyCase a (Exp a n)
@@ -75,6 +76,8 @@ annotOfError (CheckError e _)
     ErrorConstraintsNotSatisfied          a _
      -> Just a
     ErrorConstraintLeftover a _
+     -> Just a
+    ErrorCantInferConstraints a _ _
      -> Just a
     ErrorReturnNotAggregate          a _
      -> Just a
@@ -180,6 +183,25 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
           "Unsolved constraints at " <+> pretty a
         , mempty
         , vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
+        ]
+
+    ErrorCantInferConstraints a ds [] ->
+      vsep [
+          "Can't infer required constraints at " <+> pretty a
+        , mempty
+        , vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
+        , mempty
+        , "No constraints were specified"
+        ]
+
+    ErrorCantInferConstraints a ds xs ->
+      vsep [
+          "Can't infer required constraints at " <+> pretty a
+        , mempty
+        , vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
+        , mempty
+        , "from the specified constraints:"
+        , vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) xs)
         ]
 
     ErrorReturnNotAggregate a t ->

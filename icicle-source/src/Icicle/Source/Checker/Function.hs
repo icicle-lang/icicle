@@ -15,6 +15,7 @@ module Icicle.Source.Checker.Function (
 import                  Icicle.Source.Checker.Base
 import                  Icicle.Source.Checker.Error
 import                  Icicle.Source.Checker.Constraint
+import                  Icicle.Source.Checker.Subsumption
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
@@ -25,6 +26,7 @@ import                  Icicle.Internal.Pretty (Pretty, pretty)
 
 import                  P
 
+import                  Control.Monad.Trans.Maybe
 import                  Control.Monad.Trans.Either
 import                  Control.Monad.Trans.Class (lift)
 
@@ -40,14 +42,11 @@ data Decl a n
   deriving (Eq, Show)
 
 
--- instance Pretty (Decl p n) where
---   pretty = \case
---     DeclFun _ n x ->
---       let (args, rest) = takeLams x
---        in pretty n <+> sep (fmap (pretty . snd) args) <+> "=" <+> pretty rest
-
---     DeclType _ n t ->
---       pretty n <+> ":" <+> pretty t
+instance TraverseAnnot Decl where
+  traverseAnnot f decl =
+    case decl of
+      DeclFun a n x -> DeclFun <$> f a <*> pure n <*> traverseAnnot f x
+      DeclType a n t -> DeclType <$> f a <*> pure n <*> pure t
 
 
 type Funs a n = [Decl a n]
@@ -98,17 +97,12 @@ constrain sigs (ann, nm) (x, inferred) = do
     Nothing ->
       return (x, inferred)
 
-    -- We have a type, check it and substitute
+    -- We have a type, run subsumption,
+    -- seeing if the inferred type is a least
+    -- as polymorphic as the explicit type
+    -- signature.
     Just explicit -> do
-      let cons = require ann (CEquals explicit inferred)
-      genLiftFresh (runEitherT (dischargeCS' dischargeC'toplevel cons)) >>= \case
-        Left errs
-          -> genHoistEither
-          $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot (annotOfExp x)) errs)
-        Right (sub, _)
-         -> do x' <- genLiftFresh (substTX sub x)
-               return (x', (annResult (annotOfExp x)))
-
+      subsume ann x inferred explicit
 
 -- | Typecheck a function definition, generalising types and pulling out constraints
 checkF' :: (Hashable n, Eq n, Pretty n)

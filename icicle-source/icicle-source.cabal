@@ -64,6 +64,7 @@ library
 
                        Icicle.Sorbet.Abstract.Parser
                        Icicle.Sorbet.Abstract.Tokens
+                       Icicle.Sorbet.Abstract.Type
                        Icicle.Sorbet.Concrete.Annotation
                        Icicle.Sorbet.Concrete.Parser
                        Icicle.Sorbet.Concrete.Pretty
@@ -111,6 +112,7 @@ library
                        Icicle.Source.Checker.Invariants
                        Icicle.Source.Checker.Prim
                        Icicle.Source.Checker.Resumable
+                       Icicle.Source.Checker.Subsumption
 
                        Icicle.Source.ToCore.Base
                        Icicle.Source.ToCore.Context

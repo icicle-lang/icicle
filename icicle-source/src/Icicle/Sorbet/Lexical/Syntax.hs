@@ -47,6 +47,7 @@ data Token =
   | Tok_RArrowEquals -- ^  =>
   | Tok_Equals       -- ^  =
   | Tok_Colon        -- ^  :
+  | Tok_EqualsColon  -- ^  =:
   | Tok_At           -- ^  @
 
   --
@@ -118,6 +119,7 @@ renderToken = \case
   Tok_RArrowEquals      -> "=>"
   Tok_Equals            -> "="
   Tok_Colon             -> ":"
+  Tok_EqualsColon       -> "=:"
   Tok_At                -> "@"
   Tok_Wild              -> "_"
   Tok_Case              -> "case"
