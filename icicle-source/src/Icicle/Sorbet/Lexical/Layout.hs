@@ -209,7 +209,7 @@ layoutTokens env = \case
 
   --
   -- Open group fold special case.
-  -- We only want to open one Context environment here, rather than
+  -- We only want to open one context environment here, rather than
   -- the two for both group and fold.
   --
   x@(Positioned _ _ Tok_Group) : y@(Positioned _ _ Tok_Fold) : xs

@@ -27,7 +27,7 @@ module Icicle.Sorbet.Abstract.Type (
   ) where
 
 import qualified Data.List as List
-import           Data.Scientific (toRealFloat)
+import qualified Data.Map as Map
 import           Data.String (String)
 
 import           Icicle.Sorbet.Abstract.Tokens
@@ -36,13 +36,7 @@ import           Icicle.Sorbet.Lexical.Syntax
 import           Icicle.Sorbet.Position
 
 import           Icicle.Common.Base as Common
-import           Icicle.Data.Name
-import           Icicle.Data.Time (Date (..), midnight)
-import           Icicle.Source.Query
 import           Icicle.Source.Type
-import           Icicle.Source.Parser.Constructor (checkPat, constructors)
-import           Icicle.Source.Parser.Operators
-import           Icicle.Source.Checker.Function (Decl (..))
 
 import           P
 
@@ -61,13 +55,13 @@ pConstrainedType = do
     freeVars =
       toList (freeT typ)
 
-    final =
+    ret =
       if null freeVars && null constraints then
         typ
       else
         TypeForall freeVars constraints typ
 
-  return final
+  return ret
 
 
 pConstraint :: Parser s m => m (Position, Constraint Var)
@@ -84,15 +78,13 @@ pType =
     either fail (\t -> return (p, t)) (defixType xs)
 
 
- where
-
-
 pTypeSimple :: Parser s m => m (Position, Type Var)
 pTypeSimple =
   choice [
       pTypeSingle
     , pTypeVar
     , pTypeNested
+    , pTypeRecord
     ]
 
 
@@ -135,12 +127,24 @@ pTypeNested =
     pToken Tok_LParen *> pType <* pToken Tok_RParen
 
 
--- pTypeTuple :: Parser s m => m (Type Var)
--- pTypeTuple =
---   label "type tuple" $
---   TypeTuple
---     <$> pToken Tok_LParen
---     <*> (pType `sepBy` pToken Tok_Comma) <* pToken Tok_RParen
+pTypeRecord :: Parser s m => m (Position, Type Var)
+pTypeRecord =
+  label "record type" $ do
+    p <- pToken Tok_LBrace
+    let
+      asField (Variable x) = Common.StructField x
+
+      pField = do
+        (_, v) <- pVarId
+        _      <- pToken Tok_Colon
+        (_, t) <- pTypeSimple
+        return (asField v, t)
+
+    fields <- pField `Mega.sepBy` pToken Tok_Comma
+
+    _ <- pToken Tok_RBrace
+    return (p, StructT $ Map.fromList fields)
+
 
 
 simpleTypes :: Parser s m => [(Text, m (Type Var))]
@@ -152,16 +156,17 @@ simpleTypes
      ,("ErrorT",                  pure $ ErrorT)
      ,("Time",                    pure $ TimeT)
      ,("String",                  pure $ StringT)
-     ,("Option",                  OptionT <$> (snd <$> pTypeSimple))
-     ,("Sum",                     SumT    <$> (snd <$> pTypeSimple) <*> (snd <$> pTypeSimple))
-     ,("Array",                   ArrayT  <$> (snd <$> pTypeSimple))
-     ,("Group",                   GroupT  <$> (snd <$> pTypeSimple) <*> (snd <$> pTypeSimple))
-     ,("Pure",                    Temporality TemporalityPure       <$> (snd <$> pTypeSimple))
-     ,("Element",                 Temporality TemporalityElement    <$> (snd <$> pTypeSimple))
-     ,("Aggregate",               Temporality TemporalityAggregate  <$> (snd <$> pTypeSimple))
-     ,("Possibly",                Possibility PossibilityPossibly   <$> (snd <$> pTypeSimple))
-     ,("Definitely",              Possibility PossibilityDefinitely <$> (snd <$> pTypeSimple))
-     ,("Possibility",             Possibility <$> (snd <$> pTypeSimple) <*> (snd <$> pTypeSimple))
+     ,("Option",                  one  $ OptionT)
+     ,("Sum",                     two  $ SumT)
+     ,("Array",                   one  $ ArrayT)
+     ,("Group",                   two  $ GroupT)
+     ,("Pure",                    one  $ Temporality TemporalityPure)
+     ,("Element",                 one  $ Temporality TemporalityElement)
+     ,("Aggregate",               one  $ Temporality TemporalityAggregate)
+     ,("Temporality",             two  $ Temporality)
+     ,("Possibly",                one  $ Possibility PossibilityPossibly)
+     ,("Definitely",              one  $ Possibility PossibilityDefinitely)
+     ,("Possibility",             two  $ Possibility)
      ]
 
 
@@ -181,7 +186,7 @@ pConstraintSimple =
 
 simpleConstraints :: Parser s m => [(Text, m (Constraint Var))]
 simpleConstraints
-   = [("Num",                  CIsNum <$> (snd <$> pTypeSimple))
+   = [("Num",                  one CIsNum)
      ]
 
 
@@ -198,7 +203,12 @@ pEqualityConstraint =
 
 simpleEqualityConstraints :: Parser s m => [(Text, Type Var -> m (Constraint Var))]
 simpleEqualityConstraints
-   = [("PossibilityOfNum",        \ret -> CPossibilityOfNum ret <$> (snd <$> pTypeSimple))
+   = [("PossibilityOfNum",        \ret -> one   (CPossibilityOfNum ret))
+     ,("TemporalityJoin",         \ret -> two   (CTemporalityJoin ret))
+     ,("ReturnOfLet",             \ret -> two   (CReturnOfLetTemporalities ret))
+     ,("DataOfLatest",            \ret -> three (CDataOfLatest ret))
+     ,("PossibilityOfLatest",     \ret -> two   (CPossibilityOfLatest ret))
+     ,("PossibilityJoin",         \ret -> two   (CPossibilityJoin ret))
      ]
 
 -- | FIX
@@ -208,7 +218,7 @@ defixType :: [Either (a, Type n) TypeOperator] -> Either String (Type n)
 defixType = \case
   [] ->
     Left "Can't parse nothing as type"
-  (Right op : _) ->
+  (Right _ : _) ->
     Left "Can't parse prefix type operator"
   (Left (_, typ) : []) ->
     Right typ
@@ -222,9 +232,19 @@ defixType = \case
   pullSimilar op (Right op' : Left (_, typ) : rest) | op == op' = do
     further <- pullSimilar op rest
     return (typ : further)
-  pullSimilar op [] =
+  pullSimilar _ [] =
     return []
-  pullSimilar op _ =
+  pullSimilar _ _ =
     Left "Can't mix infix type operators with same precedence or over apply types"
   goOp OpComma xs = List.foldl1 PairT xs
   goOp OpFunctionArrow xs = List.foldr1 TypeArrow xs
+
+
+one :: Parser s m => (Type Var -> x) -> m x
+one x = x <$> (snd <$> pTypeSimple)
+
+two :: Parser s m => (Type Var -> Type Var -> x) -> m x
+two x = one x <*> (snd <$> pTypeSimple)
+
+three :: Parser s m => (Type Var -> Type Var -> Type Var -> x) -> m x
+three x = two x <*> (snd <$> pTypeSimple)

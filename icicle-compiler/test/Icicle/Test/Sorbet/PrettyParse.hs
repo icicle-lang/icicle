@@ -6,13 +6,14 @@
 module Icicle.Test.Sorbet.PrettyParse where
 
 import           Icicle.Test.Arbitrary
-import           Icicle.Internal.Pretty
-import           Icicle.Sorbet.Parse
+import qualified Icicle.Test.Gen.Core.Type as CoreGen
 
 import           P
 
 import qualified Data.Text as Text
 import           Data.String
+
+import qualified Text.Megaparsec as Mega
 
 import           System.IO
 
@@ -20,8 +21,15 @@ import           Hedgehog hiding (Var)
 import qualified Hedgehog.Gen.QuickCheck as Gen
 
 import           Icicle.Common.Base
+import           Icicle.Internal.Pretty
+
+import           Icicle.Sorbet.Parse
+import           Icicle.Sorbet.Lexical.Lexer
 import           Icicle.Sorbet.Render
+import           Icicle.Sorbet.Abstract.Type
+
 import           Icicle.Source.Query as Query
+import           Icicle.Source.Type  as Type
 import           Icicle.Source.Transform.Base
 
 prop_parse_pretty_same :: Property
@@ -77,6 +85,16 @@ prop_parse_pretty_same = withDiscards 1000 . withTests 1000 . property $ do
 
   parsed' === normalised
 
+
+prop_parse_pretty_type :: Property
+prop_parse_pretty_type = withDiscards 1000 . withTests 1000 . property $ do
+  valType   <- forAll CoreGen.genValType
+  let
+    sourceType =
+      Type.typeOfValType valType
+
+  tripping sourceType (Text.pack . show . pretty)
+      (sorbetType)
 
 
 return []

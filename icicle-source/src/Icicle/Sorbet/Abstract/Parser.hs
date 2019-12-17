@@ -303,11 +303,11 @@ pExp1
   parseIf
    = do pos   <- pToken Tok_If
         scrut <- pExp
-        _     <- pToken Tok_Then
-        true  <- pExp
-        _     <- pToken Tok_Else
-        false <- pExp
-        return $ If pos scrut true false
+        pthen <- pToken Tok_Then
+        true  <- pQuery
+        pelse <- pToken Tok_Else
+        false <- pQuery
+        return $ If pos scrut (simpNested pthen true) (simpNested pelse false)
 
   parseCase
    = do pos   <- pToken Tok_Case
@@ -320,9 +320,9 @@ pExp1
 
   parseAlt
    = do pat <- pPattern
-        _   <- pToken Tok_Then
-        xx  <- pExp
-        return (pat, xx)
+        pos <- pToken Tok_Then
+        xx  <- pQuery
+        return (pat, simpNested pos xx)
 
 
 pUnresolvedInputId :: Parser s m => m UnresolvedInputId

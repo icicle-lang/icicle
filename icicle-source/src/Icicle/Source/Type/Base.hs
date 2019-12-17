@@ -23,6 +23,7 @@ module Icicle.Source.Type.Base (
   , mapSourceType
   , anyArrows
   , anyForalls
+  , anyStructs
   ) where
 
 import           Control.Lens.Fold      (foldMapOf)
@@ -82,6 +83,13 @@ anyForalls
 anyArrows :: Type n -> Bool
 anyArrows
  = let go (TypeArrow {}) = Any True
+       go x = foldSourceType go x
+   in getAny . go
+
+
+anyStructs :: Type n -> Bool
+anyStructs
+ = let go (StructT {}) = Any True
        go x = foldSourceType go x
    in getAny . go
 
@@ -273,8 +281,12 @@ instance Pretty n => Pretty (Type n) where
     TypeArrow f x ->
       parensWhenArg p $
           pretty $ PrettyFunType [] [parensWhen (anyArrows f) (pretty f)] (pretty x)
-    Temporality a b ->
-      prettyApp hsep p a [b]
+
+    Temporality a b
+      | TypeVar _ <- a ->
+        prettyApp hsep p (prettyConstructor "Temporality") [a, b]
+      | otherwise ->
+        prettyApp hsep p a [b]
     TemporalityPure ->
       prettyConstructor "Pure"
     TemporalityElement ->
@@ -282,8 +294,11 @@ instance Pretty n => Pretty (Type n) where
     TemporalityAggregate ->
       prettyConstructor "Aggregate"
 
-    Possibility a b ->
-      prettyApp hsep p a [b]
+    Possibility a b
+      | TypeVar _ <- a ->
+        prettyApp hsep p (prettyConstructor "Possibility") [a, b]
+      | otherwise ->
+        prettyApp hsep p a [b]
     PossibilityPossibly ->
       prettyConstructor "Possibly"
     PossibilityDefinitely ->

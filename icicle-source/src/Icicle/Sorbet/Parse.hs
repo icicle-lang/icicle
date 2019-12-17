@@ -11,6 +11,7 @@ module Icicle.Sorbet.Parse (
     sorbet
   , sorbetQuery
   , sorbetFunctions
+  , sorbetType
 
   , ParseError
   , annotOfParseError
@@ -20,12 +21,14 @@ import           Data.String (String)
 
 import           Icicle.Sorbet.Abstract.Parser
 import           Icicle.Sorbet.Abstract.Tokens
+import           Icicle.Sorbet.Abstract.Type
 import           Icicle.Sorbet.Lexical.Lexer
 import           Icicle.Sorbet.Lexical.Layout
 import           Icicle.Sorbet.Position
 
 import           Icicle.Internal.Pretty (Pretty (..))
 import           Icicle.Source.Query
+import           Icicle.Source.Type
 
 import           Icicle.Data.Name
 
@@ -51,6 +54,14 @@ sorbet oid input = do
   lexed  <- first LexParseError $ Mega.runParser (consumeAll lexProgram) "" input
   layed  <- first LayoutParseError $ layoutProgram lexed
   parsed <- first AbstractParseError $ Mega.runParser (consumeAll (pTop oid)) "" (PositionedStream input layed)
+  return parsed
+
+
+
+sorbetType :: Text -> Either ParseError (Type Variable)
+sorbetType input = do
+  lexed  <- first LexParseError $ Mega.runParser (consumeAll lexProgram) "" input
+  parsed <- first AbstractParseError $ Mega.runParser (consumeAll (pConstrainedType)) "" (PositionedStream input lexed)
   return parsed
 
 

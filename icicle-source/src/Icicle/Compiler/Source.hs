@@ -68,7 +68,7 @@ import qualified Icicle.Dictionary                        as Dict
 
 import           Icicle.Internal.Pretty
 
-import           Icicle.Sorbet.Position                   (Position (..), toParsec)
+import           Icicle.Sorbet.Position                   (toParsec)
 import qualified Icicle.Sorbet.Parse                      as Sorbet
 
 
@@ -81,8 +81,6 @@ import qualified Icicle.Source.Transform.ReifyPossibility as Reify
 import qualified Icicle.Source.Type                       as Type
 
 import           Control.Monad.IO.Class
-import           Control.Monad.Trans.Class
-import           Control.Monad.Morph
 import           Control.Monad.Trans.Either
 
 import           Data.Functor.Identity
@@ -158,7 +156,7 @@ annotOfError e
     ErrorSourceParse sp
      -> Just
       $ Parsec.errorPos sp
-    ErrorSorbetParse sp
+    ErrorSorbetParse _
      -> Nothing
     ErrorSourceDesugar e'
      -> Desugar.annotOfError e'
