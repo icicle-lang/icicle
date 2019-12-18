@@ -26,7 +26,6 @@ import                  Icicle.Internal.Pretty (Pretty, pretty)
 
 import                  P
 
-import                  Control.Monad.Trans.Maybe
 import                  Control.Monad.Trans.Either
 import                  Control.Monad.Trans.Class (lift)
 

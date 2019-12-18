@@ -330,6 +330,10 @@ evalP ann p xs vs env
              | [VDouble i] <- args
              -> return $ VDouble i
              | otherwise -> err
+            BuiltinMath FromInteger
+             | [VDouble i] <- args
+             -> return $ VDouble i
+             | otherwise -> err
             BuiltinMath Abs
              | [VDouble i] <- args
              -> return $ VDouble $ abs i

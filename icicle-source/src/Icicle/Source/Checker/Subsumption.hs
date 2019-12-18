@@ -32,7 +32,7 @@ import                  Data.Hashable (Hashable)
 metaVars :: (Hashable n, Eq n, Monad m) => a -> Type n -> m (Type n, Type n, GenConstraintSet a n)
 metaVars ann t =
   case t of
-    TypeForall ns cs t'
+    TypeForall _ cs t'
       -> return (t', t', (fmap (ann,) cs))
     _ -> return (t, t, [])
 

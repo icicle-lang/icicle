@@ -102,9 +102,9 @@ pDeclType = do
 pFunction :: Parser s m => m (Exp Position Var)
 pFunction = do
   vs  <- many pVariable                     <?> "function variables"
-  p   <- pToken Tok_Equals                  <?> "equals"
+  _   <- pToken Tok_Equals                  <?> "equals"
   q   <- pQuery
-  pure $ foldr (uncurry Lam) (simpNested p q) vs
+  pure $ foldr (uncurry Lam) (simpNested q) vs
 
 
 -- | Parse a potentially empty list of contexts.
@@ -261,7 +261,7 @@ pContextFold = do
   z       <- pQuery                                         <?> "initial value"
   _       <- pToken Tok_Then                                <?> "then"
   k       <- pQuery                                         <?> "fold expression"
-  return $ LetFold p (Fold n (simpNested p z) (simpNested p k) ft)
+  return $ LetFold p (Fold n (simpNested z) (simpNested k) ft)
 
 
 pFoldType :: Parser s m => m (Position, FoldType)
@@ -289,7 +289,7 @@ pExp1 :: Parser s m => m (Exp Position Var)
 pExp1
  =   (uncurry Var        <$> var        )
  <|> (uncurry Prim       <$> primitives )
- <|> (simpNested         <$> position <*> inParens)
+ <|> (simpNested         <$> inParens)
  <|> parseIf
  <|> parseCase
  <?> "expression"
@@ -303,11 +303,11 @@ pExp1
   parseIf
    = do pos   <- pToken Tok_If
         scrut <- pExp
-        pthen <- pToken Tok_Then
+        _     <- pToken Tok_Then
         true  <- pQuery
-        pelse <- pToken Tok_Else
+        _     <- pToken Tok_Else
         false <- pQuery
-        return $ If pos scrut (simpNested pthen true) (simpNested pelse false)
+        return $ If pos scrut (simpNested true) (simpNested false)
 
   parseCase
    = do pos   <- pToken Tok_Case
@@ -320,9 +320,9 @@ pExp1
 
   parseAlt
    = do pat <- pPattern
-        pos <- pToken Tok_Then
+        _   <- pToken Tok_Then
         xx  <- pQuery
-        return (pat, simpNested pos xx)
+        return (pat, simpNested xx)
 
 
 pUnresolvedInputId :: Parser s m => m UnresolvedInputId
@@ -383,9 +383,9 @@ pWindowSizeUnit
    = pToken kw *> return q
 
 
-simpNested :: a -> Query a n -> Exp a n
-simpNested a q = case q of
+simpNested :: Query a n -> Exp a n
+simpNested q = case q of
   Query [] e
     -> e
   contextual
-    -> Nested a contextual
+    -> Nested (annotOfQuery contextual) contextual
