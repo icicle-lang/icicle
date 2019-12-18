@@ -100,6 +100,8 @@ primLookup' prim
     -- But conversions are OK
     Fun (BuiltinMath ToDouble)
      -> fNumDefinitely $ \at -> ([at], DoubleT)
+    Fun (BuiltinMath FromInteger)
+     -> fNumDefinitely $ \at -> ([IntT], at)
     Fun (BuiltinMath Abs)
      -> fNumDefinitely $ \at -> ([at], at)
     Fun (BuiltinMath Floor)

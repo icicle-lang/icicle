@@ -58,6 +58,7 @@ data BuiltinMath
  | Tan
  | Tanh
  | ToDouble
+ | FromInteger
  | Floor
  | Ceiling
  | Round
@@ -133,6 +134,7 @@ instance Pretty BuiltinMath where
  pretty Tan         = "tan"
  pretty Tanh        = "tanh"
  pretty ToDouble    = "double"
+ pretty FromInteger = "from_integer"
  pretty Abs         = "abs"
  pretty Floor       = "floor"
  pretty Ceiling     = "ceil"

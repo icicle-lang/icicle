@@ -316,6 +316,15 @@ convertPrim p ann resT xts = go p
        -> return xx
       _
        -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinToDoubleFromInt
+  gomath FromInteger
+   = case xts of
+      ((xx,_):_)
+       | (_, _, DoubleT) <- decomposeT resT
+       -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinToDoubleFromInt
+       | otherwise
+       -> return xx
+      _
+       -> convertError $ ConvertErrorPrimNoArguments ann 1 p
   gomath Floor
    = case xts of
       ((xx,tt):_)
