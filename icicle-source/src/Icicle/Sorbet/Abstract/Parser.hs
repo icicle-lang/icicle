@@ -255,7 +255,7 @@ pContextBetween pos = do
 --   AST.
 pContextFold :: Parser s m => m (Context Position Var)
 pContextFold = do
-  (p, ft) <- pFoldType                                      <?> "let fold"
+  (p, ft) <- pFoldType
   n       <- pPattern
   _       <- pToken Tok_Equals
   z       <- pQuery                                         <?> "initial value"

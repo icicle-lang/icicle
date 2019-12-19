@@ -98,7 +98,7 @@ type AnnotUnit = ()
 type Var         = Parse.Variable
 type TypeAnnot a = Type.Annot a Var
 
-type Funs a b = [((a, Name b), Query.Exp a b)]
+type Funs a b = [ Check.Decl a b ]
 type FunEnvT a b = [ Query.ResolvedFunction a b ]
 
 type QueryUntyped v = Query.QueryTop            Parsec.SourcePos  v
@@ -232,12 +232,22 @@ sourceDesugarQT q
      (Desugar.desugarQT q)
      (freshNamer "desugar_q")
 
+
+sourceDesugarDecl
+ :: Check.Decl Parsec.SourcePos Var
+ -> Fresh.FreshT Var (EitherT (Desugar.DesugarError Parsec.SourcePos Var) Identity)
+                     (Check.Decl Parsec.SourcePos Var)
+sourceDesugarDecl (Check.DeclFun a ns exp)
+ = Check.DeclFun a ns <$> Desugar.desugarX exp
+sourceDesugarDecl declType
+ = return declType
+
 sourceDesugarF :: Funs Parsec.SourcePos Var
                -> Either (ErrorSource Var) (Funs Parsec.SourcePos Var)
 sourceDesugarF fun
  = runIdentity . runEitherT . bimapEitherT ErrorSourceDesugar snd
  $ Fresh.runFreshT
-     (mapM (mapM Desugar.desugarX) fun)
+     (mapM sourceDesugarDecl fun)
      (freshNamer "desugar_f")
 
 sourceReifyQT :: QueryTyped Var
@@ -270,15 +280,15 @@ sourceCheckF env parsedImport
  $ sourceCheckFunLog env parsedImport
 
 sourceCheckFunLog :: FunEnvT Parsec.SourcePos Var
-             -> Funs    Parsec.SourcePos Var
-             -> Either  (Error, [Check.CheckLog Parsec.SourcePos Var]) (FunEnvT Parsec.SourcePos Var, [[Check.CheckLog Parsec.SourcePos Var]])
+                  -> Funs    Parsec.SourcePos Var
+                  -> Either  (Error, [Check.CheckLog Parsec.SourcePos Var]) (FunEnvT Parsec.SourcePos Var, [[Check.CheckLog Parsec.SourcePos Var]])
 sourceCheckFunLog env parsedImport
  = first (first ErrorSourceCheck)
  $ snd
  $ flip Fresh.runFresh (freshNamer "check")
  $ runEitherT
  $ Check.checkFs env
- $ fmap (\((a,n), x) -> Check.DeclFun a n x ) parsedImport
+ $ parsedImport
 
 sourceInline :: Inline.InlineOption
              -> Dictionary

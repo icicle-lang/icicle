@@ -64,9 +64,9 @@ latest n input =
           "value"
   in
     Text.pack $
-      "feature " <>
+      "from " <>
       show (renderInputId (inputId input)) <>
-      " ~> latest " <> show n <> " ~> " <>
+      "in latest " <> show n <> " in " <>
       vname
 
 fromInputId :: Int -> InputId -> OutputId

@@ -16,7 +16,7 @@ int_div x y =
 
 
 -- Most recent value
-newest : Element Int -> Aggregate (Possibly Int)
+newest : Element a -> Aggregate (Possibly a)
 newest v =
   latest 1 in fold1 x = v then v in x
 
@@ -28,12 +28,14 @@ oldest v =
 
 
 -- check if a day is a weekend.
+is_weekend : Time -> Possibly Bool
 is_weekend v =
   let day = mod (days v) 7
    in day == 3 || day == 4
 
 
 -- starting at epoch 1600/01/03, identify the week that containing this day.
+week_of_day : Time -> Possibly Int
 week_of_day d
   = trunc (double (days d) / 7)
 
@@ -101,18 +103,6 @@ any x = fold a = False then a || x in a
 -- Are all elements true
 all : Element Bool -> Aggregate Bool
 all x = fold a = True then a && x in a
-
-
--- Ensure that an aggregate value has been generated
--- by the required number of values in the current context.
-requiring : Aggregate (Definitely Int) -> Aggregate a -> Aggregate (Possibly a)
-requiring requirement result =
-  fold seen = 0 then seen + 1
-  in
-    if seen >= requirement then
-      result
-    else
-      box (Left ExceptFold1NoValue)
 
 
 --------------------------------------------------------------------------------

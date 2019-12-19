@@ -278,12 +278,13 @@ validateFeature conf name x = fromEither $ do
   expression' <- maybeToRight [BadType fexp "string" (expression ^. _2)]
                $ expression ^? _1 . _NTValue . _VString
 
-  attribute <- maybeToRight [InvalidName name] (parseOutputName name)
+  attribute   <- maybeToRight [InvalidName name] (parseOutputName name)
+  let oid      = OutputId nsp attribute
 
-  let oid = OutputId nsp attribute
-
-  -- Run the icicle expression parser
+  -- Run the icicle expression lexer
   let toks     = lexerPositions expression'
+
+  -- And the icicle parser
   q           <- first (pure . ParseError)
                $ runParser (top oid) () "" toks
 

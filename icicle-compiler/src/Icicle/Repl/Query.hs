@@ -62,6 +62,7 @@ import qualified Icicle.Serial as Serial
 import qualified Icicle.Source.PrettyAnnot as Source
 import qualified Icicle.Sorbet.Render as Sorbet
 import qualified Icicle.Source.Query.Query as Source
+import           Icicle.Source.Checker (Decl (..))
 
 import           P
 
@@ -200,8 +201,11 @@ defineFunction function =
     dictionary <- gets stateDictionary
 
     let
+      decln (DeclFun _ n _) = n
+      decln (DeclType _ n _) = n
+
       names =
-        Set.fromList $ fmap (snd . fst) parsed
+        Set.fromList $ fmap decln parsed
 
       funEnv =
         List.filter (not . flip Set.member names . functionName) $
@@ -280,10 +284,10 @@ compileQuery query = do
       Source.sourceDesugarQT inlined
 
   whenSet FlagInlined $
-    putSection "Inlined" inlined
+    putSection "Inlined" (Sorbet.PrettySorbet inlined)
 
   whenSet FlagDesugar $
-    putSection "Desugar" blanded
+    putSection "Desugar" (Sorbet.PrettySorbet blanded)
 
   (annobland, _) <-
     hoistEither . first QuerySourceError $
@@ -294,8 +298,7 @@ compileQuery query = do
       Source.sourceReifyQT annobland
 
   whenSet FlagReified $ do
-    putSection "Reified" reified
-    putSection "Reified annotated" (Source.PrettyAnnot reified)
+    putSection "Reified" (Sorbet.PrettySorbet reified)
 
   let
     finalSource =

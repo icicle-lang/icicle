@@ -30,10 +30,10 @@ import P
 
 import System.IO (FilePath)
 
-parseFunctions :: FilePath -> Text -> Either ParseError [((SourcePos, Name Variable), (Exp SourcePos Variable))]
+parseFunctions :: FilePath -> Text -> Either ParseError [Decl SourcePos Variable]
 parseFunctions source inp
  = do decls <- sorbetFunctions source inp
-      return [((toParsec p, n), reannot toParsec x) | DeclFun p n x <- decls]
+      return $ reannot toParsec <$> decls
 
 parseQueryTop :: OutputId -> Text -> Either ParseError (QueryTop SourcePos Variable)
 parseQueryTop name inp

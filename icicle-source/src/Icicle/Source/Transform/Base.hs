@@ -80,7 +80,7 @@ transformC t cc
         --       This is important for the inliner, as
         --       > group fold (k, sum) = sum severity in sum
         --       should have the original sum inside.
-        -> do x' <- goX x -- transformX t x
+        -> do x' <- transformX t x
               return (s, GroupFold a k v x')
        Distinct a x
         -> do x' <- goX x
@@ -93,7 +93,10 @@ transformC t cc
                w' <- goX $ foldWork f
                return (s, LetFold a (f { foldInit = i', foldWork = w' }))
        Let a n x
-        -> do  x' <- goX x
+        -- Note: see above. Let bindings are non-recursive, so
+        --       we need to inline only subsequent declarations,
+        --       not the internal one.
+        -> do  x' <- transformX t x
                return (s, Let a n x')
 
 

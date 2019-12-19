@@ -13,8 +13,6 @@ module Icicle.Storage.Dictionary.Toml (
   , prelude
   ) where
 
-import           Icicle.Common.Base
-
 import           Icicle.Data
 import           Icicle.Dictionary.Data
 
@@ -22,7 +20,7 @@ import           Icicle.Internal.Pretty                        hiding ((</>))
 
 import qualified Icicle.Compiler.Source                        as P
 
-import           Icicle.Source.Checker                         (CheckOptions (..))
+import           Icicle.Source.Checker                         (CheckOptions (..), Decl)
 import qualified Icicle.Source.Parser                          as SP
 import           Icicle.Source.Query                           (QueryTop (..), Query (..), Exp)
 import qualified Icicle.Source.Query                           as SQ
@@ -63,7 +61,7 @@ data DictionaryImportError
   | DictionaryErrorImpossible
   deriving (Show)
 
-type Funs a  = [((a, Name SP.Variable), SQ.Exp a SP.Variable)]
+type Funs a  = [ Decl a SP.Variable ]
 type FunEnvT = [ ResolvedFunction Parsec.SourcePos SP.Variable ]
 
 data ImplicitPrelude = ImplicitPrelude | NoImplicitPrelude
@@ -102,7 +100,7 @@ loadDictionary' checkOpts impPrelude parentFuncs parentConf parentInputs dictPat
   let repoPath = takeDirectory dictPath
 
   rawImports        <- traverse (readImport repoPath) (fmap T.unpack (configImports conf))
-  let prelude'      =  if impPrelude == ImplicitPrelude then prelude else []
+  let prelude'       = if impPrelude == ImplicitPrelude then prelude else []
   parsedImports     <- hoistEither $ traverse (uncurry parseImport) (prelude' <> rawImports)
   importedFunctions <- loadImports parentFuncs parsedImports
 
@@ -111,11 +109,10 @@ loadDictionary' checkOpts impPrelude parentFuncs parentConf parentInputs dictPat
 
   -- Do a convoluted dance to construct the concrete definitions without the keys
   -- so that we can check the keys before making the actual concrete definitions.
-  let outputs' = foldr remakeVirtuals [] outputs0'
   let inputs' = foldr remakeConcrete [] inputs0'
   let dictUnchecked = Dictionary (mapOfInputs $ fmap snd inputs' <> parentInputs) Map.empty availableFunctions
 
-  outputs <- checkDefs checkOpts dictUnchecked outputs'
+  outputs <- checkDefs checkOpts dictUnchecked outputs0'
   inputs <-
     hoistEither . forM inputs' $ \(ConcreteKey' k, e@(DictionaryInput a en ts _)) ->
       case k of
@@ -147,10 +144,6 @@ loadDictionary' checkOpts impPrelude parentFuncs parentConf parentInputs dictPat
     remakeConcrete (DictionaryInput' a e t k) cds
       = (k, DictionaryInput a e (Set.fromList (toList t)) unkeyed)
       : cds
-
-    remakeVirtuals (DictionaryOutput' a v) vds
-     = (a, v) : vds
-
 
 parseTOML :: FilePath -> EitherT DictionaryImportError IO Table
 parseTOML dictPath = do
@@ -184,13 +177,13 @@ loadImports parentFuncs parsedImports
 
 checkDefs :: CheckOptions
           -> Dictionary
-          -> [(OutputId, QueryTop SourcePos SP.Variable)]
+          -> [DictionaryOutput']
           -> EitherT DictionaryImportError IO [DictionaryOutput]
 checkDefs checkOpts d defs
  = hoistEither . first DictionaryErrorCompilation
  $ go `traverse` defs
  where
-  go (oid, q)
+  go (DictionaryOutput' oid q)
    = do  -- Run desugar to ensure pattern matches are complete.
          _             <- P.sourceDesugarQT q
          -- Type check the virtual definition.

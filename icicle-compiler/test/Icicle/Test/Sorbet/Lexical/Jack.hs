@@ -59,6 +59,7 @@ jToken =
     , pure Tok_RArrowEquals
     , pure Tok_Equals
     , pure Tok_Colon
+    , pure Tok_EqualsColon
     , pure Tok_At
     , pure Tok_Of
     , pure Tok_If
@@ -191,6 +192,7 @@ reserved =
     , "=>"
     , "="
     , ":"
+    , "=:"
     , "@"
     , "_"
     , "of"

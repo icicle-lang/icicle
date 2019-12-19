@@ -23,7 +23,6 @@ module Icicle.Source.Type.Base (
   , mapSourceType
   , anyArrows
   , anyForalls
-  , anyStructs
   ) where
 
 import           Control.Lens.Fold      (foldMapOf)
@@ -85,14 +84,6 @@ anyArrows
  = let go (TypeArrow {}) = Any True
        go x = foldSourceType go x
    in getAny . go
-
-
-anyStructs :: Type n -> Bool
-anyStructs
- = let go (StructT {}) = Any True
-       go x = foldSourceType go x
-   in getAny . go
-
 
 class TraverseType a where
   type N a :: *
@@ -280,7 +271,7 @@ instance Pretty n => Pretty (Type n) where
         pretty $ PrettyFunType (fmap pretty cs) [] (pretty x)
     TypeArrow f x ->
       parensWhenArg p $
-          pretty $ PrettyFunType [] [parensWhen (anyArrows f) (pretty f)] (pretty x)
+        pretty $ PrettyFunType [] [parensWhen (anyArrows f) (pretty f)] (pretty x)
 
     Temporality a b
       | TypeVar _ <- a ->

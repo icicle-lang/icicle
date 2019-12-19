@@ -111,7 +111,7 @@ instance (Pretty a, Ord a) => Stream (PositionedStream a) where
 
   reachOffset o (PosState input offset sourcePos tabWidth _) =
     ( newSourcePos
-    , thisLine
+    , fromMaybe "" thisLine
     , PosState
         { pstateInput = PositionedStream (streamText input) post
         , pstateOffset = max offset o
@@ -129,8 +129,14 @@ instance (Pretty a, Ord a) => Stream (PositionedStream a) where
       post =
         drop (o - offset) (streamToks input)
 
-      thisLine = Text.unpack $
-        Text.lines (streamText input) List.!! (unPos (sourceLine newSourcePos) - 1)
+      (!?) :: [a] -> Int -> Maybe a
+      (!?) [] _ = Nothing
+      (!?) (x:xs) n | n == 0 = return x
+                    | n < 0 = Nothing
+                    | otherwise = (!?) xs (n-1)
+
+      thisLine = fmap Text.unpack $
+        Text.lines (streamText input) !? (unPos (sourceLine newSourcePos) - 1)
 
 toSourcePos :: Position -> SourcePos
 toSourcePos = \case
@@ -151,7 +157,7 @@ instance Pretty Position where
 
 renderPosition :: Position -> Text
 renderPosition sp =
-  Text.pack (show . posLine $ sp) <> ":" <>Text.pack (show . posColumn $ sp)
+  Text.pack (show . posLine $ sp) <> ":" <> Text.pack (show . posColumn $ sp)
     <> (if posFile sp == ""
         then ""
         else ":" <> Text.pack (posFile sp))
