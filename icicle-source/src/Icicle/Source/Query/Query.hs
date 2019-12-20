@@ -44,6 +44,18 @@ data QueryTop a n
 
 instance (NFData a, NFData n) => NFData (QueryTop a n)
 
+
+
+-- | An Icicle Query
+--
+--   Queries can be thought of as an expression in
+--   a context. In many languages, the only context
+--   of this form is a let binding, and they are
+--   inlined into the expression data type.
+--
+--   In icicle, we support more contexts to support
+--   rich streaming queries, and contexts are separated
+--   into their own type.
 data Query a n
  = Query
  { contexts :: [Context a n]

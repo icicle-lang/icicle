@@ -22,8 +22,8 @@ import           P
 
 
 data Context' q a n
- = Windowed a WindowUnit (Maybe WindowUnit)
- | Latest a Int
+ = Windowed  a WindowUnit  (Maybe WindowUnit)
+ | Latest    a Int
  | GroupBy   a             (Exp' q a n)
  | Distinct  a             (Exp' q a n)
  | Filter    a             (Exp' q a n)
