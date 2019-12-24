@@ -49,6 +49,7 @@ data Token =
   | Tok_Colon        -- ^  :
   | Tok_EqualsColon  -- ^  =:
   | Tok_At           -- ^  @
+  | Tok_FlowsInto    -- ^  ~>
 
   --
   -- Reserved Identifiers
@@ -121,6 +122,7 @@ renderToken = \case
   Tok_Colon             -> ":"
   Tok_EqualsColon       -> "=:"
   Tok_At                -> "@"
+  Tok_FlowsInto         -> "~>"
   Tok_Wild              -> "_"
   Tok_Case              -> "case"
   Tok_Of                -> "of"

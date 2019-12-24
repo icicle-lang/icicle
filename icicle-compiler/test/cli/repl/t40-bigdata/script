@@ -4,44 +4,44 @@
 :set snapshot 2010-01-01
 
 -- Some simple good ones
-feature salary ~> windowed 1 months ~> fold x = 0 : 1 ~> x
+from salary ~> windowed 1 months ~> fold x = 0 : 1 ~> x
 
-feature salary ~> windowed 1 months ~> sum value
+from salary ~> windowed 1 months ~> sum value
 
-feature salary ~> windowed between 1 months and 2 months ~> sum value
+from salary ~> windowed between 1 months and 2 months ~> sum value
 
-feature salary ~> latest 10 ~> sum value
+from salary ~> latest 10 ~> sum value
 
 
 -- Some obviously bad ones
-feature salary ~> fold x = 0 : 1 ~> x
+from salary ~> fold x = 0 : 1 ~> x
 
-feature salary ~> sum value
+from salary ~> sum value
 
-feature salary ~> sum value + count value
+from salary ~> sum value + count value
 
 -- Part good, part bad
-feature salary ~> sum value + (latest 10 ~> count value)
+from salary ~> sum value + (latest 10 ~> count value)
 
 
 -- More good ones
-feature salary ~> latest 10 ~> sum value * count value
+from salary ~> latest 10 ~> sum value * count value
 
-feature salary ~> (latest 10 ~> sum value) * (latest 10 ~> count value)
+from salary ~> (latest 10 ~> sum value) * (latest 10 ~> count value)
 
 
 -- Some good let bindings
-feature salary ~> latest 10 ~> let x = value ~> sum x
+from salary ~> latest 10 ~> let x = value ~> sum x
 
-feature salary ~> let x = value ~> latest 10 ~> sum x
+from salary ~> let x = value ~> latest 10 ~> sum x
 
 -- Some bad let bindings
-feature salary ~> let x = sum value ~> x
+from salary ~> let x = sum value ~> x
 
-feature salary ~> let x = value ~> sum x
+from salary ~> let x = value ~> sum x
 
 -- A bad group
-feature injury ~> group location ~> sum severity
+from injury ~> group location ~> sum severity
 
 -- A good group
-feature injury ~> windowed 1 months ~> group location ~> sum severity
+from injury ~> windowed 1 months ~> group location ~> sum severity

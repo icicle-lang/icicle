@@ -4,6 +4,6 @@
 :load test/cli/repl/t18-nested-structs/dict.toml
 :load test/cli/repl/t18-nested-structs/data.psv
 
-feature person ~> group injury.severity ~> mean misery
+from person ~> group injury.severity ~> mean misery
 
-feature person ~> group injury.location.area ~> mean misery
+from person ~> group injury.location.area ~> mean misery

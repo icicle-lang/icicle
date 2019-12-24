@@ -189,7 +189,7 @@ variance v =
     v = double v
   in
     fold (n, m, m2) =
-      (0, 0.0, 0.0) then
+      (0, 0, 0) then
         let
           nn = n + 1
           d = v - m
@@ -214,7 +214,7 @@ covariance a b =
     b = double b
   in
     fold (n, m1, m2, m12) =
-      (0, 0.0, 0.0, 0.0) then
+      (0, 0, 0, 0) then
         let
           nn   = n + 1
           d1   = (a - m1) / nn

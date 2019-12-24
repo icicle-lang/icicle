@@ -1,10 +1,10 @@
 :set +type
 
 -- Latests of groups
-feature salary ~> group time ~> latest 2 ~> value
+from salary ~> group time ~> latest 2 ~> value
 
 -- Aggregates of latests in groups
-feature salary ~> group time ~> latest 2 ~> sum value
+from salary ~> group time ~> latest 2 ~> sum value
 
 -- Something complicated
-feature salary ~> let sx = sum value ~> group time ~> latest 2 ~> filter value > 100 ~> (sx, sum value)
+from salary ~> let sx = sum value ~> group time ~> latest 2 ~> filter value > 100 ~> (sx, sum value)

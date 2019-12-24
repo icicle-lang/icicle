@@ -1,12 +1,12 @@
 -- These two were failing before, but should pass now.
 -- Not that they are particularly interesting.
-feature salary ~> latest 4 ~> let waldorf = 2 ~> fold1 kermit = 2 : -waldorf ~> count value
-feature salary ~> latest 2 ~> let chef = 2 ~> 1 / chef
+from salary ~> latest 4 ~> let waldorf = 2 ~> fold1 kermit = 2 then -waldorf ~> count value
+from salary ~> latest 2 ~> let chef = 2 ~> 1 / chef
 
 
 -- This is a type error because "kermit" is not used!!!
 -- Expect error.
-feature salary ~> latest 4 ~> let kermit = -count value ~> value
+from salary ~> latest 4 ~> let kermit = -count value ~> value
 
 -- This is a type error because it is a recursive type
-feature salary ~> fold gonzo = Left 0 : Right gonzo ~> gonzo
+from salary ~> fold gonzo = Left 0 then Right gonzo ~> gonzo

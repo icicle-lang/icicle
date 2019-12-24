@@ -5,6 +5,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
+
 -- | Parser for the Icicle Source language from the Sorbet lexer.
 --
 --   There were two ways of going about this, writing an elaborator
@@ -203,15 +204,15 @@ pEqualityConstraint =
 
 simpleEqualityConstraints :: Parser s m => [(Text, Type Var -> m (Constraint Var))]
 simpleEqualityConstraints
-   = [("PossibilityOfNum",        \ret -> one   (CPossibilityOfNum ret))
-     ,("TemporalityJoin",         \ret -> two   (CTemporalityJoin ret))
-     ,("ReturnOfLet",             \ret -> two   (CReturnOfLetTemporalities ret))
-     ,("DataOfLatest",            \ret -> three (CDataOfLatest ret))
-     ,("PossibilityOfLatest",     \ret -> two   (CPossibilityOfLatest ret))
-     ,("PossibilityJoin",         \ret -> two   (CPossibilityJoin ret))
+   = [("PossibilityOfNum",        one   . CPossibilityOfNum)
+     ,("TemporalityJoin",         two   . CTemporalityJoin)
+     ,("ReturnOfLet",             two   . CReturnOfLetTemporalities)
+     ,("DataOfLatest",            three . CDataOfLatest)
+     ,("PossibilityOfLatest",     two   . CPossibilityOfLatest)
+     ,("PossibilityJoin",         two   . CPossibilityJoin)
      ]
 
--- | FIX
+-- | Shunt infix type operators to a type.
 --
 --   Generalise and use the proper shunting algorithm from Source.
 defixType :: [Either (a, Type n) TypeOperator] -> Either String (Type n)

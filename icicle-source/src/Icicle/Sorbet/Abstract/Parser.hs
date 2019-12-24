@@ -61,7 +61,7 @@ pTop :: Parser s m => OutputId -> m (QueryTop Position Var)
 pTop name = do
   _ <- pToken Tok_From                                    <?> "feature start"
   v <- pUnresolvedInputId                                 <?> "input source"
-  _ <- pToken Tok_In
+  _ <- pContextEnd
   q <- pQuery                                             <?> "query"
   return $ QueryTop v name q
 
@@ -122,10 +122,18 @@ pContexts = do
 pSomeContexts :: Parser s m => m [Context Position Var]
 pSomeContexts = do
   cs   <- pContextLet <|> some pSingleContext
-  _    <- pToken Tok_In
+  _    <- pContextEnd
   rest <- pContexts
   pure  $ cs <> rest
 
+
+-- | End of a context.
+--
+--   Both `in` and `~>` are available. For programs `in` is
+--   nicer, but on the repl, `~>` seems to divide things more
+--   nicely.
+pContextEnd :: Parser s m => m Position
+pContextEnd = pToken Tok_In <|> pToken Tok_FlowsInto
 
 -- | Parse a let context.
 --

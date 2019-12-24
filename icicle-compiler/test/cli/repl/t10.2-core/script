@@ -2,9 +2,9 @@
 :set +core +core-type +core-simp
 
 -- A rather complicated feature to convert to Avalanche
-feature salary ~> (filter value > 10 ~> count value), (latest 3 ~> value)
+from salary ~> (filter value > 10 ~> count value), (latest 3 ~> value)
 
 -- Something involves the abstract buffer type
-feature salary ~> group time ~> latest 2 ~> sum value
+from salary ~> group time ~> latest 2 ~> sum value
 
 

@@ -1,28 +1,28 @@
 -- Divisions return Possibles.
 -- Try with group:
-feature salary ~> group (trunc (double value / 200)) ~> sum (double value / 5) / 5
+from salary ~> group (trunc (double value / 200)) ~> sum (double value / 5) / 5
 
 -- Distincts
-feature salary ~> distinct (double value / 5) ~> sum (double value / 5) / 5
+from salary ~> distinct (double value / 5) ~> sum (double value / 5) / 5
 
 -- Maybe some lets
-feature salary ~> let x = 2 / 1 ~> sum (trunc (double value * x))
+from salary ~> let x = 2 / 1 ~> sum (trunc (double value * x))
 
 -- Add a filter
-feature salary ~> let x = 2 / 1 ~> filter (double value > x) ~> count value
+from salary ~> let x = 2 / 1 ~> filter (double value > x) ~> count value
 
 -- newest or something
-feature salary ~> (newest (double value) / 5, oldest (double value / 5), sum value)
+from salary ~> (newest (double value) / 5, oldest (double value / 5), sum value)
 
 -- This was causing an issue with nested possibility cases before
-feature salary ~> latest 1 ~> case (0,sum value) | (z,s) -> s end
+from salary ~> latest 1 ~> case (0,sum value) of (z,s) then s
 
 -- Constructing a Right of a Possibility was causing an issue before
-feature salary ~> fold x = 0 : value ~> Right x
+from salary ~> fold x = 0 then value ~> Right x
 
 -- Primitive returning possibly (map_insert), applied to a definite primitive (,)
-feature salary ~> (map_insert 0 0 map_create, 0)
+from salary ~> (map_insert 0 0 map_create, 0)
 
 -- Same deal, more or less
-feature salary ~> fold x = (map_insert 0 0 map_create, 0) : (map_insert value value (fst x), snd x + 1) ~> x
+from salary ~> fold x = (map_insert 0 0 map_create, 0) then (map_insert value value (fst x), snd x + 1) ~> x
 

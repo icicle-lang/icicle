@@ -200,6 +200,7 @@ reservedOperators =
     , (":",  Tok_Colon)
     , ("=:", Tok_EqualsColon)
     , ("@",  Tok_At)
+    , ("~>", Tok_FlowsInto)
     ]
 
 lexLiteral :: Lexer s m => m (Positioned Token)

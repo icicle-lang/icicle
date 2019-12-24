@@ -1,5 +1,5 @@
 -- Enable C evaluation
 :set +c-eval
 
-feature salary ~> fold perhaps = Left 0 : case perhaps | Left i -> Right (double i+1) | Right j -> Left (trunc j+1) end ~> perhaps
+from salary ~> fold perhaps = Left 0 : case perhaps | Left i -> Right (double i+1) | Right j -> Left (trunc j+1) end ~> perhaps
 

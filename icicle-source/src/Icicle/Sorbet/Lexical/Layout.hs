@@ -338,6 +338,8 @@ takeCloseScope = \case
     Just Bracket
   Tok_In ->
     Just Context
+  Tok_FlowsInto ->
+    Just Context
   _ ->
     Nothing
 

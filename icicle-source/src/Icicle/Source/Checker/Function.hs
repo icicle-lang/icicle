@@ -48,7 +48,7 @@ instance TraverseAnnot Decl where
       DeclType a n t -> DeclType <$> f a <*> pure n <*> pure t
 
 
-type Funs a n = [Decl a n]
+type Funs a n = [ Decl a n ]
 type FunEnvT a n = [ ResolvedFunction a n ]
 
 

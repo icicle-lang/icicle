@@ -2,43 +2,43 @@
 :set +c-eval
 
 -- Sum example
-feature salary ~> sum value
+from salary ~> sum value
 
 -- Count example
-feature salary ~> count value
+from salary ~> count value
 
 -- Mean example
-feature salary ~> mean value
+from salary ~> mean value
 
 -- minby / min example
-feature injury ~> min_by severity location , min severity
+from injury ~> min_by severity location , min severity
 
 -- maxby / max example
-feature injury ~> max_by severity location , max severity
+from injury ~> max_by severity location , max severity
 
 -- Standard deviation example
-feature salary ~> sd value
+from salary ~> sd value
 
 -- Gradient example
-feature salary ~> gradient value (double (days time) / 365)
+from salary ~> gradient value (double (days time) / 365)
 
 -- Pearsons correlation example
-feature salary ~> correlation value (double (days time) / 365)
+from salary ~> correlation value (double (days time) / 365)
 
 -- Newest example
-feature injury ~> newest fields
+from injury ~> newest fields
 
 -- Oldest example
-feature injury ~> oldest fields
+from injury ~> oldest fields
 
 -- Numflips example
-feature injury ~> numflips location
-feature injury ~> numflips' location tombstone
+from injury ~> numflips location
+from injury ~> numflips' location tombstone
 
 -- IsSome
-feature salary ~> latest 1 ~> is_some (Some "hi")
+from salary ~> latest 1 ~> is_some (Some "hi")
 -- IsNone
-feature salary ~> latest 1 ~> is_none (Some "hi")
+from salary ~> latest 1 ~> is_none (Some "hi")
 
 --GetOrElse example
-feature salary ~> get_or_else 3 (Some (newest value))
+from salary ~> get_or_else 3 (Some (newest value))
