@@ -48,7 +48,7 @@ import qualified Text.Megaparsec as Mega
 type Var = Variable
 
 
-pConstrainedType :: Parser s m => m (Type Var)
+pConstrainedType :: Parser s m => m (Scheme Var)
 pConstrainedType = do
   (_, constraints) <- List.unzip <$> many (try pConstraint)
   (_, typ)         <- pType
@@ -57,10 +57,7 @@ pConstrainedType = do
       toList (freeT typ)
 
     ret =
-      if null freeVars && null constraints then
-        typ
-      else
-        TypeForall freeVars constraints typ
+      Forall freeVars constraints typ
 
   return ret
 

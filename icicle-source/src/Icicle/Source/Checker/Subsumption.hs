@@ -29,26 +29,19 @@ import qualified        Data.Set as Set
 import                  Data.Hashable (Hashable)
 
 
-metaVars :: (Hashable n, Eq n, Monad m) => a -> Type n -> m (Type n, Type n, GenConstraintSet a n)
-metaVars ann t =
-  case t of
-    TypeForall _ cs t'
-      -> return (t', t', (fmap (ann,) cs))
-    _ -> return (t, t, [])
-
 -- | Check that the inferred type is at least as polymorphic as the
 --   required type, and that all required constraints are specified.
-subsume :: (Pretty n, Hashable n, Eq n) => a -> Exp (Annot a n) n -> Type n -> Type n -> Gen a n (Exp (Annot a n) n, Type n)
+subsume :: (Pretty n, Hashable n, Eq n) => a -> Exp (Annot a n) n -> Scheme n -> Scheme n -> Gen a n (Exp (Annot a n) n, Scheme n)
 subsume ann q inf req = do
   let
     err =
-      errorNoSuggestions (ErrorConstraintLeftover (ann) (require ann (CEquals inf req)))
+      errorNoSuggestions (ErrorSchemesMatchError ann inf req)
 
   -- Introduce the inferred type.
   (_, skol, inf'c)  <- introForalls ann inf
 
   -- Introduce the desired type.
-  (_, intro, req'c) <- metaVars ann req
+  (_, intro, req'c) <- introForalls ann req
 
   -- Unify the types, with substitutions to turn the inferred
   -- type variables into the desired ones.
@@ -76,10 +69,7 @@ subsume ann q inf req = do
       errorNoSuggestions (ErrorCantInferConstraints ann unspecified req'c)
 
   -- Piece together the final type.
-  let ret            = if null bindings && null req'cons then
-                         intro'
-                       else
-                         TypeForall bindings req'cons intro'
+  let ret            = Forall bindings req'cons intro'
 
   -- Need to add subsumption of constraints here.
   -- i.e. Is the constraint set of the inferred type covered by the

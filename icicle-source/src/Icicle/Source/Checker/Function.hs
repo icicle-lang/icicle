@@ -37,7 +37,7 @@ import                  Data.Hashable           (Hashable)
 
 data Decl a n
   = DeclFun a (Name n) (Exp a n)
-  | DeclType a (Name n) (Type n)
+  | DeclType a (Name n) (Scheme n)
   deriving (Eq, Show)
 
 
@@ -74,21 +74,21 @@ checkFs env decls
     else pure (env0 <> [ResolvedFunction (snd name) funtype annotfun], logs0 <> [logs'])
 
 checkF  :: (Hashable n, Eq n, Pretty n)
-        => Map.Map (Name n) (Type n)
-        -> Map.Map (Name n) (Type n)
+        => Map.Map (Name n) (Scheme n)
+        -> Map.Map (Name n) (Scheme n)
         -> (a, Name n)
         -> Exp a n
-        -> (Fresh.Fresh n) (Either (CheckError a n) (Exp (Annot a n) n, Type n), [CheckLog a n])
+        -> (Fresh.Fresh n) (Either (CheckError a n) (Exp (Annot a n) n, Scheme n), [CheckLog a n])
 
 checkF env sigs name fun
  = evalGen $ checkF' fun env >>= constrain sigs name
 
 
 constrain :: (Hashable n, Eq n, Pretty n)
-          => Map.Map (Name n) (Type n)
+          => Map.Map (Name n) (Scheme n)
           -> (a, Name n)
-          -> (Exp (Annot a n) n, Type n)
-          -> Gen a n (Exp (Annot a n) n, Type n)
+          -> (Exp (Annot a n) n, Scheme n)
+          -> Gen a n (Exp (Annot a n) n, Scheme n)
 constrain sigs (ann, nm) (x, inferred) = do
   case Map.lookup nm sigs of
     -- No explicit type signature
@@ -107,7 +107,7 @@ constrain sigs (ann, nm) (x, inferred) = do
 checkF' :: (Hashable n, Eq n, Pretty n)
         => Exp a n
         -> GenEnv n
-        -> Gen a n (Exp (Annot a n) n, Type n)
+        -> Gen a n (Exp (Annot a n) n, Scheme n)
 
 checkF' fun env
  = do let (arguments, body) = takeLams fun
@@ -198,10 +198,7 @@ checkF' fun env
       let lams  = foldr (uncurry Lam) q args
 
       -- Put it all together
-      let funT  | null binds && null constrs
-                = arrT
-                | otherwise
-                = TypeForall binds constrs arrT
+      let funT  = Forall binds constrs arrT
 
       return (lams, funT)
  where

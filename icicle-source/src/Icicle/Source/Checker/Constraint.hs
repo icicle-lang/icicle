@@ -143,7 +143,7 @@ defaults topq
 --   We take the map of types of all imported functions.
 constraintsQ
   :: (Hashable n, Eq n, Pretty n)
-  => Map.Map (Name n) (Type n)
+  => Map.Map (Name n) (Scheme n)
   -> Query a n
   -> EitherT (CheckError a n) (Fresh.Fresh n) (Query'C a n)
 constraintsQ env q
@@ -884,7 +884,7 @@ appType ann errExp funT cons actT
     appType ann errExp funT' (cons <> funCons) actT
   | otherwise
   = genHoistEither
-  $ errorNoSuggestions (ErrorFunctionWrongArgs ann errExp funT [actT])
+  $ errorNoSuggestions (ErrorFunctionWrongArgs ann errExp (Forall [] [] funT) [actT])
 
  where
   checkTemp = check' TemporalityPure       CTemporalityJoin
@@ -925,9 +925,9 @@ appType ann errExp funT cons actT
 lookupFunction :: (Hashable n, Eq n, Pretty n)
                => Exp a n
                -> GenEnv n
-               -> Gen a n (Type n, Type n, GenConstraintSet a n)
+               -> Gen a n (Scheme n, Type n, GenConstraintSet a n)
 
 lookupFunction fun env
  = do (q, _, cons)    <- generateX fun env
       let resT         = annResult $ annotOfExp q
-      return (resT, resT, cons)
+      return (Forall [] [] resT, resT, cons)

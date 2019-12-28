@@ -67,7 +67,7 @@ import           Data.Hashable (Hashable)
 data CheckEnv a n
  = CheckEnv {
  -- | Mapping from variable names to whole types
-   checkEnvironment :: Map.Map (Name n) (Type n)
+   checkEnvironment :: Map.Map (Name n) (Scheme n)
  -- | Function bodies
  , checkBodies      :: Map.Map (Name n) (Exp a n)
  , checkInvariants  :: Invariants
@@ -113,7 +113,7 @@ defaultCheckOptions = optionSmallData
 --------------------------------------------------------------------------------
 
 
-type GenEnv n             = Map.Map (Name n) (Type n)
+type GenEnv n             = Map.Map (Name n) (Scheme n)
 type GenConstraintSet a n = [(a, Constraint n)]
 
 data DischargeInfo a n = DischargeInfo
@@ -250,27 +250,15 @@ fresh
 introForalls
   :: (Hashable n, Eq n)
   => a
-  -> Type n
-  -> Gen a n (Type n, Type n, GenConstraintSet a n)
+  -> Scheme n
+  -> Gen a n (Scheme n, Type n, GenConstraintSet a n)
 introForalls ann f
  = case f of
-    TypeForall ns cs x -> do
+    Forall ns cs x -> do
       freshen <- Map.fromList <$> mapM mkSubst ns
-      (_,r,c) <- introForalls ann x
       let cons = concatMap (require ann . substC freshen) cs
-      let sub  = substT freshen r
-      return (f, sub, c <> cons)
-
-    TypeArrow arg res -> do
-      when (anyForalls arg)
-        $ genHoistEither
-        $ errorSuggestions (ErrorRankNType ann f)
-          [Suggest "Icicle only supports rank 1 types"]
-
-      (_,res',c) <- introForalls ann res
-      return (f, TypeArrow arg res', c)
-    _ ->
-      return (f, f, [])
+      let sub  = substT freshen x
+      return (f, sub, cons)
 
  where
   mkSubst n
@@ -284,7 +272,7 @@ lookup
   => a
   -> Name n
   -> GenEnv n
-  -> Gen a n (Type n, Type n, GenConstraintSet a n)
+  -> Gen a n (Scheme n, Type n, GenConstraintSet a n)
 lookup ann n env
  = case Map.lookup n env of
      Just t
@@ -297,7 +285,7 @@ lookup ann n env
 -- | Bind a new to a type in the given context.
 bindT :: Eq n => Name n -> Type n -> GenEnv n -> GenEnv n
 bindT n t
- = Map.insert n t
+ = Map.insert n (Forall [] [] t)
 
 -- | Temporarily add the binding to a context, then do something.
 withBind
@@ -316,12 +304,12 @@ removeElementBinds env
    in  foldr Map.delete env elts
  where
   isElementTemporality ft
-   = getTemporalityOrPure ft == TemporalityElement
+   = getTemporalityOrPure (schemeType ft) == TemporalityElement
 
 
 substE :: Eq n => SubstT n -> GenEnv n -> GenEnv n
 substE s
- = fmap (substT s)
+ = fmap (substF s)
 
 substTQ :: (Hashable n, Eq n) => SubstT n -> Query'C a n -> Fresh.Fresh n (Query'C a n)
 substTQ s

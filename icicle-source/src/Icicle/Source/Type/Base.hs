@@ -12,17 +12,19 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE TypeFamilies #-}
 module Icicle.Source.Type.Base (
-    Type        (..)
+    Type         (..)
+  , Scheme       (..)
   , TraverseType (..)
+  , Constraint   (..)
+  , Annot        (..)
+
+  , prettyFun
   , typeOfValType
   , valTypeOfType
-  , Constraint  (..)
-  , Annot (..)
   , annotDiscardConstraints
   , foldSourceType
   , mapSourceType
   , anyArrows
-  , anyForalls
   ) where
 
 import           Control.Lens.Fold      (foldMapOf)
@@ -41,6 +43,9 @@ import           Icicle.Internal.Pretty
 import           P
 
 
+
+-- | Source language type
+--
 data Type n
  = BoolT
  | TimeT
@@ -67,23 +72,30 @@ data Type n
  | PossibilityDefinitely
 
  | TypeVar             (Name n)
- | TypeForall          [Name n] [Constraint n] (Type n)
  | TypeArrow           (Type n) (Type n)
  deriving (Eq, Ord, Show, Generic)
 
-instance NFData n => NFData (Type n)
 
-anyForalls :: Type n -> Bool
-anyForalls
- = let go (TypeForall {}) = Any True
-       go x = foldSourceType go x
-   in getAny . go
+
+-- | A polymorphic type Scheme.
+--
+--   This represents a type whose bound names can
+--   be instantiated with any types which respect
+--   the supplied constraints.
+data Scheme n
+ = Forall {
+    schemeBounds      :: [Name n]
+  , schemeConstraints :: [Constraint n]
+  , schemeType        :: (Type n)
+ } deriving (Eq, Ord, Show, Generic)
+
 
 anyArrows :: Type n -> Bool
 anyArrows
  = let go (TypeArrow {}) = Any True
        go x = foldSourceType go x
    in getAny . go
+
 
 class TraverseType a where
   type N a :: *
@@ -120,8 +132,12 @@ instance TraverseType (Type n) where
     PossibilityDefinitely   -> pure PossibilityDefinitely
 
     TypeVar v               -> pure (TypeVar v)
-    TypeForall ns cs x      -> TypeForall ns <$> traverseType f cs <*> f x
     TypeArrow a b           -> TypeArrow <$> f a <*> f b
+
+instance TraverseType (Scheme n) where
+  type N (Scheme n) = n
+  traverseType f (Forall ns cs typ) =
+    Forall ns <$> traverseType f cs <*> f typ
 
 foldSourceType :: Monoid x => (Type n -> x) -> (Type n -> x)
 foldSourceType =
@@ -180,7 +196,6 @@ valTypeOfType bt
     PossibilityDefinitely   -> Nothing
 
     TypeVar _               -> Nothing
-    TypeForall _ _ _        -> Nothing
     TypeArrow _ _           -> Nothing
  where
   go = valTypeOfType
@@ -197,6 +212,8 @@ data Constraint n
  | CPossibilityJoin (Type n) (Type n) (Type n)
  deriving (Eq, Ord, Show, Generic)
 
+instance NFData n => NFData (Type n)
+instance NFData n => NFData (Scheme n)
 instance NFData n => NFData (Constraint n)
 
 instance TraverseType (Constraint n) where
@@ -266,9 +283,6 @@ instance Pretty n => Pretty (Type n) where
       prettyStructType hcat . fmap (bimap pretty pretty) $ Map.toList fs
     TypeVar v ->
       annotate AnnVariable (pretty v)
-    TypeForall _ cs x ->
-      parensWhenArg p $
-        pretty $ PrettyFunType (fmap pretty cs) [] (pretty x)
     TypeArrow f x ->
       parensWhenArg p $
         pretty $ PrettyFunType [] [parensWhen (anyArrows f) (pretty f)] (pretty x)
@@ -294,6 +308,34 @@ instance Pretty n => Pretty (Type n) where
       prettyConstructor "Possibly"
     PossibilityDefinitely ->
       prettyConstructor "Definitely"
+
+
+prettyFun :: Pretty n => Scheme n -> PrettyFunType
+prettyFun fun =
+  let
+    go typ = case typ of
+      TypeArrow a res ->
+        let
+          (as, res') = go res
+          a' = if (anyArrows a) then parens (pretty a) else pretty a
+        in
+          (a' : as, res')
+      _ ->
+        ([], pretty typ)
+
+    (args, final) =
+      go (schemeType fun)
+
+    cons =
+      fmap pretty $ schemeConstraints fun
+
+  in
+    PrettyFunType cons args final
+
+
+instance Pretty n => Pretty (Scheme n) where
+  pretty =
+    pretty . prettyFun
 
 
 instance Pretty n => Pretty (Constraint n) where

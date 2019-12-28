@@ -10,6 +10,7 @@ module Icicle.Source.Type.Subst (
     SubstT
   , substT
   , substC
+  , substF
   , compose
   , unifyT
   ) where
@@ -45,11 +46,6 @@ substT ss
     TypeVar n
       | Just t' <- Map.lookup n ss
       -> t'
-    TypeForall ns cs r
-      -> let ss1  = foldr Map.delete ss ns
-             cs1  = fmap (substC ss1) cs
-             r1   = go ss1 r
-         in  TypeForall ns cs1 r1
     t
       -> mapSourceType (go ss0) t
 
@@ -58,6 +54,11 @@ substC :: Eq n => SubstT n -> Constraint n -> Constraint n
 substC ss
  = over traverseType (substT ss)
 
+
+-- | Substitute into a scheme.
+substF :: Eq n => SubstT n -> Scheme n -> Scheme n
+substF ss
+ = over traverseType (substT ss)
 
 -- | Compose two substitutions together, in order.
 -- `compose s1 s2` performs s1 then s2.
@@ -187,14 +188,6 @@ unifyT t1 t2
 
     PossibilityPossibly     -> eq
     PossibilityDefinitely   -> eq
-
-    TypeForall n ac at
-     | TypeForall m bc bt <- t2
-     , n == m
-     , ac == bc
-     -> unifyT at bt
-     | otherwise
-     -> nothing
 
     TypeArrow  at ar
      | TypeArrow bt br <- t2

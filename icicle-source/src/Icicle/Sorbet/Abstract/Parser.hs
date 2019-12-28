@@ -92,7 +92,7 @@ pDecl = do
   DeclFun pos var <$> pFunction <|> DeclType pos var <$> pDeclType
 
 
-pDeclType :: Parser s m => m (Type Var)
+pDeclType :: Parser s m => m (Scheme Var)
 pDeclType = do
   _ <- pToken Tok_Colon
   pConstrainedType

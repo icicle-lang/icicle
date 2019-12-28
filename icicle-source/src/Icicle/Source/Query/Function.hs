@@ -25,7 +25,7 @@ import                  P
 data ResolvedFunction a n =
   ResolvedFunction {
      functionName :: Name n
-   , functionType :: Type n
+   , functionType :: Scheme n
    , functionDefinition :: Exp (Annot a n) n
    } deriving (Eq, Show)
 
@@ -43,7 +43,7 @@ buildResolved a_fresh builtin = do
     name
       = nameOf . NameBase . fromString . show . pretty $ builtin
     annot
-      = Annot a_fresh typ []
+      = Annot a_fresh (schemeType typ) []
     prim
       = Prim annot (Fun builtin)
   return $
@@ -51,11 +51,11 @@ buildResolved a_fresh builtin = do
 
 
 instance Pretty n => Pretty (ResolvedFunction a n) where
-  pretty (ResolvedFunction n t exp) =
+  pretty (ResolvedFunction n t x) =
     align $
       vsep [
         pretty n <+> prettyPunctuation ":" <+> pretty t
-      , pretty n <+> prettyPunctuation "=" <+> pretty exp
+      , pretty n <+> prettyPunctuation "=" <+> pretty x
       ]
 
   prettyList =

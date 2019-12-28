@@ -23,8 +23,8 @@ import                  P
 
 import                  Data.String
 import                  Data.List (zip)
-import qualified        Data.Map as Map
 import qualified        Data.Text as T
+import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
 
 
@@ -33,42 +33,24 @@ import                  Data.Hashable (Hashable)
 --   however fresh variable names are quite ugly.
 --   Instead of actually using nice names, we will clean them up
 --   just before pretty printing.
-prettyFunWithNames :: (Pretty n, Eq n) => [Name n] -> Type n -> PrettyFunType
-prettyFunWithNames names typ
- = case typ of
-    TypeArrow f typ0 ->
-      let
-        PrettyFunType consX argsX typ1 =
-          prettyFunWithNames names typ0
+prettyFunWithNames :: (Pretty n, Eq n) => [Name n] -> Scheme n -> PrettyFunType
+prettyFunWithNames names fun
+  =  prettyFun fun'
+  where
+   sub
+    = Map.fromList
+    (schemeBounds fun `zip` fmap TypeVar names)
 
-      in
-        PrettyFunType consX (parensWhen (anyArrows f) (pretty $ prettyFunWithNames names f) : argsX) (pretty typ1)
-
-    TypeForall ns cons0 typ0 ->
-      let
-        (names0, namesRest) =
-          splitAt (length ns) names
-        sub =
-          Map.fromList (ns `zip` fmap TypeVar names0)
-        cons1 =
-          fmap (substC sub) cons0
-        typ1 =
-          substT sub typ0
-        PrettyFunType consX argsX typ2 =
-          prettyFunWithNames namesRest typ1
-      in
-        PrettyFunType (fmap pretty cons1 <> consX) argsX (pretty typ2)
-    x ->
-      PrettyFunType [] [] (pretty x)
+   fun' = substF sub (fun { schemeBounds = [] })
 
 -- We make them actual names (with the hash code) because they will be used
 -- for substituations.
-prettyFunFromStrings :: (IsString n, Pretty n, Hashable n, Eq n) => Type n -> PrettyFunType
+prettyFunFromStrings :: (IsString n, Pretty n, Hashable n, Eq n) => Scheme n -> PrettyFunType
 prettyFunFromStrings
  = prettyFunWithNames
  $ fmap (nameOf . NameBase . fromString) letterNames
 
-prettyFunWithLetters :: Type Variable -> PrettyFunType
+prettyFunWithLetters :: Scheme Variable -> PrettyFunType
 prettyFunWithLetters
  = prettyFunWithNames
  $ fmap (nameOf . NameBase . Variable . T.pack) letterNames

@@ -29,7 +29,7 @@ import qualified        Data.Map as Map
 data Features a n k
  = Features
  { featuresConcretes :: Map InputId (FeatureConcrete a n k)
- , featuresFunctions :: Map   (Name n) (Type n)
+ , featuresFunctions :: Map   (Name n) (Scheme n)
  , featureNow        :: Maybe (Name n)
  }
 

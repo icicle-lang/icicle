@@ -4,7 +4,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Type.Compounds (
-    freeT
+    function0
+  , freeT
   , freeC
   , canonT
   , decomposeT
@@ -31,11 +32,16 @@ import qualified        Data.Set as Set
 import                  Data.Hashable (Hashable)
 
 
+
+function0 :: Type n -> Scheme n
+function0 u
+ = Forall [] [] u
+
+
 freeT :: (Hashable n, Eq n) => Type n -> Set.Set (Name n)
 freeT t
  = case t of
     TypeVar n             -> Set.singleton n
-    TypeForall ns cs b    -> Set.difference (Set.union (Set.unions (fmap freeC cs)) (freeT b)) (Set.fromList ns)
     _                     -> foldSourceType freeT t
 
 
@@ -99,7 +105,6 @@ getTemporality tt
     PossibilityDefinitely -> Nothing
 
     TypeVar {}            -> Nothing
-    TypeForall {}         -> Nothing
     TypeArrow {}          -> Nothing
 
  where
@@ -148,7 +153,6 @@ getPossibility tt
     PossibilityDefinitely -> Nothing
 
     TypeVar {}            -> Nothing
-    TypeForall {}         -> Nothing
     TypeArrow {}          -> Nothing
 
  where
@@ -187,7 +191,6 @@ getBaseType tt
     PossibilityDefinitely -> Nothing
 
     TypeVar {}            -> Nothing
-    TypeForall {}         -> Nothing
     TypeArrow {}          -> Nothing
 
 -- Temporality and possibility helpers --

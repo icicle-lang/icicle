@@ -41,7 +41,8 @@ data ErrorInfo a n
  = ErrorNoSuchVariable a (Name n)
  | ErrorNoSuchInput a UnresolvedInputId
  | ErrorContextNotAllowedHere  a (Context a n)
- | ErrorFunctionWrongArgs      a (Exp a n) (Type n) [Type n]
+ | ErrorFunctionWrongArgs      a (Exp a n) (Scheme n) [Type n]
+ | ErrorSchemesMatchError      a (Scheme n) (Scheme n)
  | ErrorApplicationNotFunction a (Exp a n)
  | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
  | ErrorConstraintLeftover      a [(a, Constraint n)]
@@ -70,6 +71,8 @@ annotOfError (CheckError e _)
     ErrorContextNotAllowedHere  a _
      -> Just a
     ErrorFunctionWrongArgs      a _ _ _
+     -> Just a
+    ErrorSchemesMatchError      a _ _
      -> Just a
     ErrorApplicationNotFunction a _
      -> Just a
@@ -102,7 +105,7 @@ annotOfError (CheckError e _)
 
 data ErrorSuggestion a n
  = AvailableFeatures UnresolvedInputId [(InputId, Type n)]
- | AvailableBindings (Name n) [(Name n, Type n)]
+ | AvailableBindings (Name n) [(Name n, Scheme n)]
  | Suggest String
  deriving (Show, Eq, Generic)
 
@@ -162,6 +165,14 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
         , "Expression:     " <> inp x
         , "Function type:  " <> inp (prettyFunFromStrings f)
         , "Argument types: " <> inp tys
+        ]
+
+    ErrorSchemesMatchError a x y ->
+      vsep [
+          "Supplied type signature does not match that of the inferred type at" <+> pretty a
+        , mempty
+        , "Signature:      " <> inp x
+        , "Inferred type:  " <> inp y
         ]
 
     ErrorApplicationNotFunction a x ->

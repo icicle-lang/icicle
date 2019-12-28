@@ -58,7 +58,7 @@ sorbet oid input = do
 
 
 
-sorbetType :: Text -> Either ParseError (Type Variable)
+sorbetType :: Text -> Either ParseError (Scheme Variable)
 sorbetType input = do
   lexed  <- first LexParseError $ Mega.runParser (consumeAll lexProgram) "" input
   parsed <- first AbstractParseError $ Mega.runParser (consumeAll (pConstrainedType)) "" (PositionedStream input lexed)

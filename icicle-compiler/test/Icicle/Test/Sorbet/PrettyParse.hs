@@ -91,10 +91,10 @@ prop_parse_pretty_type = withDiscards 1000 . withTests 1000 . property $ do
   valType   <- forAll CoreGen.genValType
   let
     sourceType =
-      Type.typeOfValType valType
+      Forall [] [] (Type.typeOfValType valType)
 
   tripping sourceType (Text.pack . show . pretty)
-      (sorbetType)
+      sorbetType
 
 
 return []
