@@ -9,6 +9,6 @@ from injury ~> newest action
 
 from injury ~> group location ~> latest 2 ~> action
 
-from injury ~> fold x = map_create then case map_lookup (Some location) x of None then map_insert (Some location) (Some severity) x ; Some _ then map_delete (Some location) x end ~> x
+from injury ~> fold x = map_create then case map_lookup (Some location) x of None then map_insert (Some location) (Some severity) x ; Some _ then map_delete (Some location) x ~> x
 
 from injury ~> group location ~> Some (mean (double severity / 100.0))

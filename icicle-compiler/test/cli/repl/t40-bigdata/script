@@ -4,7 +4,7 @@
 :set snapshot 2010-01-01
 
 -- Some simple good ones
-from salary ~> windowed 1 months ~> fold x = 0 : 1 ~> x
+from salary ~> windowed 1 months ~> fold x = 0 then 1 ~> x
 
 from salary ~> windowed 1 months ~> sum value
 
@@ -14,7 +14,7 @@ from salary ~> latest 10 ~> sum value
 
 
 -- Some obviously bad ones
-from salary ~> fold x = 0 : 1 ~> x
+from salary ~> fold x = 0 then 1 ~> x
 
 from salary ~> sum value
 
