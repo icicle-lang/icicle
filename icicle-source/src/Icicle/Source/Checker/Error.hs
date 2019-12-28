@@ -47,15 +47,13 @@ data ErrorInfo a n
  | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
  | ErrorConstraintLeftover      a [(a, Constraint n)]
  | ErrorCantInferConstraints    a [(a, Constraint n)] [(a, Constraint n)]
- | ErrorReturnNotAggregate a (Type n)
+ | ErrorReturnNotAggregate      a (Type n)
  | ErrorDuplicateFunctionNames a (Name n)
  | ErrorEmptyCase a (Exp a n)
  | ErrorPartialBinding a (Pattern n)
  | ErrorCaseBadPattern a (Pattern n)
  | ErrorResumableFoldNotAllowedHere a (Query a n)
  | ErrorInFunctionCall a (Name n) (ErrorInfo a n)
- | ErrorSerialisedFunction a (Exp a n)
- | ErrorRankNType a (Type n)
  | ErrorImpossible a
  deriving (Show, Eq, Generic)
 
@@ -95,10 +93,6 @@ annotOfError (CheckError e _)
     ErrorResumableFoldNotAllowedHere a _
      -> Just a
     ErrorInFunctionCall a _ _
-     -> Just a
-    ErrorSerialisedFunction a _
-     -> Just a
-    ErrorRankNType a _
      -> Just a
     ErrorImpossible a
      -> Just a
@@ -258,20 +252,6 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
           "In call to" <+> annotate AnnError (pretty n) <+> "at" <+> pretty a <> ":"
         , mempty
         , pretty e'
-        ]
-
-    ErrorSerialisedFunction a e' ->
-      vsep [
-          "Non-inlinable function call at" <+> pretty a
-        , mempty
-        , pretty e'
-        ]
-
-    ErrorRankNType a typ ->
-      vsep [
-          "Higher ranked type at " <+> pretty a
-        , mempty
-        , "Type: " <> inp typ
         ]
 
     ErrorImpossible a ->
