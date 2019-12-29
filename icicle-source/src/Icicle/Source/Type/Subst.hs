@@ -98,7 +98,7 @@ compose s1 s2
 -- >     unifyT t1 t2 == Nothing
 -- > ==>           t1 /= t2
 --
-unifyT :: (Hashable n, Eq n) => Type n -> Type n -> MaybeT (Fresh n) (SubstT n)
+unifyT :: (Hashable n, Eq n) => Type n -> Type n -> Maybe (SubstT n)
 unifyT t1 t2
  = case t1 of
     TypeVar a
@@ -112,13 +112,13 @@ unifyT t1 t2
      -- "Could not unify".
      -- Something specifically about recursive types would be ideal.
      | a `Set.member` freeT t2
-     -> nothing
+     -> Nothing
      | otherwise
      -> return $ Map.singleton a t2
     _
      | TypeVar b <- t2
      , b `Set.member` freeT t1
-     -> nothing
+     -> Nothing
      | TypeVar b <- t2
      -> return $ Map.singleton b t1
 
@@ -135,31 +135,31 @@ unifyT t1 t2
      | ArrayT b <- t2
      -> unifyT a b
      | otherwise
-     -> nothing
+     -> Nothing
 
     GroupT ak av
      | GroupT bk bv <- t2
      -> compose <$> unifyT ak bk <*> unifyT av bv
      | otherwise
-     -> nothing
+     -> Nothing
 
     OptionT a
      | OptionT b <- t2
      -> unifyT a b
      | otherwise
-     -> nothing
+     -> Nothing
 
     PairT a1 a2
      | PairT b1 b2 <- t2
      -> compose <$> unifyT a1 b1 <*> unifyT a2 b2
      | otherwise
-     -> nothing
+     -> Nothing
 
     SumT  a1 a2
      | SumT  b1 b2 <- t2
      -> compose <$> unifyT a1 b1 <*> unifyT a2 b2
      | otherwise
-     -> nothing
+     -> Nothing
 
     StructT as
      | StructT bs <- t2
@@ -168,13 +168,13 @@ unifyT t1 t2
      ->  foldl compose Map.empty
      <$> mapM (uncurry unifyT) m'
      | otherwise
-     -> nothing
+     -> Nothing
 
     Temporality at ar
      | Temporality bt br <- t2
      -> compose <$> unifyT at bt <*> unifyT ar br
      | otherwise
-     -> nothing
+     -> Nothing
 
     TemporalityPure         -> eq
     TemporalityElement      -> eq
@@ -184,7 +184,7 @@ unifyT t1 t2
      | Possibility bt br <- t2
      -> compose <$> unifyT at bt <*> unifyT ar br
      | otherwise
-     -> nothing
+     -> Nothing
 
     PossibilityPossibly     -> eq
     PossibilityDefinitely   -> eq
@@ -193,20 +193,11 @@ unifyT t1 t2
      | TypeArrow bt br <- t2
      -> compose <$> unifyT at bt <*> unifyT ar br
      | otherwise
-     -> nothing
+     -> Nothing
 
  where
   eq
    | t1 == t2
-   = just Map.empty
+   = Just Map.empty
    | otherwise
-   = nothing
-
-  hoist
-   = MaybeT . return
-
-  just
-   = hoist . Just
-
-  nothing
-   = hoist Nothing
+   = Nothing

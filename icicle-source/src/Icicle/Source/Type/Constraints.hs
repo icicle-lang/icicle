@@ -15,17 +15,11 @@ module Icicle.Source.Type.Constraints (
   , nubConstraints
   ) where
 
-import           Control.Monad.Trans.Maybe (MaybeT (..))
-import           Control.Monad.Trans.Class (lift)
-import           Control.Monad.Trans.Either
-
 import           Data.Hashable (Hashable)
 import           Data.List (nubBy)
 import qualified Data.Map as Map
 
 import           GHC.Generics (Generic)
-
-import           Icicle.Common.Fresh (Fresh)
 
 import           Icicle.Source.Type.Base
 import           Icicle.Source.Type.Subst
@@ -78,7 +72,7 @@ instance Pretty n => Pretty (DischargeError n) where
   <> "Chances are the query requires multiple passes over the data."
 
 -- | Discharge a single constraint
-dischargeC :: (Hashable n, Eq n) => Constraint n -> EitherT (DischargeError n) (Fresh n) (DischargeResult n)
+dischargeC :: (Hashable n, Eq n) => Constraint n -> Either (DischargeError n) (DischargeResult n)
 dischargeC c
  = case c of
     CIsNum IntT
@@ -88,7 +82,7 @@ dischargeC c
     CIsNum (TypeVar _)
      -> return $ DischargeLeftover c
     CIsNum t
-     -> left   $ NotANumber t
+     -> Left   $ NotANumber t
 
     CPossibilityOfNum poss IntT
      -> dischargeC (CEquals poss PossibilityDefinitely)
@@ -97,12 +91,12 @@ dischargeC c
     CPossibilityOfNum _ (TypeVar _)
      -> return $ DischargeLeftover c
     CPossibilityOfNum _ t
-     -> left   $ NotANumber t
+     -> Left   $ NotANumber t
 
-    CEquals want have
-     -> liftMaybeT (unifyT want have) >>= \case
-          Nothing -> left $ CannotUnify want have
-          Just s  -> return $ DischargeSubst s
+    CEquals a b
+     -> case unifyT a b of
+         Nothing -> Left $ CannotUnify a b
+         Just s  -> return $ DischargeSubst s
 
     -- Join temporalities. Pure joins with everything.
     --
@@ -151,7 +145,7 @@ dischargeC c
          Just tmp
           -> dischargeC (CEquals ret tmp)
          Nothing
-          -> left $ ConflictingLetTemporalities ret def body
+          -> Left $ ConflictingLetTemporalities ret def body
 
     CDataOfLatest ret tmp pos dat
      -> case dataOfLatest tmp pos dat of
@@ -186,7 +180,7 @@ dischargeC c
   lub (TemporalityPure) x = return x
   lub x (TemporalityPure) = return x
   lub x y | x == y = return x
-          | otherwise = left $ ConflictingJoinTemporalities x y
+          | otherwise = Left $ ConflictingJoinTemporalities x y
 
   returnOfLet def body
    = case (def,body) of
@@ -241,9 +235,6 @@ dischargeC c
   possibilityOfLatest _ _
    = Nothing
 
-  liftMaybeT
-   = lift . runMaybeT
-
 -- | Discharge a constraint at the top level.
 -- This is a bit of a hack, but the idea is that function application rule
 -- takes care of joining modes as well.
@@ -253,33 +244,31 @@ dischargeC c
 dischargeC'toplevel
         :: (Hashable n, Eq n)
         => Constraint n
-        -> EitherT (DischargeError n) (Fresh n) (DischargeResult n)
+        -> Either (DischargeError n) (DischargeResult n)
 dischargeC'toplevel cons
- = lift (runEitherT (dischargeC cons)) >>= \case
-     Right (DischargeLeftover cons')
-      | CTemporalityJoin a b c <- cons'
-      -> DischargeSubst <$> discharges [(a,b), (b,c)] Map.empty
-      | CPossibilityJoin a b c <- cons'
-      -> DischargeSubst <$> discharges [(a,b), (b,c)] Map.empty
-     dish
-      -> hoistEither dish
+ = case dischargeC cons of
+    Right (DischargeLeftover cons')
+     | CTemporalityJoin a b c <- cons'
+     -> DischargeSubst <$> discharges [(a,b), (b,c)] Map.empty
+     | CPossibilityJoin a b c <- cons'
+     -> DischargeSubst <$> discharges [(a,b), (b,c)] Map.empty
+    dish
+     -> dish
  where
   discharges [] s
    = return s
   discharges ((a,b):cs) s
    = let a' = substT s a
          b' = substT s b
-     in  liftMaybeT (unifyT a b) >>= \case
-           Nothing -> left $ CannotUnify a' b'
-           Just s' -> discharges cs (compose s s')
+     in  case unifyT a' b' of
+          Nothing -> Left $ CannotUnify a' b'
+          Just s' -> discharges cs (compose s s')
 
-  liftMaybeT
-   = lift . runMaybeT
 
 dischargeCS
         :: (Hashable n, Eq n)
         => [(a, Constraint n)]
-        -> EitherT [(a, DischargeError n)] (Fresh n) (SubstT n, [(a, Constraint n)])
+        -> Either [(a, DischargeError n)] (SubstT n, [(a, Constraint n)])
 dischargeCS = dischargeCS' dischargeC
 
 
@@ -287,24 +276,23 @@ dischargeCS = dischargeCS' dischargeC
 -- Return a list of errors, or the substitution and any leftover constraints
 dischargeCS'
         :: (Hashable n, Eq n)
-        => (Constraint n -> EitherT (DischargeError n) (Fresh n) (DischargeResult n))
+        => (Constraint n -> Either (DischargeError n) (DischargeResult n))
         -> [(a, Constraint n)]
-        -> EitherT [(a, DischargeError n)] (Fresh n) (SubstT n, [(a, Constraint n)])
+        -> Either [(a, DischargeError n)] (SubstT n, [(a, Constraint n)])
 dischargeCS' solver
  -- Accumulators: substitution, leftover constraints and errors
  = go Map.empty [] []
  where
   -- Reached the end with no errors
   go s cs [] []
-   = do cs' <- lift (nubConstraints cs)
-        return (s, cs')
+   = return (s, nubConstraints cs)
   -- Reached the end, but errors is not empty
   go _ _ errs []
-   = left errs
+   = Left errs
 
   -- Try to discharge one constraint
   go s cs errs ((a,c):rest)
-   = lift (runEitherT (solver c)) >>= \case
+   = case solver c of
       -- Error, so just add it to the list
       Left e
        -> go s cs ((a,e):errs) rest
@@ -332,47 +320,16 @@ dischargeCS' solver
 
 
 nubConstraints
-   :: (Hashable n, Eq n)
-   => [(a, Constraint n)]
-   -> Fresh n [(a, Constraint n)]
+    :: (Hashable n, Eq n)
+    => [(a, Constraint n)]
+    -> [(a, Constraint n)]
 nubConstraints cs
- = do let cs'  = nubBy ((==) `on` snd) cs
-      allCs   <- traverse removeEmpties cs'
-      return $
-        concat allCs
-
+ = concatMap removeEmpties
+ $ nubBy ((==) `on` snd) cs
  where
   removeEmpties (a,c)
-   = runEitherT (dischargeC c) >>= \case
-       Right (DischargeSubst sub)
-         | Map.null sub
-         -> return []
-       _ -> return [(a,c)]
-
--- -- | Add a constraint to the context.
--- require :: Constraint n -> ConstraintSet n
--- require c = [c]
-
--- -- | Instantiate a qualified type.
--- instantiate
---   :: (Hashable n, Eq n)
---   => Type n
---   -> Fresh n (Type n, ConstraintSet n)
--- instantiate f
---  = case f of
---     TypeForall ns cs x -> do
---       freshen <- Map.fromList <$> mapM mkSubst ns
-
---       let cons = concat
---                $ fmap (require . substC freshen)
---                $ cs
-
---       let sub   = substT freshen
---       return (sub x, cons)
-
---     _ ->
---       return (f, [])
-
---  where
---   mkSubst n
---    = ((,) n . TypeVar) <$> Fresh.fresh
+   | Right (DischargeSubst sub) <- dischargeC c
+   , Map.null sub
+   = []
+   | otherwise
+   = [(a,c)]

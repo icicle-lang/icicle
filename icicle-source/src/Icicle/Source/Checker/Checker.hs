@@ -26,7 +26,6 @@ import qualified        Icicle.Common.Fresh     as Fresh
 import                  P
 
 import                  Control.Monad.Trans.Either
-import                  Control.Monad.Trans.Class (lift)
 
 import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
@@ -70,7 +69,7 @@ checkQ  :: (Hashable n, Eq n, Pretty n)
         -> Query    a n
         -> Result (Query (Annot a n) n) a n
 checkQ opts ctx q
- = do q'  <- lift . defaults =<< constraintsQ (checkEnvironment ctx) q
+ = do q'  <- defaults <$> constraintsQ (checkEnvironment ctx) q
 
       let t = annResult $ annotOfQuery q'
       case getTemporalityOrPure t of

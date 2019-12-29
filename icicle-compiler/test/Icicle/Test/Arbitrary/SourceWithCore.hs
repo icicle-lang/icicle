@@ -64,7 +64,7 @@ instance Arbitrary TestSourceConvert where
     = fmap snd
     $ Fresh.runFreshT prog
     $ Fresh.counterNameState (counter "flat") 0
-
+ 
    freshFromCore prog
     = snd
     $ Fresh.runFresh prog
@@ -72,7 +72,7 @@ instance Arbitrary TestSourceConvert where
 
    counter desc i =
     NameBase $ T.Variable (desc <> T.pack (show i))
-
+ 
 
 evalCore :: TestSourceConvert -> [AsAt BaseValue] -> Either (CV.RuntimeError () T.Variable) [(OutputId, BaseValue)]
 evalCore ts vs

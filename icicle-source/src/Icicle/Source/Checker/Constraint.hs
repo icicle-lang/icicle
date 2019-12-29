@@ -4,7 +4,6 @@
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE RankNTypes        #-}
-{-# LANGUAGE LambdaCase        #-}
 module Icicle.Source.Checker.Constraint (
     constraintsQ
   , generateQ
@@ -52,7 +51,7 @@ import qualified Data.Map                     as Map
 --
 defaults :: (Hashable n, Eq n)
          => Query'C a n
-         -> Fresh.Fresh n (Query'C a n)
+         -> Query'C a n
 defaults topq
   -- Substitute the defaults in. Num takes precedence because defaultOfAllQ would substitute numbers to Unit.
   = substTQ (Map.union defaultNums (defaultOfAllQ topq)) topq
@@ -164,13 +163,13 @@ constraintsQ env q
   -- Perform top-level discharge of any silly leftover Possibility or Temporality joins
   top = do
    (q',_,cons) <- generateQ q env
-   genLiftFresh (runEitherT (dischargeCS' dischargeC'toplevel cons)) >>= \case
+   case dischargeCS' dischargeC'toplevel cons of
     Left errs
      -> genHoistEither
       $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annotOfQuery q) errs)
     Right (sub', cons')
-     -> do  q'' <- genLiftFresh (substTQ sub' q')
-            return (q'', cons')
+     -> let q'' = substTQ sub' q'
+        in  return (q'', cons')
 
 
 -- | Generate constraints for top-level query.
@@ -776,7 +775,7 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
 
         (rest', subs, consr) <- generateP ann scrutTy resTy resTmTop resTp' resPs' rest (substE sub env)
         let cons'       = concat [consp, conss, consa, consT, consr]
-        alt''          <- genLiftFresh (substTX subs alt')
+        let alt''       = substTX subs alt'
         let subs'       = compose sub subs
         let patalts     = (pat, alt'') : rest'
         return (patalts, subs', cons')

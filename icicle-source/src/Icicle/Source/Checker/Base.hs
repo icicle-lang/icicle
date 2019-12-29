@@ -21,7 +21,6 @@ module Icicle.Source.Checker.Base (
   , evalGen
   , evalGenNoLog
   , genHoistEither
-  , genLiftFresh
 
   , CheckLog(..)
   , DischargeInfo(..)
@@ -187,9 +186,6 @@ checkLog l = Gen . lift $ modify (l:)
 genHoistEither :: Either (CheckError a n) t -> Gen a n t
 genHoistEither = Gen . hoistEither
 
-genLiftFresh :: Fresh.Fresh n t -> Gen a n t
-genLiftFresh = Gen . lift . lift
-
 type Query'C a n = Query (Annot a n) n
 type Exp'C   a n = Exp   (Annot a n) n
 
@@ -203,23 +199,22 @@ require a c = [(a,c)]
 discharge
   :: (Hashable n, Eq n, Pretty q)
   => (q -> Annot a n)
-  -> (SubstT n -> q -> Fresh.Fresh n q)
+  -> (SubstT n -> q -> q)
   -> (q, SubstT n, GenConstraintSet a n)
   -> Gen a n (q, SubstT n, GenConstraintSet a n)
 discharge annotOf sub (q, s, conset)
  = do let annot     = annotOf q
       let log_ppr   = pretty q
       let log_info0 = DischargeInfo (annResult annot) conset s
-      cs           <- genLiftFresh $ nubConstraints $ fmap (\(a,c) -> (a, substC s c)) conset
-      discharged   <- genLiftFresh . runEitherT $ dischargeCS cs
+      let cs = nubConstraints $ fmap (\(a,c) -> (a, substC s c)) conset
 
-      case discharged of
+      case dischargeCS cs of
        Left errs -> do
         checkLog (CheckLogDischargeError log_ppr log_info0 errs)
         genHoistEither $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot annot) errs)
        Right (s', cs') -> do
         let s'' = compose s s'
-        q'     <- genLiftFresh (sub s'' q)
+        let q'  = sub s'' q
         let annot' = annotOf q'
         let log_info1 = DischargeInfo (annResult annot') cs' s''
         checkLog (CheckLogDischargeOk log_ppr log_info0 log_info1)
@@ -311,15 +306,17 @@ substE :: Eq n => SubstT n -> GenEnv n -> GenEnv n
 substE s
  = fmap (substF s)
 
-substTQ :: (Hashable n, Eq n) => SubstT n -> Query'C a n -> Fresh.Fresh n (Query'C a n)
+substTQ :: (Hashable n, Eq n) => SubstT n -> Query'C a n -> Query'C a n
 substTQ s
- = traverseAnnot (substAnnot s)
+ = reannot (substAnnot s)
 
-substTX :: (Hashable n, Eq n) => SubstT n -> Exp'C a n -> Fresh.Fresh n (Exp'C a n)
+substTX :: (Hashable n, Eq n) => SubstT n -> Exp'C a n -> Exp'C a n
 substTX s
- = traverseAnnot (substAnnot s)
+ = reannot (substAnnot s)
 
-substAnnot :: (Hashable n, Eq n) => SubstT n -> Annot a n -> Fresh.Fresh n (Annot a n)
+substAnnot :: (Hashable n, Eq n) => SubstT n -> Annot a n -> Annot a n
 substAnnot s ann
- = Annot (annAnnot ann) (substT s $ annResult ann)
-      <$> nubConstraints (fmap (\(a,c) -> (a, substC s c)) $ annConstraints ann)
+ = ann
+ { annResult = substT s $ annResult ann
+ , annConstraints = nubConstraints $ fmap (\(a,c) -> (a, substC s c)) $ annConstraints ann
+ }

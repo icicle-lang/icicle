@@ -45,7 +45,7 @@ subsume ann q inf req = do
 
   -- Unify the types, with substitutions to turn the inferred
   -- type variables into the desired ones.
-  ss                <- hoistMaybeT err $ unifyT skol intro
+  ss                <- hoistMaybe err $ unifyT skol intro
 
   -- Discharge the constraints of the inferred type with the
   -- discovered substitutions
@@ -77,10 +77,9 @@ subsume ann q inf req = do
   return (q', ret)
 
 
-hoistMaybeT :: Either (CheckError a n) b -> MaybeT (Fresh n) b -> Gen a n b
-hoistMaybeT err act = do
-  subsumed <- genLiftFresh . runMaybeT $ act
-  case subsumed of
+hoistMaybe :: Either (CheckError a n) b -> Maybe b -> Gen a n b
+hoistMaybe err act = do
+  case act of
     Nothing ->
       genHoistEither err
 
