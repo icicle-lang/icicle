@@ -161,12 +161,12 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
         , "Argument types: " <> inp tys
         ]
 
-    ErrorSchemesMatchError a x y ->
+    ErrorSchemesMatchError a x f ->
       vsep [
           "Supplied type signature does not match that of the inferred type at" <+> pretty a
         , mempty
         , "Signature:      " <> inp x
-        , "Inferred type:  " <> inp y
+        , "Inferred type:  " <> inp (prettyFunFromStrings f)
         ]
 
     ErrorApplicationNotFunction a x ->

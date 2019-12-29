@@ -11,8 +11,6 @@ module Icicle.Source.Checker.Subsumption (
     subsume
   ) where
 
-import                  Icicle.Common.Fresh (Fresh)
-
 import                  Icicle.Source.Checker.Base
 import                  Icicle.Source.Checker.Error
 
@@ -23,9 +21,8 @@ import                  Icicle.Internal.Pretty
 
 import                  P
 
-import                  Control.Monad.Trans.Maybe (MaybeT (..))
-
 import qualified        Data.Set as Set
+import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
 
 
@@ -35,7 +32,7 @@ subsume :: (Pretty n, Hashable n, Eq n) => a -> Exp (Annot a n) n -> Scheme n ->
 subsume ann q inf req = do
   let
     err =
-      errorNoSuggestions (ErrorSchemesMatchError ann inf req)
+      errorNoSuggestions (ErrorSchemesMatchError ann req inf)
 
   -- Introduce the inferred type.
   (_, skol, inf'c)  <- introForalls ann inf
@@ -45,7 +42,7 @@ subsume ann q inf req = do
 
   -- Unify the types, with substitutions to turn the inferred
   -- type variables into the desired ones.
-  ss                <- hoistMaybe err $ unifyT skol intro
+  ss                <- hoistMaybe err $ subsumeT skol intro
 
   -- Discharge the constraints of the inferred type with the
   -- discovered substitutions
@@ -85,3 +82,118 @@ hoistMaybe err act = do
 
     Just realised ->
       return realised
+
+
+-- | Attempt to find a substitution that turns the inferred type
+--   into the given type.
+--
+--   This is very similar to unifyT, in that it attempts to find
+--   a substitution which will make the two types the same; but it
+--   is heavily biased. Only TypeVars in the inferred type can
+--   be cast to concrete types, not ones from the signature.
+--
+--   Furthermore, when combining substitutions, we must ensure that
+--   all cast values are the same (actually, a subsumption might
+--   suffice, we'll see).
+--
+subsumeT :: (Hashable n, Eq n) => Type n -> Type n -> Maybe (SubstT n)
+subsumeT inferred sig
+ = case inferred of
+    TypeVar a
+     | TypeVar b <- sig
+     , a == b
+     -> return $ Map.empty
+
+    TypeVar a
+     -- Occurs check.
+     -- TODO: it would be nice to have a better error message than just
+     -- "Could not unify".
+     -- Something specifically about recursive types would be ideal.
+     | a `Set.member` freeT sig
+     -> Nothing
+     | otherwise
+     -> return $ Map.singleton a sig
+
+    BoolT       -> eq
+    TimeT       -> eq
+    DoubleT     -> eq
+    IntT        -> eq
+    StringT     -> eq
+    UnitT       -> eq
+    ErrorT      -> eq
+
+    ArrayT a
+     | ArrayT b <- sig
+     -> subsumeT a b
+     | otherwise
+     -> Nothing
+
+    GroupT ak av
+     | GroupT bk bv <- sig
+     -> join $ combine <$> subsumeT ak bk <*> subsumeT av bv
+     | otherwise
+     -> Nothing
+
+    OptionT a
+     | OptionT b <- sig
+     -> subsumeT a b
+     | otherwise
+     -> Nothing
+
+    PairT a1 a2
+     | PairT b1 b2 <- sig
+     -> join $ combine <$> subsumeT a1 b1 <*> subsumeT a2 b2
+     | otherwise
+     -> Nothing
+
+    SumT  a1 a2
+     | SumT  b1 b2 <- sig
+     -> join $ combine <$> subsumeT a1 b1 <*> subsumeT a2 b2
+     | otherwise
+     -> Nothing
+
+    StructT as
+     | StructT bs <- sig
+     , Map.keysSet as == Map.keysSet bs
+     , m' <- Map.intersectionWith (,) as bs
+     -> join $ foldM combine Map.empty <$> mapM (uncurry subsumeT) m'
+     | otherwise
+     -> Nothing
+
+    Temporality at ar
+     | Temporality bt br <- sig
+     -> join $ combine <$> subsumeT at bt <*> subsumeT ar br
+     | otherwise
+     -> Nothing
+
+    TemporalityPure         -> eq
+    TemporalityElement      -> eq
+    TemporalityAggregate    -> eq
+
+    Possibility at ar
+     | Possibility bt br <- sig
+     -> join $ combine <$> subsumeT at bt <*> subsumeT ar br
+     | otherwise
+     -> Nothing
+
+    PossibilityPossibly     -> eq
+    PossibilityDefinitely   -> eq
+
+    TypeArrow  at ar
+     | TypeArrow bt br <- sig
+     -> join $ combine <$> subsumeT at bt <*> subsumeT ar br
+     | otherwise
+     -> Nothing
+
+ where
+  eq
+   | inferred == sig
+   = Just Map.empty
+   | otherwise
+   = Nothing
+
+  combine :: Eq n => SubstT n -> SubstT n -> Maybe (SubstT n)
+  combine s1 s2 = do
+    guard . Map.foldl' (&&) True $ Map.intersectionWith (==) s1 s2
+    return $
+      Map.union s1 s2
