@@ -12,6 +12,7 @@ module Icicle.Sorbet.Parse (
   , sorbetQuery
   , sorbetFunctions
   , sorbetType
+  , sorbetUnresolvedInputId
 
   , ParseError
   , annotOfParseError
@@ -72,6 +73,11 @@ sorbetQuery input = do
   parsed <- first AbstractParseError $ Mega.runParser (consumeAll pQuery) "" (PositionedStream input layed)
   return parsed
 
+
+sorbetUnresolvedInputId :: Text -> Either ParseError UnresolvedInputId
+sorbetUnresolvedInputId input = do
+  lexed  <- first LexParseError $ Mega.runParser (consumeAll lexProgram) "" input
+  first AbstractParseError $ Mega.runParser (consumeAll pUnresolvedInputId) "" (PositionedStream input lexed)
 
 consumeAll :: MonadParsec e s m => m a ->  m a
 consumeAll f = do

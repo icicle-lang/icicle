@@ -20,9 +20,9 @@ import           Icicle.Internal.Pretty                        hiding ((</>))
 
 import qualified Icicle.Compiler.Source                        as P
 
-import           Icicle.Source.Checker                         (CheckOptions (..), Decl)
+import           Icicle.Source.Checker                         (CheckOptions (..))
 import qualified Icicle.Source.Parser                          as SP
-import           Icicle.Source.Query                           (QueryTop (..), Query (..), Exp)
+import           Icicle.Source.Query                           (QueryTop (..), Query (..), Exp, Decl)
 import qualified Icicle.Source.Query                           as SQ
 
 import           Icicle.Storage.Dictionary.Toml.Dense

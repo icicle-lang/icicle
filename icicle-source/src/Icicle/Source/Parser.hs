@@ -11,13 +11,10 @@ module Icicle.Source.Parser (
   ) where
 
 import Icicle.Sorbet.Abstract.Tokens (Variable (..))
-import Icicle.Sorbet.Abstract.Parser (Decl (..))
 import Icicle.Sorbet.Parse
 import Icicle.Sorbet.Position
 
 import Icicle.Source.Query
-
-import Icicle.Common.Base
 
 import Icicle.Data.Name
 
@@ -40,10 +37,12 @@ parseQueryTop name inp
  = reannot toParsec <$> sorbet name inp
 
 parseFactName :: Text -> Either ParseError UnresolvedInputId
-parseFactName inp = undefined
+parseFactName inp = sorbetUnresolvedInputId inp
 
 parseQuery :: UnresolvedInputId -> OutputId -> Text -> Either ParseError (QueryTop SourcePos Variable)
-parseQuery v name inp = undefined
+parseQuery v name inp
+ = do q <- reannot toParsec <$> sorbetQuery inp
+      return $ QueryTop v name q
 
 prettyParse :: OutputId -> Text -> [Char]
 prettyParse name inp

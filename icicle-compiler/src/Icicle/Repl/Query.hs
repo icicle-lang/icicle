@@ -61,8 +61,7 @@ import qualified Icicle.Sea.Preamble as Sea
 import qualified Icicle.Serial as Serial
 import qualified Icicle.Source.PrettyAnnot as Source
 import qualified Icicle.Sorbet.Render as Sorbet
-import qualified Icicle.Source.Query.Query as Source
-import           Icicle.Source.Checker (Decl (..))
+import qualified Icicle.Source.Query as Source
 
 import           P
 
@@ -201,8 +200,8 @@ defineFunction function =
     dictionary <- gets stateDictionary
 
     let
-      decln (DeclFun _ n _) = n
-      decln (DeclType _ n _) = n
+      decln (Source.DeclFun _ n _) = n
+      decln (Source.DeclType _ n _) = n
 
       names =
         Set.fromList $ fmap decln parsed

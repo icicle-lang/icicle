@@ -24,11 +24,11 @@
 --   over time.
 module Icicle.Sorbet.Abstract.Parser (
     Parser
-  , Decl (..)
 
   , pTop
   , pQuery
   , pDecls
+  , pUnresolvedInputId
   ) where
 
 import qualified Data.List as List
@@ -47,7 +47,6 @@ import           Icicle.Source.Query
 import           Icicle.Source.Type
 import           Icicle.Source.Parser.Constructor (checkPat, constructors)
 import           Icicle.Source.Parser.Operators
-import           Icicle.Source.Checker.Function (Decl (..))
 
 import           P
 

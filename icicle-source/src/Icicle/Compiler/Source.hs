@@ -52,7 +52,6 @@ module Icicle.Compiler.Source
   ) where
 
 
-import           Icicle.Common.Base                       (Name)
 import qualified Icicle.Common.Fresh                      as Fresh
 
 import qualified Icicle.Core.Program.Program              as Core
@@ -74,14 +73,12 @@ import qualified Icicle.Source.Transform.Inline           as Inline
 import qualified Icicle.Source.Transform.ReifyPossibility as Reify
 import qualified Icicle.Source.Type                       as Type
 
-import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Either
 
 import           Data.Functor.Identity
 import qualified Data.Map                                 as M
 import           Data.String
 import           Data.Hashable                            (Hashable)
-import qualified Data.Text.IO                             as Text
 
 import qualified Text.ParserCombinators.Parsec            as Parsec
 import qualified Text.Parsec.Pos                          as Parsec
@@ -98,7 +95,7 @@ type AnnotUnit = ()
 type Var         = Parse.Variable
 type TypeAnnot a = Type.Annot a Var
 
-type Funs a b = [ Check.Decl a b ]
+type Funs a b = [ Query.Decl a b ]
 type FunEnvT a b = [ Query.ResolvedFunction a b ]
 
 type QueryUntyped v = Query.QueryTop            Parsec.SourcePos  v
@@ -146,7 +143,7 @@ instance NFData (ErrorSource a) where rnf x = seq x ()
 annotOfError :: ErrorSource a -> Maybe Parsec.SourcePos
 annotOfError e
  = case e of
-    ErrorSourceParse sp
+    ErrorSourceParse _
      -> Nothing
     ErrorSourceDesugar e'
      -> Desugar.annotOfError e'
@@ -234,11 +231,11 @@ sourceDesugarQT q
 
 
 sourceDesugarDecl
- :: Check.Decl Parsec.SourcePos Var
+ :: Query.Decl Parsec.SourcePos Var
  -> Fresh.FreshT Var (EitherT (Desugar.DesugarError Parsec.SourcePos Var) Identity)
-                     (Check.Decl Parsec.SourcePos Var)
-sourceDesugarDecl (Check.DeclFun a ns exp)
- = Check.DeclFun a ns <$> Desugar.desugarX exp
+                     (Query.Decl Parsec.SourcePos Var)
+sourceDesugarDecl (Query.DeclFun a ns x)
+ = Query.DeclFun a ns <$> Desugar.desugarX x
 sourceDesugarDecl declType
  = return declType
 

@@ -8,7 +8,6 @@ module Icicle.Source.Checker.Function (
   , checkFs
 
   , checkF'
-  , Decl (..)
   ) where
 
 import                  Icicle.Source.Checker.Base
@@ -32,19 +31,6 @@ import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
 import qualified        Data.List               as List
 import                  Data.Hashable           (Hashable)
-
-
-data Decl a n
-  = DeclFun a (Name n) (Exp a n)
-  | DeclType a (Name n) (Scheme n)
-  deriving (Eq, Show)
-
-
-instance TraverseAnnot Decl where
-  traverseAnnot f decl =
-    case decl of
-      DeclFun a n x -> DeclFun <$> f a <*> pure n <*> traverseAnnot f x
-      DeclType a n t -> DeclType <$> f a <*> pure n <*> pure t
 
 
 type Funs a n = [ Decl a n ]
