@@ -6,25 +6,10 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 
--- | Parser for the Icicle Source language from the Sorbet lexer.
+-- | Parser for the Icicle Source language Types from the Sorbet Lexer.
 --
---   There were two ways of going about this, writing an elaborator
---   from the Sorbet Concrete parse tree, or writing a new AST parser.
---
---   Having a look at the Sorbet Concrete Parser, it looked to me
---   like a few very important things were missing, and the Concrete
---   syntax of Sorbet is quite different to the original AST of
---   Icicle.
---
---   Also, Sorbet is quite a bit richer, and I can't actually support
---   all of it as written at the moment.
---
---   I decided to go down this route, as I can share as much as I
---   need from both of the current sources, and can incrementally
---   update the Icicle AST and new parser to get closer to Sorbet
---   over time.
 module Icicle.Sorbet.Abstract.Type (
-    pConstrainedType
+    pTypeScheme
   ) where
 
 import qualified Data.List as List
@@ -48,8 +33,8 @@ import qualified Text.Megaparsec as Mega
 type Var = Variable
 
 
-pConstrainedType :: Parser s m => m (Scheme Var)
-pConstrainedType = do
+pTypeScheme :: Parser s m => m (Scheme Var)
+pTypeScheme = do
   (_, constraints) <- List.unzip <$> many (try pConstraint)
   (_, typ)         <- pType
   let

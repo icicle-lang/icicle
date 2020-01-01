@@ -185,14 +185,14 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
 
     ErrorConstraintLeftover a ds ->
       vsep [
-          "Unsolved constraints at " <+> pretty a
+          "Unsolved constraints at" <+> pretty a
         , mempty
         , vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
         ]
 
     ErrorCantInferConstraints a ds [] ->
       vsep [
-          "Can't infer required constraints at " <+> pretty a
+          "Can't infer required constraints at" <+> pretty a
         , mempty
         , vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
         , mempty
@@ -201,12 +201,13 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
 
     ErrorCantInferConstraints a ds xs ->
       vsep [
-          "Can't infer required constraints at " <+> pretty a
+          "Can't infer required constraints at" <+> pretty a
         , mempty
-        , vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
+        , vcat (fmap (\(_,con) -> indent 2 (pretty con)) ds)
         , mempty
         , "from the specified constraints:"
-        , vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) xs)
+        , mempty
+        , vcat (fmap (\(_,con) -> indent 2 (pretty con)) xs)
         ]
 
     ErrorReturnNotAggregate a t ->

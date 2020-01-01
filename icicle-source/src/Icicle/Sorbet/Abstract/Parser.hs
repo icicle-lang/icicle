@@ -94,7 +94,7 @@ pDecl = do
 pDeclType :: Parser s m => m (Scheme Var)
 pDeclType = do
   _ <- pToken Tok_Colon
-  pConstrainedType
+  pTypeScheme
 
 
 

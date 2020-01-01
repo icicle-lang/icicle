@@ -21,11 +21,8 @@ import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.List as List
 import           Data.Proxy (Proxy (..))
 import           Data.Data (Data)
-import           Data.Foldable (foldl1)
 import           Data.Typeable (Typeable)
 import qualified Data.Text as Text
-import           Data.String (String)
-import qualified Data.String as String
 
 import           GHC.Generics (Generic)
 
@@ -35,7 +32,7 @@ import           P
 
 import           System.IO (FilePath)
 
-import           Text.Megaparsec (Stream(..), ShowErrorComponent(..), PosState (..))
+import           Text.Megaparsec (Stream(..), PosState (..))
 import           Text.Megaparsec.Pos (SourcePos(..), mkPos, unPos)
 import qualified Text.Parsec.Pos as Parsec
 
@@ -148,8 +145,8 @@ toSourcePos = \case
 
 toParsec :: Position -> Parsec.SourcePos
 toParsec = \case
-  Position file line col ->
-    Parsec.newPos file line col
+  Position file srcLine col ->
+    Parsec.newPos file srcLine col
 
 instance Pretty Position where
   pretty =
