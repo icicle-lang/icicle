@@ -163,8 +163,6 @@ instance (Pretty a, Pretty n) => Pretty (CheckLog a n) where
     "  errors: " <> indent 0 (pretty errs)
 
 
--- TODO: want EitherT (StateT ...) ...
--- in order to get log in failure case
 newtype Gen a n t
  = Gen { constraintGen :: EitherT (CheckError a n) (StateT [CheckLog a n] (Fresh.Fresh n)) t }
  deriving (Functor, Applicative, Monad)
@@ -224,24 +222,12 @@ fresh :: Hashable n => Gen a n (Name n)
 fresh
  = Gen . lift . lift $ Fresh.fresh
 
--- | Freshen function type by applying introduction rules to foralls.
+-- | Freshen type scheme by applying introduction rules to foralls.
 --
--- We only support rank 1 polymorphism, so
+--   We only support rank 1 polymorphism, for example
 --
---   forall a. a -> (forall b. b -> a)
+--   > forall a b. a -> b -> a
 --
--- is equivalent to
---
---   forall a b. a -> b -> a
---
--- while
---
---   (forall a. a -> a) -> (forall b. b -> b)
---
--- is not allowed and will yield an error.
---
--- This only works at the top level, which is fine for now, but might
--- start becoming a challenge when the type system grows.
 introForalls
   :: (Hashable n, Eq n)
   => a
@@ -259,9 +245,8 @@ introForalls ann f
   mkSubst n
    = ((,) n . TypeVar) <$> fresh
 
--- | Look up a name in the context. Return the original type, along with the argument
---   types and return type where forall-quantified variables have been freshen'd.
---
+-- | Look up a name in the context. Return the original type schem, along with the
+--   type where all forall-quantified variables have been freshen'd.
 lookup
   :: (Hashable n, Eq n)
   => a
@@ -280,7 +265,7 @@ lookup ann n env
 -- | Bind a new to a type in the given context.
 bindT :: Eq n => Name n -> Type n -> GenEnv n -> GenEnv n
 bindT n t
- = Map.insert n (Forall [] [] t)
+ = Map.insert n (function0 t)
 
 -- | Temporarily add the binding to a context, then do something.
 withBind
@@ -292,6 +277,7 @@ withBind
   -> Gen a n r
 withBind n t old gen
  = gen (bindT n t old)
+
 
 removeElementBinds :: Eq n => GenEnv n -> GenEnv n
 removeElementBinds env
