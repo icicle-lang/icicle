@@ -219,6 +219,10 @@ desugarX xx
     Prim _ _
      -> return xx
 
+    Access a x f
+      -> do x' <- desugarX x
+            return $ Access a x' f
+
 --------------------------------------------------------------------------------
 
 -- * Case Flattening

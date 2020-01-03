@@ -141,6 +141,9 @@ simplifyNestedX xx
      -> Case a (simplifyNestedX scrut)
       $ fmap (\(p,x) -> (p, simplifyNestedX x)) pats
 
+    Access a x f
+     -> Access a (simplifyNestedX x) f
+
 instance TraverseAnnot Query  where
   traverseAnnot f q =
     Query <$> traverse (traverseAnnot f) (contexts q)
@@ -239,25 +242,29 @@ allvarsX x
      -> Var (a, sgl n) n
     Lam a n p
      -> let p' = allvarsX p
-        in  Lam (a, Set.delete n (annX p')) n p'
+         in Lam (a, Set.delete n (annX p')) n p'
     Nested a q
      -> let q' = allvarsQ q
-        in  Nested (a, snd $ annotOfQuery q') q'
+         in Nested (a, snd $ annotOfQuery q') q'
     App a p q
      -> let p' = allvarsX p
             q' = allvarsX q
-        in  App (a, Set.union (annX p') (annX q')) p' q'
+         in App (a, Set.union (annX p') (annX q')) p' q'
     Prim a p
      -> Prim (a, Set.empty) p
     If a p t f
      -> let p' = allvarsX p
             t' = allvarsX t
             f' = allvarsX f
-        in  If (a, Set.unions [annX p', annX t', annX f']) p' t' f'
+         in If (a, Set.unions [annX p', annX t', annX f']) p' t' f'
     Case a s ps
      -> let s'        = allvarsX s
             (ps',ns') = goPatXs ps
-        in  Case (a, Set.union (annX s') ns') s' ps'
+         in Case (a, Set.union (annX s') ns') s' ps'
+    Access a e f
+     -> let e' = allvarsX e
+         in Access (a, annX e') e' f
+
  where
   annX = snd . annotOfExp
   sgl  = Set.singleton

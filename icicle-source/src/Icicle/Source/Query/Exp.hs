@@ -76,6 +76,9 @@ data Exp' q a n
   -- | Case matching with patterns
   | Case a (Exp' q a n) [(Pattern n, Exp' q a n)]
 
+  -- | Struct field access
+  | Access a (Exp' q a n) (Name n)
+
   deriving (Show, Eq, Ord, Generic)
 
 instance (NFData (q a n), NFData a, NFData n) => NFData (Exp' q a n)
@@ -130,6 +133,8 @@ instance TraverseAnnot q => TraverseAnnot (Exp' q)  where
       Case a scrut pats
         -> Case <$> f a <*> traverseAnnot f scrut
                 <*> traverse (\(p,x) -> (p,) <$> traverseAnnot f x) pats
+      Access a x n
+        -> Access <$> f a <*> traverseAnnot f x <*> pure n
 
 
 instance TraverseAnnot q => TraverseAnnot (Decl' q) where
@@ -180,6 +185,7 @@ annotOfExp x
    Prim   a _     -> a
    If     a _ _ _ -> a
    Case   a _ _   -> a
+   Access a _ _   -> a
 
 mkApp :: Exp' q a n -> Exp' q a n -> Exp' q a n
 mkApp x y
@@ -233,6 +239,9 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
                   ]
             , prettyKeyword "end"
             ]
+
+        Access _ expression field ->
+          pretty expression <> "." <> pretty field
    where
     (inner_prec, assoc) = precedenceOfX xx
 
@@ -301,6 +310,8 @@ precedenceOfX xx
      -> precedenceApplication
     Case{}
      -> precedenceApplication
+    Access{}
+     -> precedenceNeverParens
 
 instance Pretty Prim where
   pretty = \case

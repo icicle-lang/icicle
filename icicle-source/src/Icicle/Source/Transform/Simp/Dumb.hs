@@ -95,6 +95,7 @@ simpDumbCases xx
 
     Var{}  -> xx
     Prim{} -> xx
+    Access{} -> xx
 
  where
   simpX
@@ -163,6 +164,8 @@ simpDumbLets xx
         -> bd
       Prim {}
         -> bd
+      Access a e f
+        -> Access a (substX x y e) f
 
   substA x y (pat, e)
    | x `elem` varsIn pat = (pat, e)

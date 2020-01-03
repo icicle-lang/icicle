@@ -167,6 +167,10 @@ reifyPossibilityX' wrap x
               alts'  <- mapM (\(p,xx) -> (,) p <$> (wrapRightIfAnnot a <$> reifyPossibilityX' wrap xx)) alts
               return $ Case  (wrapAnnot a) scrut' alts'
 
+      Access a x f
+       -> do x' <- reifyPossibilityX' wrap x
+             return $ Access (wrapAnnot a) x' f
+
 
 reifyPossibilityQ
         :: (Hashable n, Eq n)

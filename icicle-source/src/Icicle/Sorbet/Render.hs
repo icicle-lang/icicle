@@ -76,6 +76,10 @@ instance (Pretty n) => Pretty (PrettySorbet (Exp a n)) where
             , prettyKeyword "else"
             , indent 4 $ pretty (PrettySorbet false)
             ]
+
+        Access _ expression field ->
+          pretty expression <> "." <> pretty field
+
    where
     (inner_prec, assoc) = precedenceOfX (getPrettySorbet xx)
 

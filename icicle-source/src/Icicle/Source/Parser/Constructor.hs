@@ -123,3 +123,6 @@ checkPat exp =
 
     Q.If {}
       -> fail "unable to parse if expression as a pattern"
+
+    Q.Access {}
+      -> fail "unable to parse record access as a pattern"

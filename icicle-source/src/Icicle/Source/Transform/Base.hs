@@ -138,4 +138,6 @@ transformX t xx
         -> do scr'  <- goX scr
               pats' <- mapM goP pats
               return $ Case a scr' pats'
-
+       Access a x f
+        -> do x' <- goX x
+              return $ Access a x' f

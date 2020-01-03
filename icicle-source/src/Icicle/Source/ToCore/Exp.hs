@@ -108,6 +108,19 @@ convertExp x
             resT   <- convertValType (annAnnot ann) $ annResult ann
             convertCase x scrut' pats' scrutT resT
 
+    Access ann xpression field
+     -> do  expression' <- convertExp xpression
+            expressionT <- convertValType (annAnnot ann) $ annResult $ annotOfExp xpression
+
+            case expressionT of
+              StructT st ->
+                return $
+                  CE.xPrim
+                    (C.PrimMinimal $ Min.PrimStruct $ Min.PrimStructGet _ _ _)
+              _elsewise ->
+                error "shit"
+
+
  where
   goPat (p,alt)
    = convertContext
