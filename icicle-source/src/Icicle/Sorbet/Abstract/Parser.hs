@@ -294,7 +294,7 @@ pExp = do
 
 pExp1 :: Parser s m => m (Exp Position Var)
 pExp1
- =   (uncurry Var        <$> var        )
+ =   ((uncurry Var       <$> var        ) >>= accessor)
  <|> (uncurry Prim       <$> primitives )
  <|> (simpNested         <$> inParens)
  <|> parseIf
@@ -303,6 +303,17 @@ pExp1
  where
   var
    = pVariable
+
+  accessor v
+    = (accessor1 v >>= accessor)
+   <|> pure v
+
+  accessor1 v
+   = tryToken $ \pos -> \case
+      Tok_PrjId prjId ->
+        Just $ Access pos v (StructField prjId)
+      _ ->
+        Nothing
 
   inParens
    = pToken Tok_LParen *> pQuery <* pToken Tok_RParen  <?> "sub-expression or nested query"

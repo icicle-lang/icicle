@@ -87,6 +87,33 @@ reifyPossibilityX' wrap x
              args' <- mapM (reifyPossibilityX' wrap) args
              makeApps a fun' args' False
 
+
+      Access a x f
+       -- Check if the accessed value is a possibility
+       | x'ann               <- annotOfExp x
+       , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult x'ann
+       -> do  x'        <- reifyPossibilityX' wrap x
+              nError    <- fresh
+              nValue    <- fresh
+              let a'     = wrapAnnot a
+                  err    = con1 a' ConLeft $ Var (definiteAnnot a) nError
+
+                  -- Bare value. Note that this is now definite, but with same (bare) type
+                  bare   = Var (extractValueAnnot x'ann) nValue
+                  fun'   = con1 a' ConRight $ Access a' bare f
+
+                  app'   = Case a' x'
+                         [ (PatCon ConLeft  [ PatVariable nError ], err )
+                         , (PatCon ConRight [ PatVariable nValue ], fun')
+                         ]
+
+              return app'
+
+       -- If accessed value is a definitely, just apply it as usual
+       | otherwise
+       -> do x' <- reifyPossibilityX' wrap x
+             return $ Access a x' f
+
       -- Primitives are dealt with by makeApps, because we can only wrap their annotations after unwrapping the arguments.
       -- There are no zero-argument primitives that return Possibly, but if there ever are, this would need to wrap them here.
       Prim a p
@@ -166,10 +193,6 @@ reifyPossibilityX' wrap x
               -- For the non-possibly alternatives, wrap them as a Right.
               alts'  <- mapM (\(p,xx) -> (,) p <$> (wrapRightIfAnnot a <$> reifyPossibilityX' wrap xx)) alts
               return $ Case  (wrapAnnot a) scrut' alts'
-
-      Access a x f
-       -> do x' <- reifyPossibilityX' wrap x
-             return $ Access (wrapAnnot a) x' f
 
 
 reifyPossibilityQ

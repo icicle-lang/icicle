@@ -85,6 +85,8 @@ defaults topq
    = []
   defaultOfConstraint (CTemporalityJoin _ _ _)
    = []
+  defaultOfConstraint (CHasField _ _ _)
+   = []
 
   defaultTo tv tr
    | TypeVar n <- tv
@@ -121,6 +123,7 @@ defaults topq
            App _ p q -> fa <> defaultOfAllX p <> defaultOfAllX q
            Prim{} -> fa
            Lam{} -> fa
+           Access _ p _ -> fa <> defaultOfAllX p
            If _ p t f -> fa <> defaultOfAllX p <> defaultOfAllX t <> defaultOfAllX f
            Case _ s pats
             ->  fa <> defaultOfAllX s <>
@@ -599,6 +602,22 @@ generateX x env
            let x' = annotate cons' (annResult $ annotOfQuery q')
                   $ \a' -> Nested a' q'
            return (x', sq, cons')
+
+    -- Struct fields require that the expression have a struct type
+    -- with the a right field type.
+    Access a e f
+      -> do resT             <- TypeVar <$> fresh
+            (q, subs, cons)  <- generateX e env
+            let argT          = annResult $ annotOfExp q
+            let (t,p,datT)    = decomposeT $ canonT argT
+            let f'resT        = recomposeT (t, p, resT)
+            let cons'struct   = require a (CHasField resT datT f)
+            let cons'complete = cons <> cons'struct
+
+            let x' = annotate cons'complete f'resT
+                   $ \a' -> Access a' q f
+
+            return (x', subs, cons <> cons'complete)
 
     -- Applications are a bit more complicated.
     -- If your function expects an argument with a particular temporality,

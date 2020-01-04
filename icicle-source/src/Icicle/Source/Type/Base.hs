@@ -204,6 +204,7 @@ valTypeOfType bt
 data Constraint n
  = CEquals (Type n) (Type n)
  | CIsNum (Type n)
+ | CHasField (Type n) (Type n) CT.StructField
  | CPossibilityOfNum (Type n) (Type n)
  | CTemporalityJoin (Type n) (Type n) (Type n)
  | CReturnOfLetTemporalities (Type n) (Type n) (Type n)
@@ -223,6 +224,8 @@ instance TraverseType (Constraint n) where
       -> CEquals <$> f t1 <*> f t2
     CIsNum t1
       -> CIsNum <$> f t1
+    CHasField t1 t2 field
+      -> CHasField <$> f t1 <*> f t2 <*> pure field
     CPossibilityOfNum t1 t2
       -> CPossibilityOfNum <$> f t1 <*> f t2
     CTemporalityJoin t1 t2 t3
@@ -345,6 +348,10 @@ instance Pretty n => Pretty (Constraint n) where
 
     CIsNum t ->
       prettyConstructor "Num" <+> pretty t
+
+    CHasField ret t f ->
+      pretty ret <+> prettyPunctuation "=:" <+>
+      prettyApp hsep 0 (prettyConstructor "HasField") [pretty t, pretty f]
 
     CPossibilityOfNum ret t ->
       pretty ret <+> prettyPunctuation "=:" <+>

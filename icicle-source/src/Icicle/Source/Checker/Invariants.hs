@@ -116,6 +116,9 @@ invariantX ctx x
      -> invariantX ctx s >> mapM_ (invariantX ctx . snd) ps
     If _ s t f
      -> invariantX ctx s >> invariantX ctx t >> invariantX ctx f
+    Access _ e f
+     -> invariantX ctx e
+
 
  where
   goFun a n args

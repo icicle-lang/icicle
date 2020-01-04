@@ -21,6 +21,7 @@ import qualified Data.Map as Map
 
 import           GHC.Generics (Generic)
 
+import qualified Icicle.Common.Type as CT
 import           Icicle.Source.Type.Base
 import           Icicle.Source.Type.Subst
 
@@ -46,7 +47,8 @@ data DischargeError n
  = CannotUnify (Type n) (Type n)
  -- | IsNum String
  | NotANumber  (Type n)
- -- | IsNum String
+
+ | DoesNotHaveField CT.StructField (Type n)
  | ConflictingLetTemporalities (Type n) (Type n) (Type n)
  | ConflictingJoinTemporalities (Type n) (Type n)
  deriving (Eq, Ord, Show, Generic)
@@ -60,7 +62,10 @@ instance Pretty n => Pretty (DischargeError n) where
   <> "These types were required to be equal, but are not."
  pretty (NotANumber t)
   =  "Not a number: " <> pretty t <> line
-  <> "Chances are you tried to apply some numerical computation like (+) or sum to the wrong field."
+  <> "Chances are you tried to apply some numerical computation like (+) or sum to the wrong field" <> line <>
+     "or used an integer literal for a non-numeric type."
+ pretty (DoesNotHaveField f t)
+  =  "Can't extract field `" <> pretty f <> "` from the type: " <> pretty t
  pretty (ConflictingLetTemporalities _ def body)
   =  "Conflicting let temporalities." <> line
   <> "This kind of let isn't allowed because its definition could never be used." <> line
@@ -83,7 +88,13 @@ dischargeC c
      -> return $ DischargeLeftover c
     CIsNum t
      -> Left   $ NotANumber t
-
+    CHasField res (StructT sfs) f
+     | Just ft <- Map.lookup f sfs
+     -> dischargeC (CEquals res ft)
+    CHasField _ (TypeVar _) _
+     -> return $ DischargeLeftover c
+    CHasField _ t f
+     -> Left   $ DoesNotHaveField f t
     CPossibilityOfNum poss IntT
      -> dischargeC (CEquals poss PossibilityDefinitely)
     CPossibilityOfNum poss DoubleT

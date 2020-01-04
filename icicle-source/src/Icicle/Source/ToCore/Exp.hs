@@ -109,16 +109,18 @@ convertExp x
             convertCase x scrut' pats' scrutT resT
 
     Access ann xpression field
-     -> do  expression' <- convertExp xpression
-            expressionT <- convertValType (annAnnot ann) $ annResult $ annotOfExp xpression
+     -> do  xpression' <- convertExp xpression
+            xpressionT <- convertValType (annAnnot ann) $ annResult $ annotOfExp xpression
 
-            case expressionT of
-              StructT st ->
-                return $
-                  CE.xPrim
-                    (C.PrimMinimal $ Min.PrimStruct $ Min.PrimStructGet _ _ _)
-              _elsewise ->
-                error "shit"
+            case xpressionT of
+              T.StructT st@(T.StructType struct'map)
+                | Just fieldType <- Map.lookup field struct'map
+                -> return $
+                    (CE.xPrim (C.PrimMinimal $ Min.PrimStruct $ Min.PrimStructGet field fieldType st)
+                      CE.@~ xpression')
+
+              _ -> convertError
+                 $ ConvertErrorCannotConvertType (annAnnot ann) (annResult $ annotOfExp xpression)
 
 
  where

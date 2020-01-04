@@ -77,7 +77,7 @@ data Exp' q a n
   | Case a (Exp' q a n) [(Pattern n, Exp' q a n)]
 
   -- | Struct field access
-  | Access a (Exp' q a n) (Name n)
+  | Access a (Exp' q a n) StructField
 
   deriving (Show, Eq, Ord, Generic)
 
