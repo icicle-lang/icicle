@@ -139,7 +139,6 @@ library
                        Icicle.Dictionary.Data
                        Icicle.Dictionary.Demographics
 
-                       Icicle.Storage.Dictionary.TextV1
                        Icicle.Storage.Dictionary.Toml
                        Icicle.Storage.Dictionary.Toml.Types
                        Icicle.Storage.Dictionary.Toml.Toml
