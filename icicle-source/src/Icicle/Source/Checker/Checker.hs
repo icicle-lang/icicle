@@ -17,7 +17,6 @@ import                  Icicle.Source.Type
 
 import                  Icicle.Data.Name
 
-import                  Icicle.Dictionary.Data
 import                  Icicle.Internal.Pretty (Pretty)
 
 import qualified        Icicle.Common.Fresh     as Fresh
@@ -36,7 +35,7 @@ type Result r a n = EitherT (CheckError a n) (Fresh.Fresh n) (r, Type n)
 -- | Check a top-level Query, returning the query with type annotations and casts inserted.
 checkQT :: (Hashable n, Eq n, Pretty n)
         => CheckOptions
-        -> Features () n (InputKey ann n)
+        -> Features () n inputKey
         -> QueryTop a n
         -> Result (QueryTop (Annot a n) n) a n
 checkQT opts features qt
