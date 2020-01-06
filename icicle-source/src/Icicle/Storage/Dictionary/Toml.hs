@@ -9,7 +9,6 @@ module Icicle.Storage.Dictionary.Toml (
     DictionaryImportError (..)
   , ImplicitPrelude (..)
   , loadDictionary
-  , loadDenseDictionary
   , prelude
   ) where
 
@@ -25,7 +24,6 @@ import qualified Icicle.Source.Parser                          as SP
 import           Icicle.Source.Query                           (QueryTop (..), Query (..), Exp, Decl)
 import qualified Icicle.Source.Query                           as SQ
 
-import           Icicle.Storage.Dictionary.Toml.Dense
 import           Icicle.Storage.Dictionary.Toml.Toml
 import           Icicle.Storage.Dictionary.Toml.TomlDictionary
 import           Icicle.Storage.Dictionary.Toml.Types
@@ -57,7 +55,6 @@ data DictionaryImportError
   | DictionaryErrorParsecTOML  Parsec.ParseError
   | DictionaryErrorCompilation (P.ErrorSource P.Var)
   | DictionaryErrorParse       [DictionaryValidationError]
-  | DictionaryErrorDense       DictionaryDenseError
   | DictionaryErrorImpossible
   deriving (Show)
 
@@ -71,18 +68,6 @@ data ImplicitPrelude = ImplicitPrelude | NoImplicitPrelude
 loadDictionary :: CheckOptions -> ImplicitPrelude -> FilePath -> EitherT DictionaryImportError IO Dictionary
 loadDictionary checkOpts impPrelude dictionary
  = loadDictionary' checkOpts impPrelude (dictionaryFunctions emptyDictionary) mempty [] dictionary
-
-loadDenseDictionary
-  :: CheckOptions
-  -> ImplicitPrelude
-  -> FilePath
-  -> Maybe PsvInputDenseFeedName
-  -> EitherT DictionaryImportError IO (Dictionary, PsvInputDenseDict)
-loadDenseDictionary checkOpts impPrelude dictionary feed
-  = do d    <- loadDictionary checkOpts impPrelude dictionary
-       toml <- parseTOML dictionary
-       dd   <- firstEitherT DictionaryErrorDense $ hoistEither $ denseFeeds d toml feed
-       return (d, dd)
 
 loadDictionary'
   :: CheckOptions
@@ -221,7 +206,6 @@ instance Pretty DictionaryImportError where
     DictionaryErrorParsecTOML  e  -> "TOML parse error:" <+> (text . show) e
     DictionaryErrorCompilation e  -> pretty e
     DictionaryErrorParse       es -> "Validation error:" <+> align (vcat (pretty <$> es))
-    DictionaryErrorDense       e  -> "Parse dense feeds error:" <+> (text . show) e
     DictionaryErrorImpossible     -> "Impossible!"
 
 ------------------------------------------------------------------------

@@ -143,7 +143,6 @@ library
                        Icicle.Storage.Dictionary.Toml.Types
                        Icicle.Storage.Dictionary.Toml.Toml
                        Icicle.Storage.Dictionary.Toml.Prisms
-                       Icicle.Storage.Dictionary.Toml.Dense
                        Icicle.Storage.Dictionary.Toml.TomlDictionary
 
                        Icicle.Storage.Encoding
