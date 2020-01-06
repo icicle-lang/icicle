@@ -42,6 +42,7 @@ import           Icicle.Encoding
 import           Icicle.Internal.Pretty
 
 import qualified Data.List as List
+import qualified Data.Text as Text
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Set (Set)
@@ -285,20 +286,20 @@ prettyDictionarySummary dict =
    = prettyBinding (pretty attr) $ pretty q
 
   pprFun (ResolvedFunction f t _)
-   = prettyTypedFun (pretty f) (ST.prettyFunWithLetters t)
+   = prettyTypedFun (pretty f) (ST.prettyFunFromStrings t)
 
   pprInbuilt f
    = prettyTypedFun (pretty f) (prettyInbuiltType f)
 
   prettyInbuiltType
-   = ST.prettyFunWithLetters
+   = ST.prettyFunFromStrings
    . snd
    . flip Fresh.runFresh freshNamer
    . SQ.primLookup'
    . SQ.Fun
      where
        freshNamer
-        = Fresh.counterPrefixNameState (fromString . show) "inbuilt"
+        = Fresh.counterPrefixNameState (Variable . Text.pack . show) "inbuilt"
 
 instance Pretty (InputKey AnnotSource Variable) where
  pretty (InputKey Nothing)  = ""

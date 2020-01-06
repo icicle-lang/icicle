@@ -6,7 +6,6 @@
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Type.Pretty (
     prettyFunWithNames
-  , prettyFunWithLetters
   , prettyFunFromStrings
   , letterNames
   ) where
@@ -15,7 +14,6 @@ module Icicle.Source.Type.Pretty (
 import                  Icicle.Common.Base
 import                  Icicle.Source.Type.Base
 import                  Icicle.Source.Type.Subst
-import                  Icicle.Source.Lexer.Token
 
 import                  Icicle.Internal.Pretty
 
@@ -23,7 +21,6 @@ import                  P
 
 import                  Data.String
 import                  Data.List (zip)
-import qualified        Data.Text as T
 import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
 
@@ -50,12 +47,8 @@ prettyFunFromStrings
  = prettyFunWithNames
  $ fmap (nameOf . NameBase . fromString) letterNames
 
-prettyFunWithLetters :: Scheme Variable -> PrettyFunType
-prettyFunWithLetters
- = prettyFunWithNames
- $ fmap (nameOf . NameBase . Variable . T.pack) letterNames
-
 letterNames :: [String]
 letterNames
  =  fmap (\c -> [c]) ['a'..'z']
  <> concatMap (\prefix -> fmap (\c -> prefix <> [c]) ['a'..'z']) letterNames
+ 

@@ -14,7 +14,6 @@ import                  Icicle.Source.Checker.Resumable
 import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
-import                  Icicle.Source.Lexer.Token
 
 import                  Icicle.Data.Name
 
@@ -37,7 +36,7 @@ type Result r a n = EitherT (CheckError a n) (Fresh.Fresh n) (r, Type n)
 -- | Check a top-level Query, returning the query with type annotations and casts inserted.
 checkQT :: (Hashable n, Eq n, Pretty n)
         => CheckOptions
-        -> Features () n (InputKey ann Variable)
+        -> Features () n (InputKey ann n)
         -> QueryTop a n
         -> Result (QueryTop (Annot a n) n) a n
 checkQT opts features qt
