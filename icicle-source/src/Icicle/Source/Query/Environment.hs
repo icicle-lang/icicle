@@ -1,5 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-module Icicle.Source.ToCore.Context (
+module Icicle.Source.Query.Environment (
     Features (..)
   , FeatureConcrete (..)
   , FeatureContext (..)
@@ -17,7 +17,6 @@ import qualified        Icicle.Core as C
 
 import                  Icicle.Data.Name
 
-import                  Icicle.Source.Checker.Base
 import                  Icicle.Source.Type
 
 import                  P
@@ -68,13 +67,13 @@ typeOfFeatureVariable fv
  $ Possibility (if featureVariablePossibly fv then PossibilityPossibly else PossibilityDefinitely)
  $ featureVariableType fv
 
-envOfFeatureNow :: Eq n => CheckOptions -> Maybe (Name n) -> Map (Name n) (Type n)
-envOfFeatureNow opts
+envOfFeatureNow :: Eq n => Bool -> Maybe (Name n) -> Map (Name n) (Type n)
+envOfFeatureNow nowIsPure
  = Map.fromList
  . maybeToList
  . fmap
    (\n -> (n, Temporality tmp $ Possibility PossibilityDefinitely TimeT))
  where
    tmp
-    | checkOptionNowPure opts = TemporalityPure
-    | otherwise               = TemporalityAggregate
+    | nowIsPure = TemporalityPure
+    | otherwise = TemporalityAggregate

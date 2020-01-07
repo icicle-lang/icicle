@@ -20,7 +20,6 @@ module Icicle.Source.ToCore.Exp (
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.ToCore.Base
-import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.ToCore.Prim
 import                  Icicle.Source.Type
 

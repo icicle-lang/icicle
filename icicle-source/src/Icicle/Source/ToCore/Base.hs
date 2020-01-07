@@ -41,7 +41,6 @@ import                  Icicle.Data.Name
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
-import                  Icicle.Source.ToCore.Context
 
 import                  Icicle.Internal.Pretty
 

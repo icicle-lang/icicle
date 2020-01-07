@@ -11,7 +11,6 @@ import                  Icicle.Source.Checker.Error
 import                  Icicle.Source.Checker.Constraint
 import                  Icicle.Source.Checker.Invariants
 import                  Icicle.Source.Checker.Resumable
-import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
 
@@ -44,7 +43,7 @@ checkQT opts features qt
      -> do  let env = Map.unions
                       [ fmap function0 (envOfFeatureContext f)
                       , featuresFunctions features
-                      , fmap function0 (envOfFeatureNow opts (featureNow features)) ]
+                      , fmap function0 (envOfFeatureNow (checkOptionNowPure opts) (featureNow features)) ]
             (q,t) <- checkQ opts (emptyCheckEnv { checkEnvironment = env }) (query qt)
             return (qt { query = q }, t)
 

@@ -30,12 +30,10 @@ import qualified Icicle.Core                        as X
 import           Icicle.Common.Base
 import           Icicle.Common.Type (ValType(..), StructType(..))
 
-import           Icicle.Source.Query (QueryTop (..), ResolvedFunction (..))
+import           Icicle.Source.Query (QueryTop (..), ResolvedFunction (..), FeatureVariable (..))
 import qualified Icicle.Source.Query                as SQ
 import           Icicle.Source.Lexer.Token
 import qualified Icicle.Source.Type                 as ST
-import           Icicle.Source.ToCore.Context (FeatureVariable (..))
-import qualified Icicle.Source.ToCore.Context       as STC
 
 import           Icicle.Encoding
 
@@ -135,9 +133,9 @@ parseFact (Dictionary { dictionaryInputs = dict }) fact'
 
 -- | Get all the features and facts from a dictionary.
 --
-featureMapOfDictionary :: Dictionary -> STC.Features () Variable (InputKey AnnotSource Variable)
+featureMapOfDictionary :: Dictionary -> SQ.Features () Variable (InputKey AnnotSource Variable)
 featureMapOfDictionary (Dictionary { dictionaryInputs = ds, dictionaryFunctions = functions })
- = STC.Features
+ = SQ.Features
      (Map.fromList $ concatMap mkFeatureContext ds)
      (Map.fromList $ fmap (\x -> (functionName x, functionType x)) functions)
      (Just $ var "now")
@@ -145,7 +143,7 @@ featureMapOfDictionary (Dictionary { dictionaryInputs = ds, dictionaryFunctions 
 
   mkFeatureContext
    = let context (attr, key, ty, vars)
-           = (attr, STC.FeatureConcrete key ty (STC.FeatureContext vars (var "time")))
+           = (attr, SQ.FeatureConcrete key ty (SQ.FeatureContext vars (var "time")))
      in  fmap context . go
 
   -- If a dictionary entry is a concrete definition, create a feature context with
@@ -184,7 +182,7 @@ featureMapOfDictionary (Dictionary { dictionaryInputs = ds, dictionaryFunctions 
           _ -> [ v ]
 
   varOfField get fn ft
-   = ( var fn, STC.FeatureVariable (baseType ft) get True)
+   = ( var fn, SQ.FeatureVariable (baseType ft) get True)
 
   sumT ty  = SumT ErrorT ty
   baseType = ST.typeOfValType
@@ -223,19 +221,19 @@ featureMapOfDictionary (Dictionary { dictionaryInputs = ds, dictionaryFunctions 
 
   exps :: Text -> ValType -> [(Name Variable, FeatureVariable () n)]
   exps str e'
-   = [ (var str, STC.FeatureVariable (baseType e') (X.XApp () (xfst (sumT e') TimeT)) True)
+   = [ (var str, SQ.FeatureVariable (baseType e') (X.XApp () (xfst (sumT e') TimeT)) True)
      , time_as_snd e'
      , true_when_tombstone e' ]
 
   time_as_snd :: ValType -> (Name Variable, FeatureVariable () n)
   time_as_snd e'
    = ( var "time"
-     , STC.FeatureVariable (baseType TimeT) (X.XApp () (xsnd (sumT e') TimeT)) False)
+     , SQ.FeatureVariable (baseType TimeT) (X.XApp () (xsnd (sumT e') TimeT)) False)
 
   true_when_tombstone :: ValType -> (Name Variable, FeatureVariable () n)
   true_when_tombstone e'
    = ( var "tombstone"
-     , STC.FeatureVariable (baseType BoolT) (X.XApp () (xtomb e') . X.XApp () (xfst (sumT e') TimeT)) False)
+     , SQ.FeatureVariable (baseType BoolT) (X.XApp () (xtomb e') . X.XApp () (xfst (sumT e') TimeT)) False)
 
   var :: Text -> Name Variable
   var = nameOf . NameBase . Variable

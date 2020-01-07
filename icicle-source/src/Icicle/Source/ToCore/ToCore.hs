@@ -27,7 +27,6 @@ module Icicle.Source.ToCore.ToCore (
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.ToCore.Base
-import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.ToCore.Exp
 import                  Icicle.Source.ToCore.Fold
 import                  Icicle.Source.ToCore.Prim

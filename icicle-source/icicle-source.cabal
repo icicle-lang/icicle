@@ -84,6 +84,7 @@ library
                        Icicle.Source.Query.Constructor
                        Icicle.Source.Query.Context
                        Icicle.Source.Query.Exp
+                       Icicle.Source.Query.Environment
                        Icicle.Source.Query.Function
                        Icicle.Source.Query.Operators
                        Icicle.Source.Query.Prim
@@ -115,7 +116,6 @@ library
                        Icicle.Source.Checker.Subsumption
 
                        Icicle.Source.ToCore.Base
-                       Icicle.Source.ToCore.Context
                        Icicle.Source.ToCore.Exp
                        Icicle.Source.ToCore.Fold
                        Icicle.Source.ToCore.ToCore
