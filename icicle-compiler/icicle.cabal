@@ -340,7 +340,6 @@ test-suite test
                        Icicle.Test.Serial
                        Icicle.Test.Source.Convert
                        Icicle.Test.Source.MaxMapSize
-                       Icicle.Test.Source.PrettyParse
                        Icicle.Test.Source.Progress
                        Icicle.Test.Sorbet.Lexical.Jack
                        Icicle.Test.Sorbet.Lexical.Lexer

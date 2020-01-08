@@ -33,7 +33,6 @@ import qualified Icicle.Test.Runtime.Evaluator
 import qualified Icicle.Test.Runtime.Serial.Psv.Schema
 import qualified Icicle.Test.Runtime.Serial.Zebra
 
-import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
 import qualified Icicle.Test.Source.Convert
 import qualified Icicle.Test.Source.MaxMapSize
@@ -101,7 +100,6 @@ sundry =
     , Icicle.Test.Serial.tests
     , Icicle.Test.Source.Convert.tests
     , Icicle.Test.Source.MaxMapSize.tests
-    , Icicle.Test.Source.PrettyParse.tests
     , Icicle.Test.Source.Progress.tests
     ]
 

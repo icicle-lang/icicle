@@ -28,7 +28,6 @@ import           Icicle.Source.Checker.Error
 import           Icicle.Source.Query as Query
 import           Icicle.Source.Type
 import qualified Icicle.Source.Lexer.Token as T
-import           Icicle.Source.ToCore.Context
 import           Icicle.Source.ToCore.ToCore
 import qualified Icicle.Source.ToCore.Base as S
 import           Icicle.Source.Transform.Desugar

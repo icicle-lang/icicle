@@ -25,7 +25,7 @@ import           Icicle.Dictionary.Data
 import           Icicle.Data
 import           Icicle.Repl.Data
 import           Icicle.Repl.Flag
-import qualified Icicle.Source.ToCore.Context as STC
+import qualified Icicle.Source.Query as STC
 import           Icicle.Source.Lexer.Token (keywords, Variable)
 import           Icicle.Source.Lexer.Lexer (lexerString)
 import           Icicle.Source.Parser.Token (pUnresolvedInputId)
