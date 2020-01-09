@@ -158,7 +158,7 @@ featureMapOfDictionary (Dictionary { dictionaryInputs = ds, dictionaryFunctions 
        , key
        , baseType     $  sumT en
        , Map.fromList $  exps "fields" en
-                      <> concatMap (go' Nothing st) (Map.toList fs)
+                      <> fmap (go' st) (Map.toList fs)
        )
      ]
 
@@ -169,17 +169,11 @@ featureMapOfDictionary (Dictionary { dictionaryInputs = ds, dictionaryFunctions 
           , baseType $ sumT e'
           , Map.fromList $ exps "value" e' ) ]
 
-  go' parentGet parent (fn, ft)
+  go' parent (fn, ft)
    = let getsum b   = xgetsum b fn ft parent
          n          = nameOfStructField fn
-         (this, n') = case parentGet of
-                        Nothing        -> (getsum True, n)
-                        Just (get, pn) -> (getsum False . get, pn <> "." <> n)
-         v           = varOfField this n' ft
-     in case ft of
-          StructT st@(StructType fs)
-            -> v : concatMap (go' (Just (this, n')) st) (Map.toList fs)
-          _ -> [ v ]
+         (this, n') = (getsum True, n)
+     in varOfField this n' ft
 
   varOfField get fn ft
    = ( var fn, SQ.FeatureVariable (baseType ft) get True)
