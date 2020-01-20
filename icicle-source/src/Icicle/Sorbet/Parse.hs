@@ -53,7 +53,7 @@ sorbetFunctions source input = do
 sorbet :: OutputId -> Text -> Either ParseError (QueryTop Position Variable)
 sorbet oid input = do
   lexed  <- first LexParseError $ Mega.runParser (consumeAll lexProgram) "" input
-  layed  <- first LayoutParseError $ layoutProgram lexed
+  layed  <- first LayoutParseError $ layoutRepl lexed
   parsed <- first AbstractParseError $ Mega.runParser (consumeAll (pTop oid)) "" (PositionedStream input layed)
   return parsed
 

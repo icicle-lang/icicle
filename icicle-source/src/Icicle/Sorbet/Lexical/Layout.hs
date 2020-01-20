@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.Sorbet.Lexical.Layout (
     layoutProgram
+  , layoutRepl
 
   , LayoutError(..)
   , renderLayoutError
@@ -15,9 +16,9 @@ import           Icicle.Sorbet.Position
 import           P
 
 
-data LayoutError =
-    UnexpectedEndOfScope !ScopeType !ScopeEnv !(Positioned Token)
-    deriving (Eq, Ord, Show)
+data LayoutError
+  = UnexpectedEndOfScope !ScopeType !ScopeEnv !(Positioned Token)
+  deriving (Eq, Ord, Show)
 
 
 renderLayoutError :: LayoutError -> Text
@@ -59,16 +60,26 @@ data Line =
   | SameLine
     deriving (Eq, Ord, Show)
 
+
+layoutRepl :: [Positioned Token] -> Either LayoutError [Positioned Token]
+layoutRepl xs =
+  case xs of
+    -- If the first token is 'from' then we assume repl mode, so we don't need
+    -- an outer layout block.
+    x@(Positioned _ _ Tok_From) : _ ->
+      layoutLine (ScopeEnv x []) xs
+
+    -- Doesn't appear to be a repl program, try layout with standard scope.
+    _ ->
+      layoutProgram xs
+
+
+
 layoutProgram :: [Positioned Token] -> Either LayoutError [Positioned Token]
 layoutProgram xs =
   case xs of
     [] ->
       pure []
-
-    -- If the first token is 'from' then we assume repl mode, so we don't need
-    -- an outer layout block.
-    x@(Positioned _ _ Tok_From) : _ ->
-      layoutLine (ScopeEnv x []) xs
 
     -- If the first token is '{' then we assume an extras file with explicit
     -- layout, so we don't need an outer layout block.
