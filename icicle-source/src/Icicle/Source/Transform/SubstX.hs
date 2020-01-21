@@ -66,8 +66,8 @@ substX' s x
      -> If a <$> substX' s p <*> substX' s t <*> substX' s f
     Case a scrut pats
      -> Case a <$> substX' s scrut <*> mapM goPat pats
-    Access a x f
-     -> Access a <$> substX' s x <*> pure f
+    Access a e f
+     -> Access a <$> substX' s e <*> pure f
 
 
  where

@@ -15,16 +15,13 @@ module Icicle.Source.Type.Subst (
   , unifyT
   ) where
 
-
 import                  Icicle.Common.Base
-import                  Icicle.Common.Fresh (Fresh)
 
 import                  Icicle.Source.Type.Base
 import                  Icicle.Source.Type.Compounds
 
 import                  P
 
-import                  Control.Monad.Trans.Maybe (MaybeT (..))
 import                  Control.Lens (over)
 
 import qualified        Data.Map as Map

@@ -63,7 +63,7 @@ data Dictionary =
 data DictionaryInput =
   DictionaryInput {
       inputId :: InputId
-    , inputEncoding :: Encoding
+    , inputEncoding :: ValType
     , inputTombstones :: Set Text
     , inputKey :: InputKey AnnotSource Variable
     } deriving (Eq, Show)
@@ -119,7 +119,7 @@ parseFact (Dictionary { dictionaryInputs = dict }) fact'
                  (P.find (\(DictionaryInput (InputId _ attr') _ _ _) -> (==) attr attr') dict)
         case def of
          DictionaryInput _ enc ts _
-          -> factOf <$> parseValue enc ts (factValue' fact')
+          -> factOf <$> parseValue (undefined enc) ts (factValue' fact')
 
  where
   attr = factAttribute' fact'
@@ -153,7 +153,7 @@ featureMapOfDictionary (Dictionary { dictionaryInputs = ds, dictionaryFunctions 
                             , ST.Type Variable
                             , Map (Name Variable) (FeatureVariable () Variable))]
   go (DictionaryInput iid enc _ key)
-   | en@(StructT st@(StructType fs)) <- sourceTypeOfEncoding enc
+   | en@(StructT st@(StructType fs)) <- enc
    = [ ( iid
        , key
        , baseType     $  sumT en
@@ -163,7 +163,7 @@ featureMapOfDictionary (Dictionary { dictionaryInputs = ds, dictionaryFunctions 
      ]
 
    | otherwise
-   = let e' = sourceTypeOfEncoding enc
+   = let e' = enc
      in [ ( iid
           , key
           , baseType $ sumT e'
@@ -266,13 +266,13 @@ prettyDictionarySummary dict =
       Nothing ->
         prettyTypedBest'
           (annotate AnnBinding $ pretty attr)
-          (prettyEncodingFlat enc)
-          (prettyEncodingHang enc)
+          (pretty enc)
+          (pretty enc)
       Just key ->
         prettyTypedBest'
           (annotate AnnBinding (pretty attr) <+> prettyKeyword "by" <+> annotate AnnVariable (pretty key))
-          (prettyEncodingFlat enc)
-          (prettyEncodingHang enc)
+          (pretty enc)
+          (pretty enc)
 
   pprOutput (DictionaryOutput attr q)
    = prettyBinding (pretty attr) $ pretty q

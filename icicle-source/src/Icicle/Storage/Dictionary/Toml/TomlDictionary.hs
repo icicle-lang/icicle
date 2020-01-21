@@ -23,7 +23,9 @@ import qualified Text.Parsec.Pos as Pos
 import           Text.Parsec (runParser)
 import           Text.Parsec.Error
 
+import           Icicle.Common.Type
 import           Icicle.Data
+import           Icicle.Encoding
 import           Icicle.Source.Lexer.Token
 import           Icicle.Source.Lexer.Lexer
 import           Icicle.Source.Parser.Parser
@@ -67,7 +69,7 @@ instance Monoid DictionaryConfig where
 data DictionaryInput' =
   DictionaryInput' {
       inputId' :: InputId
-    , inputEncoding' :: Encoding
+    , inputEncoding' :: ValType
     , inputTombstone' :: Maybe Text
     , inputKey' :: ConcreteKey'
     } deriving (Eq, Show)
@@ -233,7 +235,7 @@ validateFact conf name x =
       -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
   in DictionaryInput'
        <$> (InputId <$> namespace' <*> attribute)
-       <*> encoding
+       <*> fmap sourceTypeOfEncoding encoding
        <*> tombstone'
        <*> key'
 
@@ -329,7 +331,7 @@ validateEncoding' ofFeature (NTable t, _) =
                                            <*  endOfInput)
                                       (pack enc')
 
-             pure $ StructField fieldType name enc''
+             pure $ Icicle.Data.StructField fieldType name enc''
   -- We should get an error for every failed encoding listed.
   in StructEncoding . toList <$> M.traverseWithKey validated t
 

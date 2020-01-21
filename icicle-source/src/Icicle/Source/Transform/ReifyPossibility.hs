@@ -88,21 +88,21 @@ reifyPossibilityX' wrap x
              makeApps a fun' args' False
 
 
-      Access a x f
+      Access a e f
        -- Check if the accessed value is a possibility
-       | x'ann               <- annotOfExp x
-       , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult x'ann
-       -> do  x'        <- reifyPossibilityX' wrap x
+       | e'ann               <- annotOfExp e
+       , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult e'ann
+       -> do  e'        <- reifyPossibilityX' wrap e
               nError    <- fresh
               nValue    <- fresh
               let a'     = wrapAnnot a
                   err    = con1 a' ConLeft $ Var (definiteAnnot a) nError
 
                   -- Bare value. Note that this is now definite, but with same (bare) type
-                  bare   = Var (extractValueAnnot x'ann) nValue
+                  bare   = Var (extractValueAnnot e'ann) nValue
                   fun'   = con1 a' ConRight $ Access a' bare f
 
-                  app'   = Case a' x'
+                  app'   = Case a' e'
                          [ (PatCon ConLeft  [ PatVariable nError ], err )
                          , (PatCon ConRight [ PatVariable nValue ], fun')
                          ]
