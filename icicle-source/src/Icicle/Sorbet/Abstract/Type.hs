@@ -10,6 +10,7 @@
 --
 module Icicle.Sorbet.Abstract.Type (
     pTypeScheme
+  , pType
   ) where
 
 import qualified Data.List as List

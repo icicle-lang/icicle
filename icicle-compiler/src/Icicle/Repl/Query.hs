@@ -200,7 +200,7 @@ defineFunction function =
     dictionary <- gets stateDictionary
 
     let
-      decln (Source.DeclFun _ n _) = n
+      decaln (Source.DeclFun _ n _) = n
       decln (Source.DeclType _ n _) = n
 
       names =

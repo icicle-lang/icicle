@@ -54,6 +54,12 @@ data Token =
   --
   -- Reserved Identifiers
   --
+  | Tok_Dictionary
+  | Tok_Import
+  | Tok_Where
+  | Tok_Input
+  | Tok_Feature
+  --
   | Tok_Wild
   | Tok_Case
   | Tok_Of
@@ -123,6 +129,11 @@ renderToken = \case
   Tok_EqualsColon       -> "=:"
   Tok_At                -> "@"
   Tok_FlowsInto         -> "~>"
+  Tok_Dictionary        -> "dictionary"
+  Tok_Import            -> "import"
+  Tok_Where             -> "where"
+  Tok_Input             -> "input"
+  Tok_Feature           -> "feature"
   Tok_Wild              -> "_"
   Tok_Case              -> "case"
   Tok_Of                -> "of"

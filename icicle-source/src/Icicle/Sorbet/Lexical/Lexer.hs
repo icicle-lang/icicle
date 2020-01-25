@@ -133,7 +133,12 @@ lexIdentifierTail =
 reservedIdentifiers :: Map [Char] Token
 reservedIdentifiers =
   Map.fromList [
-      ("_", Tok_Wild)
+      ("dictionary", Tok_Dictionary)
+    , ("import", Tok_Import)
+    , ("where", Tok_Where)
+    , ("input", Tok_Input)
+    , ("feature", Tok_Feature)
+    , ("_", Tok_Wild)
     , ("case", Tok_Case)
     , ("of", Tok_Of)
     , ("if", Tok_If)

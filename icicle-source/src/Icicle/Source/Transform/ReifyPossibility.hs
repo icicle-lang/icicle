@@ -111,8 +111,8 @@ reifyPossibilityX' wrap x
 
        -- If accessed value is a definitely, just apply it as usual
        | otherwise
-       -> do x' <- reifyPossibilityX' wrap x
-             return $ Access a x' f
+       -> do e' <- reifyPossibilityX' wrap e
+             return $ Access a e' f
 
       -- Primitives are dealt with by makeApps, because we can only wrap their annotations after unwrapping the arguments.
       -- There are no zero-argument primitives that return Possibly, but if there ever are, this would need to wrap them here.

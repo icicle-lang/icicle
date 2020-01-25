@@ -81,6 +81,11 @@ layoutProgram xs =
     [] ->
       pure []
 
+    -- If the first token is 'dictionary' then we expect a dictionary, and
+    -- a where will open the first outer block
+    x@(Positioned _ _ Tok_Dictionary) : _ ->
+      layoutLine (ScopeEnv x []) xs
+
     -- If the first token is '{' then we assume an extras file with explicit
     -- layout, so we don't need an outer layout block.
     x@(Positioned _ _ Tok_LBrace) : _ ->
@@ -217,6 +222,32 @@ layoutTokens env = \case
     ->
       x <:> before y Tok_LBrace <:>
       layoutTokens (startImplicit y $ startExplicit Context env) (y : xs)
+
+
+  --
+  -- Layout for 'where' is similar to that of 'let', but can't be closed
+  -- by a keyword.
+  --
+  --   xyz where
+  --     |xyz =
+  --     |  123
+  --     |abc =
+  --     |  457
+  --
+  --   ==>
+  --
+  --   xyz where
+  --     {xyz =
+  --        123
+  --     ;abc =
+  --        457
+  --   }
+  x@(Positioned _ _ Tok_Where) : y : xs
+    | notLBrace y
+    ->
+      x <:> before y Tok_LBrace <:>
+      layoutTokens (startImplicit y env) (y : xs)
+
 
   --
   -- Open group fold special case.

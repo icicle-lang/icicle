@@ -139,6 +139,10 @@ library
                        Icicle.Dictionary.Data
                        Icicle.Dictionary.Demographics
 
+                       Icicle.Storage.Dictionary.Common
+                       Icicle.Storage.Dictionary.Data
+                       Icicle.Storage.Dictionary.Sorbet
+                       Icicle.Storage.Dictionary.Sorbet.Parser
                        Icicle.Storage.Dictionary.Toml
                        Icicle.Storage.Dictionary.Toml.Types
                        Icicle.Storage.Dictionary.Toml.Toml

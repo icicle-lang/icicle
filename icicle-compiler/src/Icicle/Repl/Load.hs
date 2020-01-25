@@ -24,7 +24,7 @@ import           Icicle.Repl.Monad
 import           Icicle.Repl.Pretty
 import           Icicle.Repl.Source
 import qualified Icicle.Runtime.Serial.Zebra as Runtime
-import qualified Icicle.Storage.Dictionary.Toml as Toml
+import qualified Icicle.Storage.Dictionary.Sorbet as Toml
 
 import           P
 

@@ -14,7 +14,7 @@ module Icicle.Sorbet.Parse (
   , sorbetType
   , sorbetUnresolvedInputId
 
-  , ParseError
+  , ParseError (..)
   , annotOfParseError
   ) where
 

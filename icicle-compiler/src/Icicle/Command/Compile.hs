@@ -41,7 +41,7 @@ import           Icicle.Repl.Pretty as Pretty
 import           Icicle.Runtime.Data
 import qualified Icicle.Runtime.Evaluator as Runtime
 import           Icicle.Sea.Header
-import qualified Icicle.Storage.Dictionary.Toml as Toml
+import qualified Icicle.Storage.Dictionary.Sorbet as Toml
 
 import           P
 

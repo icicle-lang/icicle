@@ -13,7 +13,6 @@ import           P
 
 import           Control.Lens
 
-import qualified Control.Applicative as CA ((<|>))
 import           Data.Text
 import           Data.Validation hiding (validate)
 import qualified Data.HashMap.Strict as M
@@ -34,56 +33,11 @@ import           Icicle.Source.Query
 
 import           Icicle.Storage.Encoding
 
+import           Icicle.Storage.Dictionary.Data
 import           Icicle.Storage.Dictionary.Toml.Prisms
 import           Icicle.Storage.Dictionary.Toml.Types
 
 import           Icicle.Internal.Pretty hiding (char)
-
-
--- | Dictionary config can be inherited from higher level dictionaries, items such as
---   Namespace and tombstone can be scoped based on where they are defined, and overridden
---   inside a specific fact or feature.
-data DictionaryConfig =
-  DictionaryConfig {
-    configTitle     :: Maybe Text
-  , configVersion   :: Maybe Int64
-  , configNamespace :: Maybe Namespace
-  , configTombstone :: Maybe Text
-  , configImports   :: [Text]
-  , configChapter   :: [Text]
-  } deriving (Eq, Show)
-
-instance Semigroup DictionaryConfig where
-  -- Left preferenced Semigroup instance.
-  -- Use properties specified in this file, or, if they don't exist, try the parent.
-  -- Don't bring in the imports or chapters, as that will cause an infinite loop.
-  (<>)
-    (DictionaryConfig a1 a2 a3 a4 a6 a7)
-    (DictionaryConfig b1 b2 b3 b4 _  _ ) =
-      (DictionaryConfig (a1 CA.<|> b1) (a2 CA.<|> b2) (a3 CA.<|> b3) (a4 CA.<|> b4) a6 a7)
-
-instance Monoid DictionaryConfig where
-  mempty  = DictionaryConfig Nothing Nothing Nothing Nothing [] []
-  mappend = (<>)
-
-data DictionaryInput' =
-  DictionaryInput' {
-      inputId' :: InputId
-    , inputEncoding' :: ValType
-    , inputTombstone' :: Maybe Text
-    , inputKey' :: ConcreteKey'
-    } deriving (Eq, Show)
-
-data DictionaryOutput' =
-  DictionaryOutput' {
-      outputId' :: OutputId
-    , outputQuery' :: QueryTop Pos.SourcePos Variable
-    } deriving (Eq, Show)
-
-newtype ConcreteKey' = ConcreteKey' {
-    concreteKey :: Maybe (Exp Pos.SourcePos Variable)
-  } deriving (Eq, Show)
-
 
 data DictionaryValidationError =
   UnknownElement Text Pos.SourcePos
