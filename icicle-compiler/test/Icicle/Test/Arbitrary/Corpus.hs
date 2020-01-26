@@ -11,6 +11,7 @@ module Icicle.Test.Arbitrary.Corpus where
 
 import qualified Data.List as List
 import           Data.Maybe
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 
@@ -19,6 +20,7 @@ import           Test.QuickCheck
 import           P
 
 import           Icicle.Common.Base
+import qualified Icicle.Common.Type as CT
 import           Icicle.Data hiding (inputName)
 import           Icicle.Dictionary.Data hiding (inputId, outputId)
 import           Icicle.Internal.Pretty
@@ -39,20 +41,25 @@ newtype CorpusId =
       unCorpusId :: Int
     } deriving (Eq, Ord, Show, Enum, Num)
 
-corpusInputs :: [(InputName, Encoding)]
+corpusInputs :: [(InputName, CT.ValType)]
 corpusInputs =
  [ ([inputname|int|]
-   , IntEncoding)
+   , CT.IntT)
  , ([inputname|string|]
-   , StringEncoding)
+   , CT.StringT)
  , ([inputname|injury|]
-   , StructEncoding [field "location" StringEncoding, optfield "action" StringEncoding, field "severity" IntEncoding])
+   , CT.StructT . CT.StructType $ Map.fromList [
+       (CT.StructField "location", CT.StringT)
+     , (CT.StructField "action", CT.OptionT CT.StringT)
+     , (CT.StructField "severity",  CT.IntT)
+     ]
+    )
  ]
- where
-  optfield name encoding
-   = Data.StructField Data.Optional name encoding
-  field name encoding
-   = Data.StructField Data.Mandatory name encoding
+--  where
+--   optfield name encoding
+--    = Data.StructField Data.Optional name encoding
+--   field name encoding
+--    = Data.StructField Data.Mandatory name encoding
 
 corpusInputId :: InputName -> InputId
 corpusInputId = InputId [namespace|corpus|]

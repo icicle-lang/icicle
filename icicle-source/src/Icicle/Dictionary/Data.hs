@@ -118,8 +118,9 @@ parseFact (Dictionary { dictionaryInputs = dict }) fact'
                  (DecodeErrorNotInDictionary attr)
                  (P.find (\(DictionaryInput (InputId _ attr') _ _ _) -> (==) attr attr') dict)
         case def of
-         DictionaryInput _ enc ts _
-          -> factOf <$> parseValue (undefined enc) ts (factValue' fact')
+         DictionaryInput _ vt ts _ -> do
+           enc <- maybe (Left (DecodeErrorNonJsonInput vt)) Right $ encodingOfSourceType vt
+           factOf <$> parseValue enc ts (factValue' fact')
 
  where
   attr = factAttribute' fact'
