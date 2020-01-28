@@ -10,6 +10,7 @@ import           Icicle.Dictionary.Data
 import           Icicle.Common.Type
 
 import qualified Data.Set as Set
+import qualified Data.Map as Map
 
 import           P
 
@@ -35,6 +36,11 @@ demographics =
         , input [inputid|default:salary|]
             IntT
 
+        , input [inputid|default:injury|] $
+            StructT . StructType $ Map.fromList [
+                (StructField "location", StringT)
+              , (StructField "severity", IntT)
+              ]
         ]
 
     outputs =

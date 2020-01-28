@@ -30,6 +30,7 @@ module Icicle.Storage.Dictionary.Sorbet.Parser (
 import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified Data.Text as Text
+import           Data.String (String, unlines)
 import           Data.Scientific (toRealFloat)
 
 import           Icicle.Sorbet.Abstract.Parser
@@ -116,8 +117,9 @@ pOutputName = do
 
 pImport :: Parser s m => m Text
 pImport = do
-  _ <- pToken Tok_Import
-  pConstructorText
+  _      <- pToken Tok_Import
+  (_, s) <- pString
+  return s
 
 
 
@@ -126,14 +128,21 @@ pInput ns = do
   _      <- pToken Tok_Input
   n      <- pInputName
   _      <- pToken Tok_Colon
-  (_, t) <- pType
-  let
-    mvt = valTypeOfType t
+  vt     <- pPositionedFail pType (valTypeOfType . snd) $ unlines [
+              "Input streams must be serialisable types."
+            , ""
+            , "Function types, modalities, and type variables are not supported."
+            ]
 
-  vt    <- maybe (fail "Can't use non serialisable types") pure mvt
   pure $
     DictionaryInput' (InputId ns n) vt Nothing (ConcreteKey' Nothing)
 
+
+pPositionedFail :: Parser s m => m a -> (a -> Maybe b) -> String -> m b
+pPositionedFail x check err = do
+  o <- Mega.getOffset
+  v <- x
+  maybe (Mega.setOffset o >> fail err) pure (check v)
 
 
 pOutput :: Parser s m => Namespace -> m DictionaryOutput'

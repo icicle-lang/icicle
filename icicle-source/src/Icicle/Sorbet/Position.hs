@@ -105,7 +105,6 @@ instance (Pretty a, Ord a) => Stream (PositionedStream a) where
   showTokens _ =
     List.intercalate " " . NonEmpty.toList . fmap (show . pretty . posTail)
 
-
   reachOffset o (PosState input offset sourcePos tabWidth _) =
     ( newSourcePos
     , fromMaybe "" thisLine

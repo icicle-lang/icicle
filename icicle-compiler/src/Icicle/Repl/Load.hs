@@ -24,7 +24,8 @@ import           Icicle.Repl.Monad
 import           Icicle.Repl.Pretty
 import           Icicle.Repl.Source
 import qualified Icicle.Runtime.Serial.Zebra as Runtime
-import qualified Icicle.Storage.Dictionary.Sorbet as Toml
+import qualified Icicle.Storage.Dictionary.Toml as Toml
+import qualified Icicle.Storage.Dictionary.Sorbet as Sorbet
 
 import           P
 
@@ -41,8 +42,8 @@ import           Zebra.X.Either (firstJoin)
 
 
 data LoadType =
-    LoadDictionary
-  | LoadFunctions
+    LoadTomlDictionary
+  | LoadSorbet
   | LoadData
     deriving (Eq, Ord, Show)
 
@@ -57,10 +58,10 @@ isIcicle =
 detectLoadType :: MonadIO m => FilePath -> m LoadType
 detectLoadType path =
   if isToml path then
-    pure LoadDictionary
+    pure LoadTomlDictionary
   else if isIcicle path then
-    pure LoadFunctions
-  else do
+    pure LoadSorbet
+  else
     pure LoadData
 
 showDictionary :: Repl ()
@@ -80,10 +81,43 @@ setDictionary dictionary = do
   modify $ \s ->
     s { stateDictionary = dictionary }
 
-loadDictionary :: FilePath -> Repl ()
-loadDictionary path = do
+
+loadTomlDictionary :: FilePath -> Repl ()
+loadTomlDictionary path = do
   options <- getCheckOptions
   edictionary <- liftIO . runEitherT $ Toml.loadDictionary options Toml.ImplicitPrelude path
+  case edictionary of
+    Left err -> do
+      putPretty $ Pretty.vsep [
+          "Dictionary load error:"
+        , Pretty.indent 2 $ Pretty.pretty err
+        ]
+
+    Right dictionary ->
+      setDictionary dictionary
+
+
+loadSorbet :: FilePath -> Repl ()
+loadSorbet path = do
+  eIsDictionary <- liftIO . runEitherT $ Sorbet.lexCheckDictionary path
+  case eIsDictionary of
+    Left err -> do
+      putPretty $ Pretty.vsep [
+          "Couldn't parse Icicle file:"
+        , Pretty.indent 2 $ Pretty.pretty err
+        ]
+
+    Right isDictionary ->
+      if isDictionary then
+        loadSorbetDictionary path
+      else
+        loadFunctions path
+
+
+loadSorbetDictionary :: FilePath -> Repl ()
+loadSorbetDictionary path = do
+  options     <- getCheckOptions
+  edictionary <- liftIO . runEitherT $ Sorbet.loadDictionary options Toml.ImplicitPrelude path
   case edictionary of
     Left err -> do
       putPretty $ Pretty.vsep [
@@ -142,11 +176,11 @@ loadFile path = do
   else do
     typ <- detectLoadType path
     case typ of
-      LoadDictionary ->
-        loadDictionary path
+      LoadTomlDictionary ->
+        loadTomlDictionary path
 
-      LoadFunctions ->
-        loadFunctions path
+      LoadSorbet ->
+        loadSorbet path
 
       LoadData -> do
         mschema <- tryLoadZebra path
