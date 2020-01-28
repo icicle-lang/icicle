@@ -8,6 +8,7 @@ module Icicle.Repl.Query (
   , defineFunction
   ) where
 
+import           Control.Lens ((^.), _Left, _2)
 import           Control.Monad.Catch (MonadCatch)
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.Morph (hoist)
@@ -59,7 +60,8 @@ import qualified Icicle.Sea.FromAvalanche.Program as Sea
 import qualified Icicle.Sea.Preamble as Sea
 import qualified Icicle.Serial as Serial
 import qualified Icicle.Source.PrettyAnnot as Source
-import qualified Icicle.Source.Query.Query as Source
+import qualified Icicle.Sorbet.Render as Sorbet
+import qualified Icicle.Source.Query as Source
 
 import           P
 
@@ -198,17 +200,25 @@ defineFunction function =
     dictionary <- gets stateDictionary
 
     let
-      names =
-        Set.fromList $ fmap (snd . fst) parsed
+      decaln (Source.DeclFun _ n _) = n
+      decln (Source.DeclType _ n _) = n
 
-      -- Remove the old bindings with these names
+      names =
+        Set.fromList $ fmap decln parsed
+
       funEnv =
         List.filter (not . flip Set.member names . functionName) $
         dictionaryFunctions dictionary
 
-    (funEnv', logs) <-
-      hoistEither . first QuerySourceError $
+      funResolved =
         Source.sourceCheckFunLog funEnv parsed
+
+    whenSet FlagTypeCheckLog $
+      for_ (funResolved ^. _Left . _2) putPretty
+
+    (funEnv', logs) <-
+      hoistEither . first (QuerySourceError . fst) $
+        funResolved
 
     let
       fundefs =
@@ -262,7 +272,7 @@ compileQuery query = do
         (Pretty.pretty sourceType)
 
   whenSet FlagAnnotated $
-    putSection "Annotated" (Source.PrettyAnnot annot)
+    putSection "Annotated" (Sorbet.PrettySorbet annot)
 
   let
     inlined =
@@ -273,10 +283,10 @@ compileQuery query = do
       Source.sourceDesugarQT inlined
 
   whenSet FlagInlined $
-    putSection "Inlined" inlined
+    putSection "Inlined" (Sorbet.PrettySorbet inlined)
 
   whenSet FlagDesugar $
-    putSection "Desugar" blanded
+    putSection "Desugar" (Sorbet.PrettySorbet blanded)
 
   (annobland, _) <-
     hoistEither . first QuerySourceError $
@@ -287,8 +297,7 @@ compileQuery query = do
       Source.sourceReifyQT annobland
 
   whenSet FlagReified $ do
-    putSection "Reified" reified
-    putSection "Reified annotated" (Source.PrettyAnnot reified)
+    putSection "Reified" (Sorbet.PrettySorbet reified)
 
   let
     finalSource =

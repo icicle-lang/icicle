@@ -41,17 +41,20 @@ data ErrorInfo a n
  = ErrorNoSuchVariable a (Name n)
  | ErrorNoSuchInput a UnresolvedInputId
  | ErrorContextNotAllowedHere  a (Context a n)
- | ErrorFunctionWrongArgs      a (Exp a n) (FunctionType n) [Type n]
+ | ErrorFunctionWrongArgs      a (Exp a n) (Scheme n) [Type n]
+ | ErrorSchemesMatchError      a (Scheme n) (Scheme n)
  | ErrorApplicationNotFunction a (Exp a n)
  | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
  | ErrorConstraintLeftover      a [(a, Constraint n)]
- | ErrorReturnNotAggregate a (Type n)
+ | ErrorCantInferConstraints    a [(a, Constraint n)] [(a, Constraint n)]
+ | ErrorReturnNotAggregate      a (Type n)
  | ErrorDuplicateFunctionNames a (Name n)
  | ErrorEmptyCase a (Exp a n)
  | ErrorPartialBinding a (Pattern n)
  | ErrorCaseBadPattern a (Pattern n)
  | ErrorResumableFoldNotAllowedHere a (Query a n)
  | ErrorInFunctionCall a (Name n) (ErrorInfo a n)
+ | ErrorImpossible a
  deriving (Show, Eq, Generic)
 
 instance (NFData a, NFData n) => NFData (ErrorInfo a n)
@@ -67,11 +70,15 @@ annotOfError (CheckError e _)
      -> Just a
     ErrorFunctionWrongArgs      a _ _ _
      -> Just a
+    ErrorSchemesMatchError      a _ _
+     -> Just a
     ErrorApplicationNotFunction a _
      -> Just a
     ErrorConstraintsNotSatisfied          a _
      -> Just a
     ErrorConstraintLeftover a _
+     -> Just a
+    ErrorCantInferConstraints a _ _
      -> Just a
     ErrorReturnNotAggregate          a _
      -> Just a
@@ -87,11 +94,12 @@ annotOfError (CheckError e _)
      -> Just a
     ErrorInFunctionCall a _ _
      -> Just a
-
+    ErrorImpossible a
+     -> Just a
 
 data ErrorSuggestion a n
  = AvailableFeatures UnresolvedInputId [(InputId, Type n)]
- | AvailableBindings (Name n) [(Name n, FunctionType n)]
+ | AvailableBindings (Name n) [(Name n, Scheme n)]
  | Suggest String
  deriving (Show, Eq, Generic)
 
@@ -153,6 +161,14 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
         , "Argument types: " <> inp tys
         ]
 
+    ErrorSchemesMatchError a x f ->
+      vsep [
+          "Supplied type signature does not match that of the inferred type at" <+> pretty a
+        , mempty
+        , "Signature:      " <> inp x
+        , "Inferred type:  " <> inp (prettyFunFromStrings f)
+        ]
+
     ErrorApplicationNotFunction a x ->
       vsep [
           "Application of non-function at" <+> pretty a
@@ -169,14 +185,34 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
 
     ErrorConstraintLeftover a ds ->
       vsep [
-          "Unsolved constraints at " <+> pretty a
+          "Unsolved constraints at" <+> pretty a
         , mempty
         , vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
         ]
 
+    ErrorCantInferConstraints a ds [] ->
+      vsep [
+          "Can't infer required constraints at" <+> pretty a
+        , mempty
+        , vcat (fmap (\(an,con) -> indent 2 (pretty an) <> indent 2 (pretty con)) ds)
+        , mempty
+        , "No constraints were specified"
+        ]
+
+    ErrorCantInferConstraints a ds xs ->
+      vsep [
+          "Can't infer required constraints at" <+> pretty a
+        , mempty
+        , vcat (fmap (\(_,con) -> indent 2 (pretty con)) ds)
+        , mempty
+        , "from the specified constraints:"
+        , mempty
+        , vcat (fmap (\(_,con) -> indent 2 (pretty con)) xs)
+        ]
+
     ErrorReturnNotAggregate a t ->
       vsep [
-          "Return type is not an aggregate at" <+> pretty a
+          "Return type is not an aggregate value at" <+> pretty a
         , mempty
         , "Type: " <> inp t
         ]
@@ -219,6 +255,10 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
         , pretty e'
         ]
 
+    ErrorImpossible a ->
+      vsep [
+          "Impossible error at " <+> pretty a
+        ]
    where
     inp x = align (pretty x)
 

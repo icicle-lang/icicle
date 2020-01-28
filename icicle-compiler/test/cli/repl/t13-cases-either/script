@@ -1,17 +1,17 @@
 :set +type
-feature salary ~> fold perhaps = Left 0 : case perhaps | Left i -> Right (double i+1) | Right j -> Left (trunc j+1) end ~> perhaps
-feature salary ~> fold perhaps = Left 0 : case perhaps | Right i -> Left (trunc i+1)  | Left j -> Right (double j+1) end ~> perhaps
+from salary ~> fold perhaps = Left 0 then case perhaps of Left i then Right (double i+1);  Right j then Left (trunc j+1) ~> perhaps
+from salary ~> fold perhaps = Left 0 then case perhaps of Right i then Left (trunc i+1) ;  Left j then Right (double j+1) ~> perhaps
 
 
-feature salary ~> fold perhaps = Left 0 : case perhaps | Left i -> Right i | Right j -> Left j end ~> perhaps
-feature salary ~> fold perhaps = Left 0 : case perhaps | Right i -> Left i | Left j -> Right j end ~> perhaps
+from salary ~> fold perhaps = Left 0 then case perhaps of Left i then Right i; Right j then Left j ~> perhaps
+from salary ~> fold perhaps = Left 0 then case perhaps of Right i then Left i; Left j then Right j ~> perhaps
 
 -- Cases can be strange
-feature salary ~> windowed 1 days ~> case None | Some a -> Some a | None -> Some 0 end
+from salary ~> windowed 1 days ~> case None of Some a then Some a; None then Some 0
 
 -- Nested case with a polymorphic scrutinee (Num a => (Bool,a))
-feature salary ~> let v = (True,1) ~> fold s2 = False : case (case v | (a,b) -> a end) | True -> False | False -> True end ~> s2
+from salary ~> let v = (True,1) ~> fold s2 = False : case (case v of (a,b) then a) of True then False; False then True ~> s2
 
 -- Case matching on literals
-feature salary ~> latest 10 ~> case value | 10 -> "ten" | 100 -> "One hundred" | 1000 -> "One thousand" | _ -> "Not a power of 10" end
-feature injury ~> latest 10 ~> case (Some location) | Some "head" -> "head" | _ -> "Not the head" end
+from salary ~> latest 10 ~> case value of 10 then "ten"; 100 then "One hundred"; 1000 then "One thousand"; _ -> "Not a power of 10"
+from injury ~> latest 10 ~> case (Some location) of Some "head" then "head"; _ -> "Not the head" end

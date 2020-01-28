@@ -3,33 +3,33 @@
 :set +core-eval
 :set +c-eval
 
-feature injury ~> group_keys location
+from injury ~> group_keys location
 
-feature injury ~> days between (newest (get admitted)) now
+from injury ~> days between (newest (get admitted)) now
 
 -- These were errors picked up by QuickCheck
-feature injury ~> box (Right now)
-feature injury ~> newest (box (Left ExceptTombstone))
+from injury ~> box (Right now)
+from injury ~> newest (box (Left ExceptTombstone))
 
-feature salary ~> let x = (latest 3 ~> value) ~> sort x
+from salary ~> let x = (latest 3 ~> value) ~> sort x
 
-feature injury ~> let x = group_keys location ~> sort x
+from injury ~> let x = group_keys location ~> sort x
 
-feature salary ~> year_of now
+from salary ~> year_of now
 
 :set snapshot 2015-12-31
 
-feature salary ~> year_of now
+from salary ~> year_of now
 
 -- Baked-in maps and arrays
 
-feature injury ~> let x = (latest 4 ~> days between time now) ~> quantile_on_sorted 0.5 (sort x), x
+from injury ~> let x = (latest 4 ~> days between time now) ~> quantile_on_sorted 0.5 (sort x), x
 
 -- Invaild quantile arguments
-feature injury ~> let x = (latest 4 ~> days between time now) ~> quantile_on_sorted 5.0 (sort x), x
+from injury ~> let x = (latest 4 ~> days between time now) ~> quantile_on_sorted 5.0 (sort x), x
 
 :load test/cli/repl/t31-builtin/dict.toml
 :load test/cli/repl/t31-builtin/data.psv
 
 -- NY should be 1 year, CA should be 4 years, OR should be 1 year
-feature state ~> days_in value time now
+from state ~> days_in value time now

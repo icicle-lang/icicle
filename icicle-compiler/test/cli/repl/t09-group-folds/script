@@ -1,14 +1,14 @@
 -- Count unique times, this is equivalent to `distinct time ~> count`
-feature salary ~> group fold (k, v) = (group time ~> count value) ~> count v
+from salary ~> group fold (k, v) = (group time ~> count value) ~> count v
 
 -- Sum of count of values, this is equivalent to counting the number of salary facts
-feature salary ~> group fold (k, v) = (group time ~> count value) ~> sum v
+from salary ~> group fold (k, v) = (group time ~> count value) ~> sum v
 
 -- Max of count of values
-feature salary ~> group fold (k, v) = (group time ~> count value) ~> max v
+from salary ~> group fold (k, v) = (group time ~> count value) ~> max v
 
 -- Fold over oldests. Not really that meaningful but a useful test
-feature salary ~> group fold (k, v) = (group time ~> oldest value) ~> max v
+from salary ~> group fold (k, v) = (group time ~> oldest value) ~> max v
 
 -- Tuple binding values in group folds
-feature injury ~> group fold (_, (severity, counts)) = (group location ~> (mean severity, count severity)) ~> min_by counts severity
+from injury ~> group fold (_, (severity, counts)) = (group location ~> (mean severity, count severity)) ~> min_by counts severity

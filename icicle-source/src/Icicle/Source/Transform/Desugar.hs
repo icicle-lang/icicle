@@ -14,12 +14,13 @@ module Icicle.Source.Transform.Desugar
   , runDesugar
   , desugarQT
   , desugarQ
-  , desugarFun
+  , desugarX
   ) where
 
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Either
 
+import qualified Data.Map as Map
 import           Data.Hashable (Hashable)
 import           Data.Functor.Identity
 
@@ -30,6 +31,7 @@ import           Icicle.Common.Fresh
 
 import           Icicle.Source.Query
 import           Icicle.Source.Transform.Simp
+import           Icicle.Source.Transform.SubstX
 import           Icicle.Internal.Pretty
 
 import           P
@@ -62,14 +64,6 @@ annotOfError (DesugarIllTypedPatterns a _)   = Just a
 
 runDesugar :: NameState n -> DesugarM a n x -> Either (DesugarError a n) x
 runDesugar n m = runIdentity . runEitherT . bimapEitherT id snd $ runFreshT m n
-
-desugarFun
-  :: (Hashable n, Eq n)
-  => Function a n
-  -> DesugarM a n (Function a n)
-desugarFun f
-  = do b' <- desugarQ (body f)
-       return $ f { body = b'}
 
 desugarQT
   :: (Hashable n, Eq n)
@@ -198,16 +192,36 @@ desugarX xx
 
            treeToCase a patalts' tree
 
+    -- Beta Reduction
+    App _ (Lam _ n x1) x2
+      -> do x1' <- desugarX x1
+            x2' <- desugarX x2
+            xx' <- runFreshIdentity $ substX (Map.singleton n x2') x1'
+            return xx'
+
     App a x1 x2
       -> do x1' <- desugarX x1
             x2' <- desugarX x2
             return $ App a x1' x2'
 
-    Var _ _
+    If a x1 x2 x3
+      -> do x1' <- desugarX x1
+            x2' <- desugarX x2
+            x3' <- desugarX x3
+            return $ If a x1' x2' x3'
 
+    Lam a n x1
+      -> do x1' <- desugarX x1
+            return $ Lam a n x1'
+
+    Var _ _
       -> return xx
     Prim _ _
      -> return xx
+
+    Access a x f
+      -> do x' <- desugarX x
+            return $ Access a x' f
 
 --------------------------------------------------------------------------------
 

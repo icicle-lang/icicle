@@ -7,6 +7,7 @@ module Icicle.Data.Time (
 
   -- * System
   , getCurrentDate
+  , midnight
   , exclusiveSnapshotTime
 
   -- * Extract and conversion
@@ -147,7 +148,7 @@ localSecond x = truncate (timeOfDay x ^. Thyme._todSec)
 -- | Number of days since Ivory epoch
 daysCountIvory :: Time -> Int
 daysCountIvory d
-  = Thyme.toModifiedJulianDay (julianDay d) - Thyme.toModifiedJulianDay ivoryEpoch 
+  = Thyme.toModifiedJulianDay (julianDay d) - Thyme.toModifiedJulianDay ivoryEpoch
 
 -- | Number of seconds since Ivory epoch
 secondsCountIvory :: Time -> Int
@@ -226,6 +227,10 @@ getCurrentDate :: MonadIO m => m Date
 getCurrentDate =
  Date . Thyme.utctDay . Thyme.unUTCTime <$> liftIO Thyme.getCurrentTime
 
+midnight :: Date -> Time
+midnight (Date date) =
+  Time $ Thyme.mkUTCTime date 0
+
 exclusiveSnapshotTime :: Date -> Time
 exclusiveSnapshotTime (Date date) =
   Time $ Thyme.mkUTCTime (Thyme.addDays 1 date) 0
@@ -261,7 +266,7 @@ renderTime = T.pack . C.showGregorian . Thyme.fromThyme . julianDay
 renderOutputTime  :: Time -> Text
 renderOutputTime t
  = let fmt = "%Y-%m-%dT%H:%M:%SZ"
-       t' = Thyme.fromThyme (getDateTime t) :: C.UTCTime 
+       t' = Thyme.fromThyme (getDateTime t) :: C.UTCTime
        str = C.formatTime C.defaultTimeLocale fmt t'
    in  T.pack str
 

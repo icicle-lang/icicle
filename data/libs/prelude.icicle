@@ -1,199 +1,325 @@
-############
-### Base ###
-############
+--------------------------------------------------------------------------------
+-- Base
+--------------------------------------------------------------------------------
 
-# mod, relying on rounding.
-mod x y
-  = x - (trunc (double x / double y) * y).
 
-# integer division
-int_div x y
-  = trunc (double x / double y).
+-- mod, relying on rounding.
+mod : Int -> Int -> Possibly Int
+mod x y =
+  x - (trunc (double x / double y) * y)
 
-# Time statements
-newest v = latest 1 ~> fold1 s = v : v ~> s.
-oldest v = fold1 s = v : s ~> s.
 
-# check if a day is a weekend.
-is_weekend v
-  =  let day = mod (days v) 7
-  ~> day == 3 || day == 4.
+-- integer division
+int_div : Int -> Int -> Possibly Int
+int_div x y =
+  trunc (double x / double y)
 
-# starting at epoch 1600/01/03, identify the week that containing this day.
+
+-- Most recent value
+newest : Element a -> Aggregate (Possibly a)
+newest v =
+  latest 1 in fold1 x = v then v in x
+
+
+-- Oldest seen
+oldest : Element a -> Aggregate (Possibly a)
+oldest v =
+  fold1 s = v then s in s
+
+
+-- check if a day is a weekend.
+is_weekend : Time -> Possibly Bool
+is_weekend v =
+  let day = mod (days v) 7
+   in day == 3 || day == 4
+
+
+-- starting at epoch 1600/01/03, identify the week that containing this day.
+week_of_day : Time -> Possibly Int
 week_of_day d
-  = trunc (double (days d) / 7).
-
-# Boolean statements
-not a = case a | True -> False | False -> True end.
-
-is_some a = case a | Some _ -> True  | None -> False end.
-is_none a = case a | Some _ -> False | None -> True  end.
-
-get a = case a | Some a' -> a' | None -> box (Left ExceptTombstone) end.
-
-get_or_else default a  = case a | Some a' -> a' | None -> default end.
-
-fst x = case x | (a,b) -> a end.
-snd x = case x | (a,b) -> b end.
-
-group_keys k = keys (group k ~> 0).
-
-# This only works if inlining is set to with-subst (:set inline with-subst in the REPL)
-group_vals k v = vals (group k ~> v).
-
-return v = newest v.
-
-# Are any elements true
-any x = fold a = False : a || x ~> a.
-
-# Are all elements true
-all x = fold a = True : a && x ~> a.
-
-##################
-### Statistics ###
-##################
-
-sum v = fold s = 0 : v + s ~> s.
-count v = fold c = 0 : seq v (c + 1) ~> c.
-
-# Numerically stable mean
-mean v = let v_ = double v
-      ~> fold1 s = (v_, 1) : case s | (m, n) -> (m + (v_ - m) / (n + 1), n + 1) end
-      ~> case s | (m, _) -> m end.
-
-max v = fold1 s = v : case v > s | True -> v | False -> s end ~> s.
-min v = fold1 s = v : case v < s | True -> v | False -> s end ~> s.
+  = trunc (double (days d) / 7)
 
 
-min_by a b = fold1 s = (a, b)
-   :  case s | (a1, b1) -> (case a < a1 | True -> (a,b) | False -> (a1,b1) end) end
-   ~> case s | (a1, b1) -> b1 end.
+-- Boolean statements
+not : Bool -> Bool
+not b = if b then False else True
 
-max_by a b = fold1 s = (a, b)
-   :  case s | (a1, b1) -> (case a > a1 | True -> (a,b) | False -> (a1,b1) end) end
-   ~> case s | (a1, b1) -> b1 end.
 
-# Numerically stable variance
-variance v =
-  let v_ = double v ~>
-  fold a = ((0, 0.0), 0.0)
-     :  case a | ((n,m),m2) -> (
-                   let nn = n + 1 ~>
-                   let d = v_ - m ~>
-                   let mm = m + d / nn ~>
-                   let m22 = m2 + d * (v_ - mm) ~>
-                   ((nn, mm), m22)
-                  ) end
-     ~> case a | ((x,_),y)  -> y / (x - 1) end.
+is_some : Option a -> Bool
+is_some o = case o of
+  Some _ then
+    True
+  None then
+    False
 
-sd v = sqrt (variance v).
 
-# Numerically stable covariance
-covariance a b =
-  let a_ = double a ~>
-  let b_ = double b ~>
-  fold x = (((0, 0.0), 0.0), 0.0)
-     :  case x | (((n,m1),m2),m12) -> (
-                    let nn  = n + 1 ~>
-                    let d1 = (a_ - m1) / nn ~>
-                    let mm1 = m1 + d1 ~>
-                    let d2 = (b_ - m2) / nn ~>
-                    let mm2 = m2 + d2 ~>
-                    let mm12 = m12 + n * d1 * d2 - m12 / nn ~>
-                    (((nn, mm1), mm2),mm12)
-                 ) end
-     ~> case x | (((n,_),_),m12) -> m12 * n / (n - 1) end.
+is_none : Option a -> Bool
+is_none o = case o of
+  Some _ then
+    False
+  None then
+    True
 
-# Pearson's product-moment correlation coefficient.
-correlation a b = covariance a b / (sd a * sd b).
 
-# Gradient with units y/x.
-gradient a b = covariance a b / variance b.
+get : Option a -> Possibly a
+get a = case a of
+  Some a' then
+    a'
+  None then
+    box (Left ExceptTombstone)
 
-# Version of num flips which should fail upon finding a tombstone value.
-numflips v = fold1 s = (v,0) : case s | (s0,i) -> (case (s0 == v) | True -> (v,i) | False -> (v,i+1) end) end ~> case s | (s0,i) -> i end.
 
-# Version of num flips which will accommodate tombstone values. Must have the tombstone feature passed to it.
-numflips' v t
- = fold1 s
-   = case t | True -> (None,0) | False -> (Some(v),0) end
-   : case t | True  -> (case s | (Some(s0),i) -> (None,i+1)
-                               | (None,i) -> (None,i)
-                               end )
-            | False -> (case s | (Some(s0),i) ->
-                                    (case (s0 == v) | True -> (Some(v),i) | False -> (Some(v),i+1) end)
-                               | (None,i) -> (Some(v),i+1)
-                               end )
-          end
- ~> case s | (s0,i) -> i end.
+get_or_else : a -> Option a -> a
+get_or_else default a =
+  case a of
+    Some a' then
+      a'
+    None then
+      default
 
-#######################
-### Example queries ###
-#######################
 
-# Quantiles from a sorted array of ints, same as in R.
-# TODO safe array_index in Source that maps to unsafe index in Avalanche
-# (might need a function unbox :: Sum Error a -> Option a)
-quantile_on_sorted p array
- = case (p >= 0 && p <= 1)
-    | True
-    -> (  let len          = length array
-       ~> let actual       = p * (double (len - 1))
-       ~> let actual_ceil  = ceil  actual
-       ~> let actual_floor = floor actual
-       ~> let floor_weight = double actual_ceil - actual
-       ~> let val_floor    = index array actual_floor
-       ~> let val_ceil     = index array actual_ceil
-       ~> let x            = double val_floor * floor_weight
-       ~> let y            = double val_ceil  * double (1 - floor_weight)
-       ~> Some (x + y))
-    | False
-    -> None
-   end.
+fst : (a, b) -> a
+fst xy =
+  case xy of
+    (x, _) then x
 
-# Helper function for 'days_in' below
-map_update_days_in state previous_time current_time state_days =
+
+snd : (a, b) -> b
+snd xy =
+  case xy of
+    (_, y) then y
+
+
+distinct_values : Element a -> Aggregate (Possibly (Array a))
+distinct_values k =
+  keys (group k in False)
+
+
+-- Are any elements true
+any : Element Bool -> Aggregate Bool
+any x = fold a = False then a || x in a
+
+
+-- Are all elements true
+all : Element Bool -> Aggregate Bool
+all x = fold a = True then a && x in a
+
+
+--------------------------------------------------------------------------------
+-- Statistics
+--------------------------------------------------------------------------------
+
+
+
+sum : Num a
+   => p =: PossibilityOfNum a
+   => Element (Possibility p a)
+   -> Aggregate (Possibility p a)
+sum v =
+  fold s = 0 then
+    v + s
+  in s
+
+
+count : Num a
+     => Element b
+     -> Aggregate a
+count v =
+  fold c = 0 then
+    seq v (c + 1)
+  in
+    from_integer c
+
+
+-- Numerically stable mean
+mean : Num a => Element a -> Aggregate (Possibly Double)
+mean v =
   let
-    n =
-      days between previous_time current_time
-  ~>
-  case map_lookup state state_days
-  | None ->
-      map_insert state n state_days
-  | Some n0 ->
-      map_insert state (n0 + n) state_days
-  end.
+    v =
+      double v
+  in
+    fold1 (m, n) =
+      (v, 1) then
+        (m + (v - m) / (n + 1), n + 1)
+    in m
 
-# Count the days that an entity has spent in different states.
-# e.g. days_in state time now = [("NSW", 20), ("QLD", 1)]
-days_in state fact_time query_time =
-  fold1
-    stm =
-        ((state, fact_time), map_create)
-      : case stm | ((s, t), m) ->
-          ((state, fact_time), map_update_days_in s t fact_time m)
-        end
-  ~>
-  case stm | ((s, t), m) ->
-    map_update_days_in s t query_time m
-  end.
 
-# The offsets (in days) of facts.
-date_offset_days time
- =  fold1 offsets
-     = (map_insert 0 0 map_create, time)
-     : (  let begin = snd offsets
-       ~> let map   = fst offsets
-       ~> let ds    = days between begin time
-       ~> (map_insert ds 0 map, begin))
- ~> keys (fst offsets).
+max : Element a -> Aggregate (Possibly a)
+max v =
+  fold1 s =
+    v then
+      if v > s then v else s
+  in s
 
-# The offsets (in weeks) of facts.
-date_offset_weeks time
- =  fold1 offsets
-     = (map_insert 0 0 map_create, time)
-     : (  let begin = snd offsets
-       ~> let map   = fst offsets
-       ~> let ds    = round (double (days between begin time) / 7)
-       ~> (map_insert ds 0 map, begin))
- ~> keys (fst offsets).
+
+min : Element a -> Aggregate (Possibly a)
+min v =
+  fold1 s =
+    v then
+      if v < s then v else s
+  in s
+
+
+min_by : Element a -> Element b -> Aggregate (Possibly b)
+min_by a b =
+  fold1 (x, y) =
+    (a, b) then
+      if a < x then
+        (a, b)
+      else
+        (x, y)
+  in y
+
+
+max_by : Element a -> Element b -> Aggregate (Possibly b)
+max_by a b =
+  fold1 (x, y) =
+    (a, b) then
+      if a > x then
+        (a, b)
+      else
+        (x, y)
+  in y
+
+
+-- Numerically stable variance
+variance : Num a => Element a -> Aggregate (Possibly Double)
+variance v =
+  let
+    v = double v
+  in
+    fold (n, m, m2) =
+      (0, 0, 0) then
+        let
+          nn = n + 1
+          d = v - m
+          mm = m + d / nn
+          m22 = m2 + d * (v - mm)
+        in
+          (nn, mm, m22)
+    in
+      m2 / (n - 1)
+
+
+sd : Num a => Element a -> Aggregate (Possibly Double)
+sd v =
+  sqrt (variance v)
+
+
+-- Numerically stable covariance
+covariance : Num a => Element a -> Element a -> Aggregate (Possibly Double)
+covariance a b =
+  let
+    a = double a
+    b = double b
+  in
+    fold (n, m1, m2, m12) =
+      (0, 0, 0, 0) then
+        let
+          nn   = n + 1
+          d1   = (a - m1) / nn
+          mm1  = m1 + d1
+          d2   = (b - m2) / nn
+          mm2  = m2 + d2
+          mm12 = m12 + n * d1 * d2 - m12 / nn
+        in
+          (nn, mm1, mm2, mm12)
+    in
+      m12 * n / (n - 1)
+
+
+-- Pearson's product-moment correlation coefficient.
+correlation : Num a => Element a -> Element a -> Aggregate (Possibly Double)
+correlation a b =
+  covariance a b / (sd a * sd b)
+
+
+-- Gradient with units y/x.
+gradient : Num a => Element a -> Element a -> Aggregate (Possibly Double)
+gradient a b =
+  covariance a b / variance b
+
+
+-- Count the number of times a state changes.
+-- This version uses concrete values, and will
+-- emit an error if a tombstone value is used.
+numflips : Num n
+        => Element a
+        -> Aggregate (Possibly n)
+numflips v =
+  fold1 (s, i) =
+    (v, 0) then
+      if s == v then
+        (v, i)
+      else
+        (v, i + 1)
+  in
+    from_integer i
+
+-- Version of num flips which will accommodate
+-- tombstone values by having the tombstone
+-- function passed to it.
+numflips' : Num n
+         => Element a
+         -> Element Bool
+         -> Aggregate (Possibly n)
+numflips' v t =
+  let
+    zero =
+      if t then
+        (None, 0)
+      else
+        (Some v, 0)
+
+    kons s i =
+      if t then
+        case s of
+          Some _ then
+            (None, i + 1)
+          None then
+            (None, i)
+      else
+        if (s == Some v) then
+          (Some v, i)
+        else
+          (Some v, i + 1)
+
+  in
+    fold1 (s, i) =
+      zero then kons s i
+    in
+      from_integer i
+
+
+
+--------------------------------------------------------------------------------
+-- Circular Statistics
+--------------------------------------------------------------------------------
+
+
+pi : Double
+pi = 3.141592653589793
+
+
+circular_stats : Element Double -> Aggregate (Possibly (Double, Double, Double))
+circular_stats theta =
+  fold
+    (x_loc, y_loc, n) =
+      (0, 0, 0) then
+        let
+          n      = n + 1
+          x_diff = cos theta
+          y_diff = sin theta
+
+          x_new  = x_loc + (x_diff - x_loc) / n
+          y_new  = y_loc + (y_diff - y_loc) / n
+        in
+          (x_new, y_new, n)
+  in
+    let
+      mean   = atan2 y_loc x_loc
+      radius = sqrt (x_loc * x_loc + y_loc * y_loc)
+      sd     = 1 - radius
+      z_test = n * radius * radius
+    in
+      (mean, sd, z_test)

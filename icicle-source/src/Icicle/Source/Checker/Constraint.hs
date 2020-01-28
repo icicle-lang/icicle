@@ -21,17 +21,15 @@ import           Icicle.Source.Type
 
 import           Icicle.Common.Base
 import qualified Icicle.Common.Fresh          as Fresh
-import           Icicle.Internal.Pretty (Pretty)
+import           Icicle.Internal.Pretty       (Pretty)
 
 import           P hiding (with)
 
-import           Control.Monad.Trans.Class (lift)
 import           Control.Monad.Trans.Either
 
 import           Data.Hashable                (Hashable)
-import           Data.List                    (unzip3, zip)
+import           Data.List                    (unzip3)
 import qualified Data.Map                     as Map
-
 
 
 -- | Defaulting any polymorphic Nums to Ints.
@@ -87,6 +85,8 @@ defaults topq
    = []
   defaultOfConstraint (CTemporalityJoin _ _ _)
    = []
+  defaultOfConstraint (CHasField _ _ _)
+   = []
 
   defaultTo tv tr
    | TypeVar n <- tv
@@ -122,6 +122,9 @@ defaults topq
            Nested _ q -> fa <> defaultOfAllQ q
            App _ p q -> fa <> defaultOfAllX p <> defaultOfAllX q
            Prim{} -> fa
+           Lam{} -> fa
+           Access _ p _ -> fa <> defaultOfAllX p
+           If _ p t f -> fa <> defaultOfAllX p <> defaultOfAllX t <> defaultOfAllX f
            Case _ s pats
             ->  fa <> defaultOfAllX s <>
                (Map.unions $ fmap (defaultOfAllX . snd) pats)
@@ -142,7 +145,7 @@ defaults topq
 --   We take the map of types of all imported functions.
 constraintsQ
   :: (Hashable n, Eq n, Pretty n)
-  => Map.Map (Name n) (FunctionType n)
+  => Map.Map (Name n) (Scheme n)
   -> Query a n
   -> EitherT (CheckError a n) (Fresh.Fresh n) (Query'C a n)
 constraintsQ env q
@@ -564,17 +567,33 @@ generateX
 generateX x env
  =   discharge annotOfExp substTX
  =<< case x of
-    -- Variables can only be values, not functions.
+    -- Variables can be values or functions
     Var a n
-     -> do (fErr, argsT, resT, cons') <- lookup a n env
+     -> do (fErr, resT, cons') <- lookup a n env
 
-           when (not $ null argsT)
-             $ genHoistEither
-             $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
+           when (anyArrows resT)
+            $ genHoistEither
+            $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
            let x' = annotate cons' resT
                   $ \a' -> Var a' n
            return (x', Map.empty, cons')
+
+    -- Lambda functions by themselves are pretty easy
+    -- We summon a fresh type for the named variable
+    -- and push it into the environment we check the
+    -- body in.
+    Lam _ n body
+      -> do typ              <- freshType
+            let env'          = bindT n typ env
+            (q, subs, cons)  <- generateX body env'
+
+            let resT          = annResult $ annotOfExp q
+            let arrT          = TypeArrow typ resT
+            let f' = annotate cons arrT
+                   $ \a' -> Lam a' n q
+
+            return (f', subs, cons)
 
     -- Nested just has the type of its inner query.
     Nested _ q
@@ -583,6 +602,22 @@ generateX x env
            let x' = annotate cons' (annResult $ annotOfQuery q')
                   $ \a' -> Nested a' q'
            return (x', sq, cons')
+
+    -- Struct fields require that the expression have a struct type
+    -- with the a right field type.
+    Access a e f
+      -> do resT             <- TypeVar <$> fresh
+            (q, subs, cons)  <- generateX e env
+            let argT          = annResult $ annotOfExp q
+            let (t,p,datT)    = decomposeT $ canonT argT
+            let f'resT        = recomposeT (t, p, resT)
+            let cons'struct   = require a (CHasField resT datT f)
+            let cons'complete = cons <> cons'struct
+
+            let x' = annotate cons'complete f'resT
+                   $ \a' -> Access a' q f
+
+            return (x', subs, cons <> cons'complete)
 
     -- Applications are a bit more complicated.
     -- If your function expects an argument with a particular temporality,
@@ -600,52 +635,74 @@ generateX x env
     -- However if one of its arguments is an Element:
     --  (x : Pure Int) + (y : Element Int) : Element Int
     -- here the y is unboxed, then the result is reboxed.
-    --
     App a _ _
      -> let (f, args)   = takeApps x
             look        | Prim _ p <- f
                         = primLookup a p
                         | Var _ n  <- f
                         = lookup a n env
+                        | Lam _ _ _ <- f
+                        = lookupFunction f env
                         | otherwise
                         = genHoistEither
                         $ errorNoSuggestions (ErrorApplicationNotFunction a x)
             genXs [] _  = return []
             genXs (xx:xs) env'
                         = do (xx',s,c) <- generateX xx env'
-                             rs       <- genXs xs (substE s env')
+                             rs        <- genXs xs (substE s env')
                              return ((xx',s,c) : rs)
 
-        in do   (fErr, argsT, resT, consf) <- look
+        in do   (fErr, resT, consf)        <- look
 
                 (args', subs', consxs)     <- unzip3 <$> genXs args env
-                let argsT'                  = fmap (annResult.annotOfExp) args'
+                let argsT'                  = fmap (annResult . annotOfExp) args'
 
-                when (length argsT /= length args)
-                 $ genHoistEither
-                 $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
+                let go                      = uncurry (appType a x)
+                (resT', consap)            <- foldM go (resT, []) argsT'
 
-                let go (t, c) u     = appType a t u c
-                (resT', consap) <- foldM go (resT, []) (argsT `zip` argsT')
+                when (anyArrows resT')
+                  $ genHoistEither
+                  $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr argsT')
 
                 let s' = foldl compose Map.empty subs'
                 let cons' = concat (consf : consap : consxs)
 
-                let f' = annotate cons' resT' $ \a' -> reannotX (const a') f
+                let f' = annotate cons' resT' $ \a' -> reannot (const a') f
 
                 return (foldl mkApp f' args', s', cons')
 
     -- Unapplied primitives should be relatively easy
     Prim a p
-     -> do (fErr, argsT, resT, cons') <- primLookup a p
+     -> do (fErr, resT, cons') <- primLookup a p
 
-           when (not $ null argsT)
+           when (anyArrows resT)
              $ genHoistEither
              $ errorNoSuggestions (ErrorFunctionWrongArgs a x fErr [])
 
            let x' = annotate cons' resT
                   $ \a' -> Prim a' p
            return (x', Map.empty, cons')
+
+    -- Ifs require:
+    --  1. True and false branches have to be "join-able" types (see below).
+    --  2. The return temporality is the join of the scrutinee with the alternatives.
+    --  3. The data type of the scrutinee is BoolT.
+    If a scrut true false
+     -> do
+           -- This is a bit lazy.
+           -- If then else should have exactly the same semantics and type checking
+           -- as the equivalent case expression.
+           let asCase = Case a scrut [(PatCon ConTrue [], true), (PatCon ConFalse [], false)]
+
+           (asCase', sub, cons) <- generateX asCase env
+
+           case asCase' of
+             Case a' scrut' [(_, true'), (_, false')] ->
+               return $
+                 (If a' scrut' true' false', sub, cons)
+             _ ->
+               genHoistEither
+               $ errorNoSuggestions (ErrorImpossible a)
 
     -- Cases require:
     --
@@ -689,6 +746,10 @@ generateX x env
    = let a' = Annot (annotOfExp x) t' cs
      in  f a'
 
+  freshType
+    =    Temporality <$> (TypeVar <$> fresh)
+    <*> (Possibility <$> (TypeVar <$> fresh)
+    <*>                  (TypeVar <$> fresh))
 
 generateP
   :: (Hashable n, Eq n, Pretty n)
@@ -793,8 +854,8 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
         return ( SumT l r , c, e' )
 
   goPat (PatLit l _) e
-   = do FunctionType _foralls constraints _args resT <- Gen . lift . lift $ primLookup' (Lit l)
-        return (resT, fmap (ann,) constraints, e)
+   = do (_fErr, resT, cons) <- primLookup ann (Lit l)
+        return (resT, cons, e)
 
   goPat _ _
    = genHoistEither
@@ -804,21 +865,44 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
 appType
  :: (Hashable n)
  => a
+ -> Exp a n
  -> Type n
- -> (Type n, Type n)
  -> GenConstraintSet a n
+ -> Type n
  -> Gen a n (Type n, GenConstraintSet a n)
-appType ann resT (expT,actT) cons = do
-  let (tmpE,posE,datE) = decomposeT $ canonT expT
-  let (tmpA,posA,datA) = decomposeT $ canonT actT
-  let (tmpR,posR,datR) = decomposeT $ canonT resT
-  let consD            = require ann (CEquals datE datA)
+appType ann errExp funT cons actT
+  | let (tmpF,posF,datF) = decomposeT $ canonT funT
+  , TypeArrow expT resT <- datF
+  = do
+    let (tmpR,posR,datR) = decomposeT $ canonT resT
+    let (tmpE,posE,datE) = decomposeT $ canonT expT
+    let (tmpA,posA,datA) = decomposeT $ canonT actT
+    let consD            = require ann (CEquals datE datA)
 
-  (tmpR', consT) <- checkTemp (purely tmpE) (purely tmpA) (purely tmpR)
-  (posR', consP) <- checkPoss (definitely posE) (definitely posA) (definitely posR)
+    -- Join function result and partial results.
+    (tmpR',  consT)      <- checkTemp (purely tmpE) (purely tmpA) (purely tmpR)
+    (tmpR'', consT')     <- checkTemp Nothing (purely tmpR') (purely tmpF)
 
-  let t = recomposeT (tmpR', posR', datR)
-  return (t, concat [cons, consD, consT, consP])
+    -- Prevent aggregate functions returning element arrows from being applied.
+    (_, consTX)          <- checkTemp Nothing (purely tmpF) (purely tmpE)
+    (posR',  consP)      <- checkPoss (definitely posE) (definitely posA) (definitely posR)
+    (posR'', consP')     <- checkPoss Nothing (definitely posR') (definitely posF)
+
+    let t = recomposeT (tmpR'', posR'', datR)
+    return (t, concat [cons, consD, consT, consT', consP, consP', consTX])
+
+  | let (tmpF,posF,datF) = decomposeT $ canonT funT
+  , TypeVar _     <- datF
+  = do
+    expT          <- freshType
+    resT          <- freshType
+    let funT'      = recomposeT (tmpF, posF, TypeArrow expT resT)
+    let funCons    = require ann (CEquals funT funT')
+    -- Rerun with a type arrow requirement.
+    appType ann errExp funT' (cons <> funCons) actT
+  | otherwise
+  = genHoistEither
+  $ errorNoSuggestions (ErrorFunctionWrongArgs ann errExp (Forall [] [] funT) [actT])
 
  where
   checkTemp = check' TemporalityPure       CTemporalityJoin
@@ -834,17 +918,19 @@ appType ann resT (expT,actT) cons = do
    | Just a' <- modA
    , Nothing <- modE
    , Just r' <- modR
-   = do r'' <- TypeVar <$> fresh
+   = do r''  <- TypeVar <$> fresh
         let j = joinMode r'' a' r'
         return (Just r'', require ann j)
-   -- Just <- modA
-   -- Just <- modE
-   -- ?    <- modR
+
    | otherwise
    = do ignore <- TypeVar <$> fresh
         let j = joinMode ignore (maybe pureMode id modE) (maybe pureMode id modA)
         return (modR, require ann j)
 
+  freshType
+    =    Temporality <$> (TypeVar <$> fresh)
+    <*> (Possibility <$> (TypeVar <$> fresh)
+    <*>                  (TypeVar <$> fresh))
 
   purely (Just TemporalityPure) = Nothing
   purely tmp = tmp
@@ -853,3 +939,13 @@ appType ann resT (expT,actT) cons = do
   definitely pos = pos
 
 
+-- | Typecheck a function definition, pulling out the type and constraints
+lookupFunction :: (Hashable n, Eq n, Pretty n)
+               => Exp a n
+               -> GenEnv n
+               -> Gen a n (Scheme n, Type n, GenConstraintSet a n)
+
+lookupFunction fun env
+ = do (q, _, cons)    <- generateX fun env
+      let resT         = annResult $ annotOfExp q
+      return (Forall [] [] resT, resT, cons)

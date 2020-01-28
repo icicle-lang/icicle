@@ -1,15 +1,15 @@
 -- Distinct by value. Expect 5 and 3
-feature salary ~> distinct value ~> count value
+from salary ~> distinct value ~> count value
 
 -- Distinct by time. Expect 5 and 1
-feature salary ~> distinct time ~> count value
+from salary ~> distinct time ~> count value
 
 -- Average of distincts. That is, find the *first* for each time, and average all lasts
-feature salary ~> distinct time ~> mean value
+from salary ~> distinct time ~> mean value
 
 -- Distinct location and count. Expect 3
-feature injury ~> distinct location ~> count location
+from injury ~> distinct location ~> count location
 
 -- Expect CannotCompute - exceeds map size
 :set max-map-size 2
-feature injury ~> distinct location ~> count location
+from injury ~> distinct location ~> count location

@@ -20,6 +20,9 @@ module Icicle.Common.Type (
     , funOfVal
     , arrow
     , defaultOfType
+    , traverseValType
+    , foldValType
+    , anyBuffers
 
     , ArithType (..)
     , valTypeOfArithType
@@ -37,7 +40,10 @@ module Icicle.Common.Type (
     , valueMatchesType
     ) where
 
+import           Control.Lens (foldMapOf)
+
 import qualified Data.Map as Map
+import           Data.Monoid (Any (..))
 import qualified Data.Text as T
 
 import           GHC.Generics (Generic)
@@ -108,6 +114,51 @@ defaultOfType typ
      SumT  a _ -> VLeft (defaultOfType a)
      StructT t -> VStruct (Map.map defaultOfType (getStructType t))
      BufT _ _  -> VBuf []
+
+
+traverseValType :: Applicative f => (ValType -> f ValType) -> (ValType -> f ValType)
+traverseValType f = \case
+  BoolT
+    -> pure BoolT
+  TimeT
+    -> pure TimeT
+  DoubleT
+    -> pure DoubleT
+  IntT
+    -> pure IntT
+  StringT
+    -> pure StringT
+  UnitT
+    -> pure UnitT
+  ErrorT
+    -> pure ErrorT
+  ArrayT a
+    -> ArrayT <$> f a
+  MapT k v
+    -> MapT <$> f k <*> f v
+  OptionT a
+    -> OptionT <$> f a
+  PairT a b
+    -> PairT <$> f a <*> f b
+  SumT a b
+    -> SumT <$> f a <*> f b
+  StructT (StructType fs)
+    -> StructT . StructType <$>
+         traverse f fs
+  BufT i a
+    -> BufT i <$> f a
+
+
+foldValType :: Monoid x => (ValType -> x) -> (ValType -> x)
+foldValType =
+  foldMapOf traverseValType
+
+
+anyBuffers :: ValType -> Bool
+anyBuffers
+ = let go (BufT {}) = Any True
+       go x = foldValType go x
+   in getAny . go
 
 
 newtype StructType

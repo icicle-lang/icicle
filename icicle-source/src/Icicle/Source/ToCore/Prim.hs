@@ -95,7 +95,7 @@ convertPrim p ann resT xts = go p
         return $ primmin $ Min.PrimConst $ Min.PrimConstLeft a' b'
    | otherwise
    = convertError
-   $ ConvertErrorPrimNoArguments ann 2 p
+   $ ConvertErrorPrimNoArguments ann 1 p
   go (PrimCon ConRight)
    | (_, _, SumT a b) <- decomposeT resT
    = do a' <- convertValType ann a
@@ -103,7 +103,7 @@ convertPrim p ann resT xts = go p
         return $ primmin $ Min.PrimConst $ Min.PrimConstRight a' b'
    | otherwise
    = convertError
-   $ ConvertErrorPrimNoArguments ann 2 p
+   $ ConvertErrorPrimNoArguments ann 1 p
   go (PrimCon (ConError err))
    = return $ CE.XValue () T.ErrorT $ V.VError err
 
@@ -316,6 +316,15 @@ convertPrim p ann resT xts = go p
        -> return xx
       _
        -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinToDoubleFromInt
+  gomath FromInteger
+   = case xts of
+      ((xx,_):_)
+       | (_, _, DoubleT) <- decomposeT resT
+       -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinToDoubleFromInt
+       | otherwise
+       -> return xx
+      _
+       -> convertError $ ConvertErrorPrimNoArguments ann 1 p
   gomath Floor
    = case xts of
       ((xx,tt):_)

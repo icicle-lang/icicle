@@ -70,7 +70,7 @@ reifyPossibilityX' wrap x
        -> do arg'       <- reifyPossibilityX' wrap arg
              nValue     <- fresh
              nError     <- fresh
-             let a'  = wrapAnnot a
+             let a'      = wrapAnnot a
              let aValue  = definiteAnnot a
              let aError  = typeAnnot a' ErrorT
              let vValue  = Var  aValue nValue
@@ -87,10 +87,77 @@ reifyPossibilityX' wrap x
              args' <- mapM (reifyPossibilityX' wrap) args
              makeApps a fun' args' False
 
+
+      Access a e f
+       -- Check if the accessed value is a possibility
+       | e'ann               <- annotOfExp e
+       , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult e'ann
+       -> do  e'        <- reifyPossibilityX' wrap e
+              nError    <- fresh
+              nValue    <- fresh
+              let a'     = wrapAnnot a
+                  err    = con1 a' ConLeft $ Var (definiteAnnot a) nError
+
+                  -- Bare value. Note that this is now definite, but with same (bare) type
+                  bare   = Var (extractValueAnnot e'ann) nValue
+                  fun'   = con1 a' ConRight $ Access a' bare f
+
+                  app'   = Case a' e'
+                         [ (PatCon ConLeft  [ PatVariable nError ], err )
+                         , (PatCon ConRight [ PatVariable nValue ], fun')
+                         ]
+
+              return app'
+
+       -- If accessed value is a definitely, just apply it as usual
+       | otherwise
+       -> do e' <- reifyPossibilityX' wrap e
+             return $ Access a e' f
+
       -- Primitives are dealt with by makeApps, because we can only wrap their annotations after unwrapping the arguments.
       -- There are no zero-argument primitives that return Possibly, but if there ever are, this would need to wrap them here.
       Prim a p
        -> return $ Prim a p
+
+      -- Lambdas shouldn't be in here after inlining and desugaring.
+      Lam a p q
+       -> return $ Lam a p q
+
+      -- If the scrutinee is possibly, we need to unwrap it before performing the case:
+      -- > if scrut then ...
+      -- ==>
+      -- > case scrut
+      -- | Left e -> Left e
+      -- | Right scrut' -> if scrut' ...
+      If a scrut t f
+       | typ <- annResult $ annotOfExp scrut
+       , PossibilityPossibly <- getPossibilityOrDefinitely typ
+       -> do  nError <- fresh
+              nValue <- fresh
+              scrut' <- reifyPossibilityX' wrap scrut
+              let a'  = wrapAnnot a
+                  a'E = typeAnnot a ErrorT
+                  a'D = definiteAnnot $ annotOfExp scrut
+
+                  vError = Var a'E nError
+                  vValue = Var a'D nValue
+
+              t'  <- wrap a <$> reifyPossibilityX' wrap t
+              f'  <- wrap a <$> reifyPossibilityX' wrap f
+
+              return $ Case (wrapAnnot a) scrut'
+                            [ ( PatCon ConLeft  [ PatVariable nError ]
+                              , con1 a' ConLeft $ vError )
+                            , ( PatCon ConRight [ PatVariable nValue ]
+                              , If (wrapAnnot a) vValue t' f' ) ]
+       -- Scrutinee is definite
+       | otherwise
+       -> do  scrut' <-  reifyPossibilityX' wrap scrut
+              -- If the return of the case is a Possibly, then at least one of the alternatives must be possibly.
+              -- For the non-possibly alternatives, wrap them as a Right.
+              t'     <-  wrapRightIfAnnot a <$> reifyPossibilityX' wrap t
+              f'     <-  wrapRightIfAnnot a <$> reifyPossibilityX' wrap f
+              return $ If  (wrapAnnot a) scrut' t' f'
 
       -- If the scrutinee is possibly, we need to unwrap it before performing the case:
       -- > case scrut | alt -> ...

@@ -2,13 +2,13 @@
 :load test/cli/repl/data-tomb.psv
 
 -- Try all combinations of Possibly: 'time' is definitely, while 'location' is possibly.
-feature injury ~> distinct location ~> count location
-feature injury ~> distinct location ~> count time
-feature injury ~> distinct time ~> count location
-feature injury ~> distinct time ~> count time
+from injury ~> distinct location ~> count location
+from injury ~> distinct location ~> count time
+from injury ~> distinct time ~> count location
+from injury ~> distinct time ~> count time
 
 -- Groups
-feature injury ~> group location ~> count location
-feature injury ~> group location ~> count time
-feature injury ~> group time ~> count location
-feature injury ~> group time ~> count time
+from injury ~> group location ~> count location
+from injury ~> group location ~> count time
+from injury ~> group time ~> count location
+from injury ~> group time ~> count time

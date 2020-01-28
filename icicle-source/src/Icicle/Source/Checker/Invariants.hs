@@ -5,11 +5,10 @@ module Icicle.Source.Checker.Invariants (
     invariantQ
   , invariantX
   ) where
-
+import                  Icicle.Common.Base
 import                  Icicle.Source.Checker.Base
 import                  Icicle.Source.Checker.Error
 import                  Icicle.Source.Query
-
 
 import                  P
 
@@ -39,13 +38,7 @@ invariantQ ctx (Query (c:cs) xfinal)
      -> errBanWindow "Consider moving the window to the start of the query."
 
     Latest{}
-     | allowLatest inv
-     -- XXX: ban latest inside latests.
-     -- This is because latest needs access to the current fact identifier, but this isn't captured in the latest buffer.
-     -- This is a bug in the code generator and should be fixed.
      -> goBanAll
-     | otherwise
-     -> errBanLatest
 
     GroupBy _ x
      -> goX x >> goBanWindowAndGroupFold
@@ -74,8 +67,7 @@ invariantQ ctx (Query (c:cs) xfinal)
 
   goBanAll
      = flip invariantQ q'
-     $ ctx { checkInvariants = inv { allowLatest = False
-                                   , allowWindows = False
+     $ ctx { checkInvariants = inv { allowWindows = False
                                    , allowGroupFolds = False }}
 
   goBanWindow
@@ -86,13 +78,6 @@ invariantQ ctx (Query (c:cs) xfinal)
      = flip invariantQ q'
      $ ctx { checkInvariants = inv { allowWindows = False
                                    , allowGroupFolds = False }}
-
-  errBanLatest
-   = errorSuggestions
-      (ErrorContextNotAllowedHere (annotOfContext c) c)
-      [ Suggest "Latest is not allowed inside group-fold or another latest."
-      , Suggest "If you are using latest inside a latest, you should be able to rewrite your query to use a single latest."
-      , Suggest "Note that 'newest' is implemented using latest, but if you have `latest 5 ~> newest value` you might be able to just use `newest value`."]
 
   errBanWindow sug
    = errorSuggestions
@@ -115,10 +100,12 @@ invariantX ctx x
  = case x of
     Var a n
      -> goFun a n []
+    Lam a n q
+     -> goFun a n [q]
     Nested _ q
      -> invariantQ ctx q
     App{}
-     | (f,xs) <- takeApps x
+     | (f,xs)  <- takeApps x
      , Var a n <- f
      -> goFun a n xs
     App _ p q
@@ -127,19 +114,28 @@ invariantX ctx x
      -> return ()
     Case _ s ps
      -> invariantX ctx s >> mapM_ (invariantX ctx . snd) ps
+    If _ s t f
+     -> invariantX ctx s >> invariantX ctx t >> invariantX ctx f
+    Access _ e _
+     -> invariantX ctx e
+
 
  where
   goFun a n args
    | Just fun <- Map.lookup n $ checkBodies ctx
-   = let ctx' = foldl bindArg ctx (arguments fun `zip` args)
+   = let ctx' = foldl bindArg ctx (argumentsX fun `zip` args)
      in  errorInFunctionEither a n
-       $ invariantQ ctx' $ body fun
+       $ invariantX ctx' fun
    | otherwise
    = mapM_ (invariantX ctx) args
 
   bindArg ctx' ((_,n),def)
    = ctx'
-   { checkBodies = Map.insert n (Function [] (Query [] def))
+   { checkBodies = Map.insert n def
                  $ checkBodies ctx'
    }
 
+  argumentsX :: Exp a n -> [(a, Name n)]
+  argumentsX (Lam a n p) =
+    (a, n) : argumentsX p
+  argumentsX _ = []

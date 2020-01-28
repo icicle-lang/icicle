@@ -304,8 +304,8 @@ flatX a_fresh xx stm
          -- Compute the rest of the computation, assuming we've stored result in variable named acc
          stm' <- stm (xVar acc)
          let vunit = xValue UnitT VUnit
-         sthen <- flatX' (then_ `xApp` vunit) $ (return . Write acc)
-         selse <- flatX' (else_ `xApp` vunit) $ (return . Write acc)
+         sthen <- flatX' (then_ `xApp` vunit) (return . Write acc)
+         selse <- flatX' (else_ `xApp` vunit) (return . Write acc)
          -- Perform if and write result
          let if_ =  If pred' sthen selse
          -- After if, read back result from accumulator and then go do the rest of the statements
@@ -383,8 +383,8 @@ flatX a_fresh xx stm
          stm' <- stm (xVar acc)
          tmp  <- fresh
          tmp' <- fresh
-         sleft   <- flatX' (xleft  `xApp` (xVar tmp )) $ (return . Write acc)
-         sright  <- flatX' (xright `xApp` (xVar tmp')) $ (return . Write acc)
+         sleft   <- flatX' (xleft  `xApp` xVar tmp ) (return . Write acc)
+         sright  <- flatX' (xright `xApp` xVar tmp') (return . Write acc)
 
          let if_   = If (isRightF ta tb scrut')
                         (Let tmp' (right ta tb scrut') sright)

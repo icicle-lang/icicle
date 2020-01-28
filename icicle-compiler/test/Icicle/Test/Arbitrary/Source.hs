@@ -28,7 +28,6 @@ import           Icicle.Source.Checker.Error
 import           Icicle.Source.Query as Query
 import           Icicle.Source.Type
 import qualified Icicle.Source.Lexer.Token as T
-import           Icicle.Source.ToCore.Context
 import           Icicle.Source.ToCore.ToCore
 import qualified Icicle.Source.ToCore.Base as S
 import           Icicle.Source.Transform.Desugar
@@ -343,11 +342,16 @@ genExp tgi
       ]
 
   primApps
-   = do p <- arbitrary
-        let ft = testFresh "" $ primLookup' p
-        let num = length $ functionArguments ft
-        xs <- vectorOf num (genExp tgi)
+   = do p      <- arbitrary
+        let (Forall _ _ ft)  = testFresh "" $ primLookup' p
+        let num = lengthFunctionArguments ft
+        xs     <- vectorOf num (genExp tgi)
         return $ foldl (App ()) (Prim () p) xs
+
+  lengthFunctionArguments t
+   = case t of
+      TypeArrow _ x -> 1 + lengthFunctionArguments x
+      _ -> 0
 
 
 genCase :: TypedGenInfo -> Gen (Pattern T.Variable, Exp () T.Variable)
@@ -527,7 +531,7 @@ instance Arbitrary Prim where
         ]
 
    funs
-    = fmap Query.Fun listOfWiredFuns
+    = fmap Query.Fun (listOfWiredFuns <> listOfIntroducedFuns)
 
    cons
     = fmap PrimCon

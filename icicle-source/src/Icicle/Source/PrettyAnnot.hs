@@ -11,7 +11,6 @@ import           Data.String (String)
 import           Icicle.Data.Name
 import           Icicle.Internal.Pretty
 import           Icicle.Source.Query
-import           Icicle.Source.Type
 
 import           P
 
@@ -57,6 +56,11 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
       Prim a p ->
         annotate AnnPrimitive (pretty p) <> annotPrim a p
 
+      Lam a n x ->
+        prettyPunctuation "(" <>
+        prettyPunctuation "\\" <> pretty n <+> prettyAnnot a <+> prettyPunctuation "->" <+> prettyPrec appPrec1 (PrettyAnnot x) <>
+        prettyPunctuation ")"
+
       Case a scrut pats ->
         vsep [
             prettyAnnotK "case" a <+> pretty (PrettyAnnot scrut)
@@ -66,6 +70,14 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
                 , indent 4 $ pretty (PrettyAnnot x)
                 ]
           , prettyKeyword "end"
+          ]
+
+      If a scrut true false ->
+        vsep [
+            prettyAnnotK "if" a <+> pretty (PrettyAnnot scrut) <+> prettyAnnotK "then" a
+          , indent 4 $ pretty (PrettyAnnot true)
+          , prettyAnnotK "else" a
+          , indent 4 $ pretty (PrettyAnnot false)
           ]
    where
     annotPrim a p
@@ -152,20 +164,4 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (QueryTop a n)) where
         vsep [
             prettyKeyword "feature" <+> annotate AnnConstant (pretty (show (renderUnresolvedInputId input)))
           , prettyPunctuation "~>" <+> align (pretty (PrettyAnnot q))
-          ]
-
-instance Pretty n => Pretty (PrettyAnnot (Function (Annot a n) n)) where
-  pretty (PrettyAnnot q) =
-    let
-      args =
-        case reverse $ arguments q of
-          [] ->
-            [ prettyPunctuation "=" ]
-          (a0, n0) : xs0 ->
-            fmap (\(a, n) -> pretty n <> prettyAnnot a) (reverse xs0) <>
-            [ pretty n0 <> prettyAnnot a0 <+> prettyPunctuation "=" ]
-    in
-      vsep $
-        args <> [
-            indent 2 . pretty $ PrettyAnnot (body q)
           ]

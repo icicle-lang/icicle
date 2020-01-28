@@ -41,12 +41,17 @@ import           Icicle.Repl.Pretty as Pretty
 import           Icicle.Runtime.Data
 import qualified Icicle.Runtime.Evaluator as Runtime
 import           Icicle.Sea.Header
-import qualified Icicle.Storage.Dictionary.Toml as Toml
+import qualified Icicle.Storage.Dictionary.Sorbet as Sorbet
+import qualified Icicle.Storage.Dictionary.Toml   as Toml
 
 import           P
 
 import           System.IO as IO (IO, FilePath)
+import qualified System.FilePath as FilePath
 
+isToml :: FilePath -> Bool
+isToml =
+  (== ".toml") . FilePath.takeExtension
 
 data Compile =
   Compile {
@@ -95,7 +100,10 @@ renderCompileError = \case
 loadDictionary :: InputDictionaryToml -> EitherT CompileError IO Dictionary
 loadDictionary (InputDictionaryToml path) = do
   firstT CompileLoadDictionaryError $
-    Toml.loadDictionary Source.defaultCheckOptions Toml.ImplicitPrelude path
+    if isToml path then
+      Toml.loadDictionary Source.defaultCheckOptions Toml.ImplicitPrelude path
+    else
+      Sorbet.loadDictionary Source.defaultCheckOptions Toml.ImplicitPrelude path
 
 compileDictionary ::
      Monad m

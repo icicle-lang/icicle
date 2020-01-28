@@ -1,7 +1,7 @@
 :set snapshot 2010-01-01
 
-feature salary ~> days between (newest time) (3 days after now)
+from salary ~> days between (newest time) (3 days after now)
 
-feature salary ~> days between (newest time) (3 months before now)
+from salary ~> days between (newest time) (3 months before now)
 
-feature salary ~> days between (newest time) `2014-01-01`
+from salary ~> days between (newest time) `2014-01-01`

@@ -40,11 +40,6 @@ check_attributes (Dictionary attrs)
 prop_virtuals_typecheck
  = once (check_attributes demographics)
 
-prop_dictionary_symmetry attr encoding =
-  let original  = DictionaryEntry attr (ConcreteDefinition encoding)
-      recreated = parseDictionaryLineV1 (writeDictionaryLineV1 original)
-  in (Right original) === recreated
-
 -- This is a bit unecessary but it is important that this ordering does not change.
 prop_attribute_ordering (Dictionary attributes) =
   let

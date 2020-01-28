@@ -176,7 +176,7 @@ genPrimType :: Gen ValType
 genPrimType = Gen.choice genPrimTypes
 
 genPrimTypes :: [Gen ValType]
-genPrimTypes = 
+genPrimTypes =
   [ return UnitT
   , return BoolT
   , return IntT

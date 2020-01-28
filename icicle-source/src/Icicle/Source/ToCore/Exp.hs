@@ -20,7 +20,6 @@ module Icicle.Source.ToCore.Exp (
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.ToCore.Base
-import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.ToCore.Prim
 import                  Icicle.Source.Type
 
@@ -50,7 +49,7 @@ convertExp x
  = case x of
     Var ann n
      -> do  bound <- convertFreshenLookupMaybe n
-            fs <- featureContextVariables <$> convertFeatures
+            fs    <- featureContextVariables <$> convertFeatures
             case bound of
              Just fv
               -> return $ CE.XVar () fv
@@ -65,7 +64,7 @@ convertExp x
      -> convertExpQ q
 
 
-    App ann _ _
+    App ann f q
      -- Primitive application: convert arguments, then convert primitive
      | Just (p, Annot { annResult = resT }, args) <- takePrimApps x
      -> do  args'   <- mapM convertExp args
@@ -73,12 +72,31 @@ convertExp x
             convertPrim p (annAnnot ann) resT (args' `zip` tys)
 
      | otherwise
-     -> convertError
-      $ ConvertErrorExpApplicationOfNonPrimitive (annAnnot ann) x
-
+     -> do  p'      <- convertExp f
+            q'      <- convertExp q
+            return $
+              p' `CE.xApp` q'
 
     Prim ann p
      -> convertPrim p (annAnnot ann) (annResult ann) []
+
+    Lam ann n p
+     -> do  vArgT   <- convertFunctionArgType (annAnnot ann) (annResult ann)
+            p'      <- convertWithInput n vArgT (convertExp p)
+            return $
+              CE.xLam n vArgT p'
+
+    If ann scrut true false
+     -> do  scrut' <- convertExp scrut
+            true'  <- convertExp true
+            false' <- convertExp false
+            resT   <- convertValType (annAnnot ann) $ annResult ann
+            sn     <- lift fresh
+            return
+              ((CE.xPrim $ C.PrimFold C.PrimFoldBool resT)
+                CE.@~ CE.xLam sn T.UnitT true'
+                CE.@~ CE.xLam sn T.UnitT false'
+                CE.@~ scrut')
 
     -- Only deal with flattened, single layer cases.
     -- We need a pass beforehand to simplify them.
@@ -88,6 +106,21 @@ convertExp x
             scrutT <- convertValType (annAnnot ann) $ annResult $ annotOfExp scrut
             resT   <- convertValType (annAnnot ann) $ annResult ann
             convertCase x scrut' pats' scrutT resT
+
+    Access ann xpression field
+     -> do  xpression' <- convertExp xpression
+            xpressionT <- convertValType (annAnnot ann) $ annResult $ annotOfExp xpression
+
+            case xpressionT of
+              T.StructT st@(T.StructType struct'map)
+                | Just fieldType <- Map.lookup field struct'map
+                -> return $
+                    (CE.xPrim (C.PrimMinimal $ Min.PrimStruct $ Min.PrimStructGet field fieldType st)
+                      CE.@~ xpression')
+
+              _ -> convertError
+                 $ ConvertErrorCannotConvertType (annAnnot ann) (annResult $ annotOfExp xpression)
+
 
  where
   goPat (p,alt)

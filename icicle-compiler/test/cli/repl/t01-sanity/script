@@ -1,17 +1,17 @@
 -- Try a simple sum. Expect 1500 and 30.
-feature salary ~> sum value
+from salary ~> sum value
 
 -- Tuples
-feature salary ~> (sum value, count value)
+from salary ~> (sum value, count value)
 
 -- Now let's try average. Expect 300 and 10.
-feature salary ~> double (sum value) / count value
+from salary ~> double (sum value) / count value
 
 -- Filtering
-feature salary ~> filter value > 10 ~> count value
+from salary ~> filter value > 10 ~> count value
 
 -- Average of latest 3 entries
-feature salary ~> latest 3 ~> sum (double value) / count value
+from salary ~> latest 3 ~> sum (double value) / count value
 
 -- Now should collect the current time
-feature salary ~> now
+from salary ~> now

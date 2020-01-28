@@ -52,7 +52,6 @@ module Icicle.Compiler.Source
   ) where
 
 
-import           Icicle.Common.Base                       (Name)
 import qualified Icicle.Common.Fresh                      as Fresh
 
 import qualified Icicle.Core.Program.Program              as Core
@@ -64,6 +63,8 @@ import qualified Icicle.Dictionary                        as Dict
 
 import           Icicle.Internal.Pretty
 
+import qualified Icicle.Sorbet.Parse                      as Parse
+import qualified Icicle.Sorbet.Position                   as Parse
 import qualified Icicle.Source.Checker                    as Check
 import qualified Icicle.Source.Parser                     as Parse
 import qualified Icicle.Source.Query                      as Query
@@ -80,6 +81,7 @@ import           Data.String
 import           Data.Hashable                            (Hashable)
 
 import qualified Text.ParserCombinators.Parsec            as Parsec
+import qualified Text.Parsec.Pos                          as Parsec
 
 import           GHC.Generics                             (Generic)
 
@@ -93,7 +95,7 @@ type AnnotUnit = ()
 type Var         = Parse.Variable
 type TypeAnnot a = Type.Annot a Var
 
-type Funs a b = [((a, Name b), Query.Function a b)]
+type Funs a b = [ Query.Decl a b ]
 type FunEnvT a b = [ Query.ResolvedFunction a b ]
 
 type QueryUntyped v = Query.QueryTop            Parsec.SourcePos  v
@@ -128,7 +130,7 @@ defaultFusionOptions = FusionOptions 100
 --------------------------------------------------------------------------------
 
 data ErrorSource var
- = ErrorSourceParse       !Parsec.ParseError
+ = ErrorSourceParse       !Parse.ParseError
  | ErrorSourceDesugar     !(Desugar.DesugarError Parsec.SourcePos var)
  | ErrorSourceCheck       !(Check.CheckError     Parsec.SourcePos var)
  | ErrorSourceResolveError !UnresolvedInputId
@@ -141,9 +143,8 @@ instance NFData (ErrorSource a) where rnf x = seq x ()
 annotOfError :: ErrorSource a -> Maybe Parsec.SourcePos
 annotOfError e
  = case e of
-    ErrorSourceParse sp
-     -> Just
-      $ Parsec.errorPos sp
+    ErrorSourceParse _
+     -> Nothing
     ErrorSourceDesugar e'
      -> Desugar.annotOfError e'
     ErrorSourceCheck       e'
@@ -157,7 +158,7 @@ instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) wher
       vsep [
           reannotate AnnErrorHeading $ prettyH2 "Parse error"
         , mempty
-        , indent 2 . vsep . fmap text . lines . show $ p
+        , indent 2 . pretty $ p
         ]
 
     ErrorSourceDesugar d ->
@@ -228,12 +229,22 @@ sourceDesugarQT q
      (Desugar.desugarQT q)
      (freshNamer "desugar_q")
 
+
+sourceDesugarDecl
+ :: Query.Decl Parsec.SourcePos Var
+ -> Fresh.FreshT Var (EitherT (Desugar.DesugarError Parsec.SourcePos Var) Identity)
+                     (Query.Decl Parsec.SourcePos Var)
+sourceDesugarDecl (Query.DeclFun a ns x)
+ = Query.DeclFun a ns <$> Desugar.desugarX x
+sourceDesugarDecl declType
+ = return declType
+
 sourceDesugarF :: Funs Parsec.SourcePos Var
                -> Either (ErrorSource Var) (Funs Parsec.SourcePos Var)
 sourceDesugarF fun
  = runIdentity . runEitherT . bimapEitherT ErrorSourceDesugar snd
  $ Fresh.runFreshT
-     (mapM (mapM Desugar.desugarFun) fun)
+     (mapM sourceDesugarDecl fun)
      (freshNamer "desugar_f")
 
 sourceReifyQT :: QueryTyped Var
@@ -261,25 +272,27 @@ sourceCheckF :: FunEnvT Parsec.SourcePos Var
              -> Funs    Parsec.SourcePos Var
              -> Either  Error (FunEnvT Parsec.SourcePos Var)
 sourceCheckF env parsedImport
- = second fst
+ = first fst
+ $ second fst
  $ sourceCheckFunLog env parsedImport
 
 sourceCheckFunLog :: FunEnvT Parsec.SourcePos Var
-             -> Funs    Parsec.SourcePos Var
-             -> Either  Error (FunEnvT Parsec.SourcePos Var, [[Check.CheckLog Parsec.SourcePos Var]])
+                  -> Funs    Parsec.SourcePos Var
+                  -> Either  (Error, [Check.CheckLog Parsec.SourcePos Var]) (FunEnvT Parsec.SourcePos Var, [[Check.CheckLog Parsec.SourcePos Var]])
 sourceCheckFunLog env parsedImport
- = first ErrorSourceCheck
+ = first (first ErrorSourceCheck)
  $ snd
  $ flip Fresh.runFresh (freshNamer "check")
  $ runEitherT
- $ Check.checkFs env parsedImport
+ $ Check.checkFs env
+ $ parsedImport
 
 sourceInline :: Inline.InlineOption
              -> Dictionary
              -> QueryTyped   Var
              -> QueryUntyped Var
 sourceInline opt d q
- = Query.reannotQT Type.annAnnot
+ = Query.reannot Type.annAnnot
  $ inline q
  where
   funs      = M.fromList

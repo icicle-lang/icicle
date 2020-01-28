@@ -167,7 +167,7 @@ decodeInputSchemas table = do
 
 mkDictionaryInput :: InputId -> Icicle.Schema -> Either ZebraSchemaError DictionaryInput
 mkDictionaryInput iid schema = do
-  encoding <- first ZebraSchemaReflectDictionaryError $ Icicle.toEncoding schema
+  let encoding = Icicle.toValType schema
   pure $
     DictionaryInput iid encoding Set.empty unkeyed
 
@@ -286,5 +286,5 @@ encodeDictionary :: Dictionary -> Either ZebraSchemaError Zebra.Table
 encodeDictionary =
   bind encodeInputSchemas .
   first ZebraSchemaReifyDictionaryError .
-  traverse (Icicle.fromEncoding . inputEncoding) .
+  traverse (Icicle.fromValType . inputEncoding) .
   dictionaryInputs

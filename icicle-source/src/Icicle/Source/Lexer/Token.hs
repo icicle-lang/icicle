@@ -84,9 +84,6 @@ data Keyword =
  | Minutes
  | Seconds
  | Windowed
- | Day_Of
- | Month_Of
- | Year_Of
 
  -- Syntax
  -- queries

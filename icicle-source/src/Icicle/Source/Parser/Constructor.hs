@@ -5,6 +5,7 @@
 module Icicle.Source.Parser.Constructor (
     constructor
   , checkPat
+  , constructors
   ) where
 
 import qualified        Icicle.Source.Lexer.Token  as T
@@ -60,7 +61,7 @@ constructors
 --   handled the same in the patterns as the expressions
 --   they match, and we don't have to duplicate parser
 --   logic.
-checkPat :: MonadFail m => Q.Exp T.SourcePos Var -> m (Q.Pattern Var)
+checkPat :: MonadFail m => Q.Exp pos Var -> m (Q.Pattern Var)
 checkPat exp =
   case exp of
     -- Variables are simple, just underscore default
@@ -81,7 +82,7 @@ checkPat exp =
 
       -- Tuple commas are parsed as the operator,
       -- need to change it to the constructor.
-      | Just (p, _, xs) <- Q.takePrimApps exp
+      | Just (p, _, xs@[_,_]) <- Q.takePrimApps exp
       , Q.Op Q.TupleComma <- p
       -> Q.PatCon Q.ConTuple <$> traverse checkPat xs
 
@@ -111,8 +112,17 @@ checkPat exp =
       | otherwise
       -> fail "unable to parse pattern"
 
+    Q.Lam {}
+      -> fail "unable to parse lambda function as a pattern"
+
     Q.Nested {}
       -> fail "unable to parse nested queries as a pattern"
 
     Q.Case {}
       -> fail "unable to parse case expressions as a pattern"
+
+    Q.If {}
+      -> fail "unable to parse if expression as a pattern"
+
+    Q.Access {}
+      -> fail "unable to parse record access as a pattern"

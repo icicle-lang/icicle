@@ -66,9 +66,9 @@ import           Data.Hashable (Hashable)
 data CheckEnv a n
  = CheckEnv {
  -- | Mapping from variable names to whole types
-   checkEnvironment :: Map.Map (Name n) (FunctionType n)
+   checkEnvironment :: Map.Map (Name n) (Scheme n)
  -- | Function bodies
- , checkBodies      :: Map.Map (Name n) (Function a n)
+ , checkBodies      :: Map.Map (Name n) (Exp a n)
  , checkInvariants  :: Invariants
  }
 
@@ -81,8 +81,6 @@ data Invariants
    allowWindows    :: Bool
  -- | Unimplemented in Core: group-folds inside groups/windows/group-folds/latests
  , allowGroupFolds :: Bool
- -- | Unimplemented in Core: latest inside latest
- , allowLatest     :: Bool
  }
 
 -- | Initial environment at top-level, not inside a group, and allowing contexts
@@ -91,7 +89,7 @@ emptyCheckEnv
  = CheckEnv Map.empty Map.empty emptyInvariants
 
 emptyInvariants :: Invariants
-emptyInvariants = Invariants True True True
+emptyInvariants = Invariants True True
 
 --------------------------------------------------------------------------------
 
@@ -114,7 +112,7 @@ defaultCheckOptions = optionSmallData
 --------------------------------------------------------------------------------
 
 
-type GenEnv n             = Map.Map (Name n) (FunctionType n)
+type GenEnv n             = Map.Map (Name n) (Scheme n)
 type GenConstraintSet a n = [(a, Constraint n)]
 
 data DischargeInfo a n = DischargeInfo
@@ -165,29 +163,26 @@ instance (Pretty a, Pretty n) => Pretty (CheckLog a n) where
     "  errors: " <> indent 0 (pretty errs)
 
 
--- TODO: want EitherT (StateT ...) ...
--- in order to get log in failure case
 newtype Gen a n t
- = Gen { constraintGen :: StateT [CheckLog a n] (EitherT (CheckError a n) (Fresh.Fresh n)) t }
+ = Gen { constraintGen :: EitherT (CheckError a n) (StateT [CheckLog a n] (Fresh.Fresh n)) t }
  deriving (Functor, Applicative, Monad)
 
 evalGen
     :: Gen a n t
-    -> EitherT (CheckError a n) (Fresh.Fresh n) (t, [CheckLog a n])
+    -> (Fresh.Fresh n) (Either (CheckError a n) t, [CheckLog a n])
 evalGen f
- = flip runStateT []
- $ constraintGen f
+ = runStateT (runEitherT $ constraintGen f) []
 
 evalGenNoLog
     :: Gen a n t
     -> EitherT (CheckError a n) (Fresh.Fresh n) t
-evalGenNoLog f = fst <$> evalGen f
+evalGenNoLog f = newEitherT (fst <$> evalGen f)
 
 checkLog :: CheckLog a n -> Gen a n ()
-checkLog l = Gen $ modify (l:)
+checkLog l = Gen . lift $ modify (l:)
 
 genHoistEither :: Either (CheckError a n) t -> Gen a n t
-genHoistEither = Gen . lift . hoistEither
+genHoistEither = Gen . hoistEither
 
 type Query'C a n = Query (Annot a n) n
 type Exp'C   a n = Exp   (Annot a n) n
@@ -227,38 +222,37 @@ fresh :: Hashable n => Gen a n (Name n)
 fresh
  = Gen . lift . lift $ Fresh.fresh
 
--- | Freshen function type by applying introduction rules to foralls.
+-- | Freshen type scheme by applying introduction rules to foralls.
+--
+--   We only support rank 1 polymorphism, for example
+--
+--   > forall a b. a -> b -> a
 --
 introForalls
   :: (Hashable n, Eq n)
   => a
-  -> FunctionType n
-  -> Gen a n (FunctionType n, [Type n], Type n, GenConstraintSet a n)
+  -> Scheme n
+  -> Gen a n (Scheme n, Type n, GenConstraintSet a n)
 introForalls ann f
- = do freshen <- Map.fromList <$> mapM mkSubst (functionForalls f)
+ = case f of
+    Forall ns cs x -> do
+      freshen <- Map.fromList <$> mapM mkSubst ns
+      let cons = concatMap (require ann . substC freshen) cs
+      let sub  = substT freshen x
+      return (f, sub, cons)
 
-      let cons = concat
-               $ fmap (require ann . substC freshen)
-               $ functionConstraints f
-
-      let sub   = substT freshen
-      return ( f
-             , fmap sub $ functionArguments f
-             ,      sub $ functionReturn    f
-             , cons )
  where
   mkSubst n
    = ((,) n . TypeVar) <$> fresh
 
--- | Look up a name in the context. Return the original type, along with the argument
---   types and return type where forall-quantified variables have been freshen'd.
---
+-- | Look up a name in the context. Return the original type schem, along with the
+--   type where all forall-quantified variables have been freshen'd.
 lookup
   :: (Hashable n, Eq n)
   => a
   -> Name n
   -> GenEnv n
-  -> Gen a n (FunctionType n, [Type n], Type n, GenConstraintSet a n)
+  -> Gen a n (Scheme n, Type n, GenConstraintSet a n)
 lookup ann n env
  = case Map.lookup n env of
      Just t
@@ -284,26 +278,27 @@ withBind
 withBind n t old gen
  = gen (bindT n t old)
 
+
 removeElementBinds :: Eq n => GenEnv n -> GenEnv n
 removeElementBinds env
  = let elts  = Map.keys $ Map.filter isElementTemporality env
    in  foldr Map.delete env elts
  where
   isElementTemporality ft
-   = getTemporalityOrPure (functionReturn ft) == TemporalityElement
+   = getTemporalityOrPure (schemeType ft) == TemporalityElement
 
 
 substE :: Eq n => SubstT n -> GenEnv n -> GenEnv n
 substE s
- = fmap (substFT s)
+ = fmap (substF s)
 
 substTQ :: (Hashable n, Eq n) => SubstT n -> Query'C a n -> Query'C a n
 substTQ s
- = reannotQ (substAnnot s)
+ = reannot (substAnnot s)
 
 substTX :: (Hashable n, Eq n) => SubstT n -> Exp'C a n -> Exp'C a n
 substTX s
- = reannotX (substAnnot s)
+ = reannot (substAnnot s)
 
 substAnnot :: (Hashable n, Eq n) => SubstT n -> Annot a n -> Annot a n
 substAnnot s ann

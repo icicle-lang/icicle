@@ -104,9 +104,11 @@ checkResumableX ctx x
  = case x of
     Var a n
      | Just fun <- Map.lookup n $ checkBodies ctx
-     -> errorInFunctionEither a n $ checkResumableQ ctx $ body fun
+     -> errorInFunctionEither a n $ checkResumableX ctx fun
      | otherwise
      -> return ()
+    Lam _ _ q
+     -> checkResumableX ctx q
     Nested _ q
      -> checkResumableQ ctx q
     App _ p q
@@ -115,4 +117,8 @@ checkResumableX ctx x
      -> return ()
     Case _ s ps
      -> checkResumableX ctx s >> mapM_ (checkResumableX ctx . snd) ps
+    If _ s t f
+     -> checkResumableX ctx s >> checkResumableX ctx t >> checkResumableX ctx f
+    Access _ e _
+     -> checkResumableX ctx e
 

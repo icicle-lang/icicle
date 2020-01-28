@@ -61,6 +61,10 @@ library
                        src
 
   exposed-modules:
+
+                       Icicle.Sorbet.Abstract.Parser
+                       Icicle.Sorbet.Abstract.Tokens
+                       Icicle.Sorbet.Abstract.Type
                        Icicle.Sorbet.Concrete.Annotation
                        Icicle.Sorbet.Concrete.Parser
                        Icicle.Sorbet.Concrete.Pretty
@@ -70,6 +74,8 @@ library
                        Icicle.Sorbet.Lexical.Lexer
                        Icicle.Sorbet.Lexical.Syntax
                        Icicle.Sorbet.Position
+                       Icicle.Sorbet.Parse
+                       Icicle.Sorbet.Render
 
                        Icicle.Source.Eval
                        Icicle.Source.Query
@@ -78,6 +84,7 @@ library
                        Icicle.Source.Query.Constructor
                        Icicle.Source.Query.Context
                        Icicle.Source.Query.Exp
+                       Icicle.Source.Query.Environment
                        Icicle.Source.Query.Function
                        Icicle.Source.Query.Operators
                        Icicle.Source.Query.Prim
@@ -106,9 +113,9 @@ library
                        Icicle.Source.Checker.Invariants
                        Icicle.Source.Checker.Prim
                        Icicle.Source.Checker.Resumable
+                       Icicle.Source.Checker.Subsumption
 
                        Icicle.Source.ToCore.Base
-                       Icicle.Source.ToCore.Context
                        Icicle.Source.ToCore.Exp
                        Icicle.Source.ToCore.Fold
                        Icicle.Source.ToCore.ToCore
@@ -132,12 +139,14 @@ library
                        Icicle.Dictionary.Data
                        Icicle.Dictionary.Demographics
 
-                       Icicle.Storage.Dictionary.TextV1
+                       Icicle.Storage.Dictionary.Common
+                       Icicle.Storage.Dictionary.Data
+                       Icicle.Storage.Dictionary.Sorbet
+                       Icicle.Storage.Dictionary.Sorbet.Parser
                        Icicle.Storage.Dictionary.Toml
                        Icicle.Storage.Dictionary.Toml.Types
                        Icicle.Storage.Dictionary.Toml.Toml
                        Icicle.Storage.Dictionary.Toml.Prisms
-                       Icicle.Storage.Dictionary.Toml.Dense
                        Icicle.Storage.Dictionary.Toml.TomlDictionary
 
                        Icicle.Storage.Encoding

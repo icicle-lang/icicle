@@ -2,31 +2,31 @@
 :set +c-eval
 
 -- Oldest
-feature salary ~> oldest value
+from salary ~> oldest value
 
 -- Filtering works
-feature salary ~> filter value > 300 ~> count value
+from salary ~> filter value > 300 ~> count value
 
 -- An interesting expression
-feature salary ~> sd value * (filter value < 300 ~> sd value)
+from salary ~> sd value * (filter value < 300 ~> sd value)
 
 -- Structs
-feature injury ~> mean (double severity)
+from injury ~> mean (double severity)
 
 -- Strings
-feature injury ~> filter (location == "head") ~> count location
+from injury ~> filter (location == "head") ~> count location
 
 -- String outputs
-feature injury ~> max location
+from injury ~> max location
 
 -- Times
-feature salary ~> max (days between `1980-01-06` time)
+from salary ~> max (days between `1980-01-06` time)
 
 -- Months
-feature salary ~> min (3 months after time)
+from salary ~> min (3 months after time)
 
 -- Maps
-feature injury ~> group location ~> max severity
+from injury ~> group location ~> max severity
 
 -- Maps
-feature injury ~> group severity ~> count location
+from injury ~> group severity ~> count location

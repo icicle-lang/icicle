@@ -5,9 +5,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Type.Pretty (
-    prettyFun
-  , prettyFunWithNames
-  , prettyFunWithLetters
+    prettyFunWithNames
   , prettyFunFromStrings
   , letterNames
   ) where
@@ -16,7 +14,6 @@ module Icicle.Source.Type.Pretty (
 import                  Icicle.Common.Base
 import                  Icicle.Source.Type.Base
 import                  Icicle.Source.Type.Subst
-import                  Icicle.Source.Lexer.Token
 
 import                  Icicle.Internal.Pretty
 
@@ -25,38 +22,33 @@ import                  P
 import                  Data.String
 import                  Data.List (zip)
 import qualified        Data.Map as Map
-import qualified        Data.Text as T
 import                  Data.Hashable (Hashable)
 
 
 -- | This is a rather dodgy trick.
--- Function types are generalised with fresh variable names,
--- however fresh variable names are quite ugly.
--- Instead of actually using nice names, we will clean them up
--- just before pretty printing.
-prettyFunWithNames :: (Pretty n, Eq n) => [Name n] -> FunctionType n -> PrettyFunType
+--   Function types are generalised with fresh variable names,
+--   however fresh variable names are quite ugly.
+--   Instead of actually using nice names, we will clean them up
+--   just before pretty printing.
+prettyFunWithNames :: (Pretty n, Eq n) => [Name n] -> Scheme n -> PrettyFunType
 prettyFunWithNames names fun
   =  prettyFun fun'
   where
    sub
     = Map.fromList
-    (functionForalls fun `zip` fmap TypeVar names)
+    (schemeBounds fun `zip` fmap TypeVar names)
 
-   fun' = substFT sub (fun { functionForalls = [] })
+   fun' = substF sub (fun { schemeBounds = [] })
 
 -- We make them actual names (with the hash code) because they will be used
 -- for substituations.
-prettyFunFromStrings :: (IsString n, Pretty n, Hashable n, Eq n) => FunctionType n -> PrettyFunType
+prettyFunFromStrings :: (IsString n, Pretty n, Hashable n, Eq n) => Scheme n -> PrettyFunType
 prettyFunFromStrings
  = prettyFunWithNames
  $ fmap (nameOf . NameBase . fromString) letterNames
-
-prettyFunWithLetters :: FunctionType Variable -> PrettyFunType
-prettyFunWithLetters
- = prettyFunWithNames
- $ fmap (nameOf . NameBase . Variable . T.pack) letterNames
 
 letterNames :: [String]
 letterNames
  =  fmap (\c -> [c]) ['a'..'z']
  <> concatMap (\prefix -> fmap (\c -> prefix <> [c]) ['a'..'z']) letterNames
+ 

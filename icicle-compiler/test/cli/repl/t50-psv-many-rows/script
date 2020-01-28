@@ -5,4 +5,4 @@
 -- All we need to do to test it is have a file with >128 rows, and check the count matches.
 
 :load test/cli/repl/t50-psv-many-rows/data.psv
-feature salary ~> count value
+from salary ~> count value

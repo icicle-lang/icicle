@@ -3,10 +3,13 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Icicle.Source.Query.Query (
     QueryTop  (..)
   , Query     (..)
   , Exp
+  , Decl
   , Context
 
   , simplifyNestedQT
@@ -14,13 +17,9 @@ module Icicle.Source.Query.Query (
   , simplifyNestedC
   , simplifyNestedX
 
-  , reannotQT
-  , reannotQ
-  , reannotC
-  , reannotX
   , annotOfQuery
 
-  , allvarsX, allvarsC, allvarsQ
+  , allvarsX, allvarsC, allvarsQ, allvarsP
   ) where
 
 import qualified Data.Set                as Set
@@ -46,6 +45,18 @@ data QueryTop a n
 
 instance (NFData a, NFData n) => NFData (QueryTop a n)
 
+
+
+-- | An Icicle Query
+--
+--   Queries can be thought of as an expression in
+--   a context. In many languages, the only context
+--   of this form is a let binding, and they are
+--   inlined into the expression data type.
+--
+--   In icicle, we support more contexts to support
+--   rich streaming queries, and contexts are separated
+--   into their own type.
 data Query a n
  = Query
  { contexts :: [Context a n]
@@ -57,6 +68,7 @@ instance (NFData a, NFData n) => NFData (Query a n)
 -- | "Tie the knot" so expressions can have nested queries.
 -- See Exp.
 type Exp     a n = Exp'     Query a n
+type Decl    a n = Decl'    Query a n
 type Context a n = Context' Query a n
 
 instance Pretty n => Pretty (QueryTop a n) where
@@ -106,59 +118,40 @@ simplifyNestedX xx
  = case xx of
     Nested _ (Query [] x)
      -> simplifyNestedX x
+
     Nested a q
      -> Nested a $ simplifyNestedQ q
 
     App a x y
      -> App a (simplifyNestedX x) (simplifyNestedX y)
 
+    Lam a n x
+     -> Lam a n (simplifyNestedX x)
+
     Var{}
      -> xx
+
     Prim{}
      -> xx
+
+    If a p t f
+     -> If a (simplifyNestedX p) (simplifyNestedX t) (simplifyNestedX f)
 
     Case a scrut pats
      -> Case a (simplifyNestedX scrut)
       $ fmap (\(p,x) -> (p, simplifyNestedX x)) pats
 
+    Access a x f
+     -> Access a (simplifyNestedX x) f
 
+instance TraverseAnnot Query  where
+  traverseAnnot f q =
+    Query <$> traverse (traverseAnnot f) (contexts q)
+          <*>           traverseAnnot f  (final    q)
 
-reannotX :: (a -> a') -> Exp a n -> Exp a' n
-reannotX f xx
- = case xx of
-    Var    a n   -> Var    (f a)  n
-    Nested a q   -> Nested (f a) (reannotQ f q)
-    App    a x y -> App    (f a) (reannotX f x) (reannotX f y)
-    Prim   a p   -> Prim   (f a)  p
-    Case a scrut pats
-     -> Case (f a) (reannotX f scrut)
-      $ fmap (\(p,x) -> (p, reannotX f x)) pats
-
-
-reannotC :: (a -> a') -> Context a n -> Context a' n
-reannotC f cc
- = case cc of
-    Windowed  a b c   -> Windowed  (f a) b c
-    Latest    a i     -> Latest    (f a) i
-    GroupBy   a x     -> GroupBy   (f a) (reannotX f x)
-    GroupFold a k v x -> GroupFold (f a) k v (reannotX f x)
-    Distinct  a x     -> Distinct  (f a) (reannotX f x)
-    Filter    a x     -> Filter    (f a) (reannotX f x)
-    LetFold   a ff    -> LetFold   (f a) (ff { foldInit = reannotX f (foldInit ff)
-                                             , foldWork = reannotX f (foldWork ff) })
-    Let      a n x    -> Let       (f a) n (reannotX f x)
-
-reannotQ :: (a -> a') -> Query a n -> Query a' n
-reannotQ f q
- = q
- { contexts = fmap (reannotC f) (contexts q)
- , final    =       reannotX f  (final    q)
- }
-
-reannotQT :: (a -> a') -> QueryTop a n -> QueryTop a' n
-reannotQT f qt
- = qt
- { query = reannotQ f (query qt) }
+instance TraverseAnnot QueryTop  where
+  traverseAnnot f (QueryTop i0 n0 q0)
+    = QueryTop i0 n0 <$> traverseAnnot f q0
 
 annotOfQuery :: Query a n -> a
 annotOfQuery q
@@ -199,7 +192,7 @@ allvarsC ns c
 
     Let a p x
      -> let x' = allvarsX x
-            (p',nsX) = goPat p
+            (p',nsX) = allvarsP p
             ns' = Set.unions
                 [ ns, nsX, annX x' ]
         in  Let (a, ns') p' x'
@@ -207,7 +200,7 @@ allvarsC ns c
     LetFold a f
      -> let z'  = allvarsX (foldInit f)
             k'  = allvarsX (foldWork f)
-            (p',nsX) = goPat (foldBind f)
+            (p',nsX) = allvarsP (foldBind f)
             ns' = Set.unions
                 [ ns, nsX
                 , annX z', annX k' ]
@@ -221,8 +214,8 @@ allvarsC ns c
 
     GroupFold a nk nv x
      -> let x'  = allvarsX x
-            (nk',nkX) = goPat nk
-            (nv',nvX) = goPat nv
+            (nk',nkX) = allvarsP nk
+            (nv',nvX) = allvarsP nv
             ns' = Set.unions
                 [ ns, nkX, nvX, annX x' ]
         in  GroupFold (a,ns') nk' nv' x'
@@ -247,19 +240,31 @@ allvarsX x
  = case x of
     Var a n
      -> Var (a, sgl n) n
+    Lam a n p
+     -> let p' = allvarsX p
+         in Lam (a, Set.delete n (annX p')) n p'
     Nested a q
      -> let q' = allvarsQ q
-        in  Nested (a, snd $ annotOfQuery q') q'
+         in Nested (a, snd $ annotOfQuery q') q'
     App a p q
      -> let p' = allvarsX p
             q' = allvarsX q
-        in  App (a, Set.union (annX p') (annX q')) p' q'
+         in App (a, Set.union (annX p') (annX q')) p' q'
     Prim a p
      -> Prim (a, Set.empty) p
+    If a p t f
+     -> let p' = allvarsX p
+            t' = allvarsX t
+            f' = allvarsX f
+         in If (a, Set.unions [annX p', annX t', annX f']) p' t' f'
     Case a s ps
      -> let s'        = allvarsX s
             (ps',ns') = goPatXs ps
-        in  Case (a, Set.union (annX s') ns') s' ps'
+         in Case (a, Set.union (annX s') ns') s' ps'
+    Access a e f
+     -> let e' = allvarsX e
+         in Access (a, annX e') e' f
+
  where
   annX = snd . annotOfExp
   sgl  = Set.singleton
@@ -268,31 +273,33 @@ allvarsX x
    = ([], Set.empty)
   goPatXs ((p,xx):ps)
    = let (ps',ns') = goPatXs  ps
-         (p',np')  = goPat    p
+         (p',np')  = allvarsP p
          xx'       = allvarsX xx
          ns''      = Set.unions [ns', np', annX xx']
      in  ((p',xx') : ps', ns'')
 
 
-goPats :: Eq n => [Pattern n] -> ([Pattern n], Set.Set (Name n))
-goPats []
-  = ([], Set.empty)
-goPats (p:ps)
-  = let
-      (p',n')   = goPat p
-      (ps',ns') = goPats ps
-    in
-      (p' : ps', n' `Set.union` ns')
+allvarsP :: Eq n => Pattern n -> (Pattern n, Set.Set (Name n))
+allvarsP
+ = goPat
+ where
+   goPat p =
+    case p of
+     PatCon c ps
+       -> let (ps',ns') = goPats ps
+         in  (PatCon c ps', ns')
+     PatDefault
+       -> (PatDefault, Set.empty)
+     PatVariable n
+       -> (PatVariable n,  Set.singleton n)
+     PatLit l n
+       -> (PatLit l n, Set.empty)
 
-goPat :: Eq n => Pattern n -> (Pattern n, Set.Set (Name n))
-goPat p
- = case p of
-  PatCon c ps
-    -> let (ps',ns') = goPats ps
-       in  (PatCon c ps', ns')
-  PatDefault
-    -> (PatDefault, Set.empty)
-  PatVariable n
-    -> (PatVariable n,  Set.singleton n)
-  PatLit l n
-    -> (PatLit l n, Set.empty)
+   goPats []
+     = ([], Set.empty)
+   goPats (p:ps)
+     = let
+         (p',n')   = goPat p
+         (ps',ns') = goPats ps
+       in
+         (p' : ps', n' `Set.union` ns')

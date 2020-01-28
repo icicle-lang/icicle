@@ -5,10 +5,12 @@ module Icicle.Dictionary.Demographics (
     demographics
   ) where
 
-import           Icicle.Data
+import           Icicle.Data (inputid)
 import           Icicle.Dictionary.Data
+import           Icicle.Common.Type
 
 import qualified Data.Set as Set
+import qualified Data.Map as Map
 
 import           P
 
@@ -23,21 +25,21 @@ demographics =
     inputs =
       mapOfInputs [
           input [inputid|default:gender|]
-            StringEncoding
+            StringT
 
         , input [inputid|default:age|]
-            IntEncoding
+            IntT
 
         , input [inputid|default:state_of_residence|]
-            StringEncoding
+            StringT
 
         , input [inputid|default:salary|]
-            IntEncoding
+            IntT
 
         , input [inputid|default:injury|] $
-            StructEncoding [
-                StructField Mandatory "location" StringEncoding
-              , StructField Mandatory "severity" IntEncoding
+            StructT . StructType $ Map.fromList [
+                (StructField "location", StringT)
+              , (StructField "severity", IntT)
               ]
         ]
 

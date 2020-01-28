@@ -11,6 +11,7 @@ module Icicle.Test.Arbitrary.Corpus where
 
 import qualified Data.List as List
 import           Data.Maybe
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 
@@ -19,6 +20,7 @@ import           Test.QuickCheck
 import           P
 
 import           Icicle.Common.Base
+import qualified Icicle.Common.Type as CT
 import           Icicle.Data hiding (inputName)
 import           Icicle.Dictionary.Data hiding (inputId, outputId)
 import           Icicle.Internal.Pretty
@@ -29,7 +31,7 @@ import qualified Icicle.Compiler.Source as Source
 import qualified Icicle.Core as Core
 import qualified Icicle.Data as Data
 import qualified Icicle.Source.Lexer.Token as T
-import qualified Icicle.Storage.Dictionary.Toml as DictionaryLoad
+import qualified Icicle.Storage.Dictionary.Sorbet as DictionaryLoad
 
 import qualified Prelude as Savage
 
@@ -39,20 +41,25 @@ newtype CorpusId =
       unCorpusId :: Int
     } deriving (Eq, Ord, Show, Enum, Num)
 
-corpusInputs :: [(InputName, Encoding)]
+corpusInputs :: [(InputName, CT.ValType)]
 corpusInputs =
  [ ([inputname|int|]
-   , IntEncoding)
+   , CT.IntT)
  , ([inputname|string|]
-   , StringEncoding)
+   , CT.StringT)
  , ([inputname|injury|]
-   , StructEncoding [field "location" StringEncoding, optfield "action" StringEncoding, field "severity" IntEncoding])
+   , CT.StructT . CT.StructType $ Map.fromList [
+       (CT.StructField "location", CT.StringT)
+     , (CT.StructField "action", CT.OptionT CT.StringT)
+     , (CT.StructField "severity",  CT.IntT)
+     ]
+    )
  ]
- where
-  optfield name encoding
-   = Data.StructField Data.Optional name encoding
-  field name encoding
-   = Data.StructField Data.Mandatory name encoding
+--  where
+--   optfield name encoding
+--    = Data.StructField Data.Optional name encoding
+--   field name encoding
+--    = Data.StructField Data.Mandatory name encoding
 
 corpusInputId :: InputName -> InputId
 corpusInputId = InputId [namespace|corpus|]
@@ -64,106 +71,110 @@ corpusQueries =
 
     ( [inputname|int|]
     , [outputid|tombstone:bool|]
-    , "feature int ~> fold x = False : True ~> x")
+    , "from int in fold x = False then True in x")
 
   , ( [inputname|injury|]
     , [outputid|tombstone:group|]
-    , "feature injury ~> group location ~> count location ")
+    , "from injury in group location in count location ")
 
   , ( [inputname|injury|]
     , [outputid|tombstone:group_group|]
-    , "feature injury ~> group location ~> group location ~> count location ")
+    , "from injury in group location in group location in count location ")
 
   , ( [inputname|injury|]
     , [outputid|tombstone:group_group_group|]
-    , "feature injury ~> group location ~> group location ~> group location ~> count location ")
+    , "from injury in group location in group location in group location in count location ")
 
   , ( [inputname|int|]
     , [outputid|tombstone:filter|]
-    , "feature int ~> filter tombstone ~> count value")
+    , "from int in filter tombstone in count value")
 
   , ( [inputname|injury|]
     , [outputid|tombstone:filter_group|]
-    , "feature injury ~> filter tombstone ~> group location ~> count location ")
+    , "from injury in filter tombstone in group location in count location ")
 
   , ( [inputname|injury|]
     , [outputid|tombstone:filter_group_group|]
-    , "feature injury ~> filter tombstone ~> group location ~> group location ~> count location ")
+    , "from injury in filter tombstone in group location in group location in count location ")
 
   , ( [inputname|injury|]
     , [outputid|tombstone:filter_group_group_group|]
-    , "feature injury ~> filter tombstone ~> group location ~> group location ~> group location ~> count location ")
+    , "from injury in filter tombstone in group location in group location in group location in count location ")
 
     -- Basic queries
 
   , ( [inputname|int|]
     , [outputid|corpse:int_oldest|]
-    , "feature int ~> oldest value")
+    , "from int in oldest value")
 
   , ( [inputname|string|]
     , [outputid|corpse:string_oldest|]
-    , "feature string ~> oldest value")
+    , "from string in oldest value")
 
   , ( [inputname|string|]
     , [outputid|corpse:string_count|]
-    , "feature string ~> count value")
+    , "from string in count value")
 
   , ( [inputname|string|]
     , [outputid|corpse:string_group|]
-    , "feature string ~> group value ~> count value")
+    , "from string in group value in count value")
 
   , ( [inputname|string|]
     , [outputid|corpse:string_group_group|]
-    , "feature string ~> group value ~> group value ~> count value")
+    , "from string in group value in group value in count value")
 
   -- Sane Groups
 
   , ( [inputname|injury|]
     , [outputid|corpse:injury_group_group|]
-    , "feature injury ~> group location ~> group action ~> sum severity")
+    , "from injury in group location in group action in sum severity")
 
   , ( [inputname|injury|]
     , [outputid|corpse:injury_group_group_group|]
-    , "feature injury ~> group location ~> group action ~> group severity ~> sum severity")
+    , "from injury in group location in group action in group severity in sum severity")
 
   , ( [inputname|injury|]
     , [outputid|corpse:injury_group_pair|]
-    , "feature injury ~> group (location, action) ~> sum severity")
+    , "from injury in group (location, action) in sum severity")
 
   -- CEO Groups
 
   , ( [inputname|injury|]
     , [outputid|corpse:injury_group_crazy|]
     , Text.unlines
-    [ "feature injury"
-    , "~> windowed 7 days"
-    , "~> let is_homer = location == \"homer\""
-    , "~> fold x = (map_create, None)"
-    , "   : case tombstone"
-    , "     | True -> (map_create, Some time)"
-    , "     | False ->"
-    , "       case snd x"
-    , "       | None ->"
-    , "         case is_homer"
-    , "         | True -> (map_insert location severity (fst x), Some time)"
-    , "         | False -> (fst x, Some time)"
-    , "         end"
-    , "       | Some t ->"
-    , "         case time == t"
-    , "         | True ->"
-    , "           case is_homer"
-    , "           | True -> (map_insert location severity (fst x), Some time)"
-    , "           | False -> (fst x, Some time)"
-    , "           end"
-    , "         | False ->"
-    , "           case is_homer"
-    , "           | True -> (map_insert location severity map_create, Some time)"
-    , "           | False -> (map_create, Some time)"
-    , "           end"
-    , "         end"
-    , "       end"
-    , "     end"
-    , "~> (group fold (k, v) = fst x ~> min v)"
+    [ "from injury"
+    , "in windowed 7 days"
+    , "in let is_homer = location == \"homer\""
+    , "in fold x = (map_create, None) then"
+    , "     case tombstone of"
+    , "       True then"
+    , "         (map_create, Some time)"
+    , "       False then"
+    , "         case snd x of"
+    , "           None then"
+    , "             case is_homer of"
+    , "               True then"
+    , "                 (map_insert location severity (fst x), Some time)"
+    , "               False then"
+    , "                 (fst x, Some time)"
+    , ""
+    , "           Some t then"
+    , "             case time == t of"
+    , "               True then"
+    , "                 case is_homer of"
+    , "                   True then"
+    , "                     (map_insert location severity (fst x), Some time)"
+    , "                   False then"
+    , "                     (fst x, Some time)"
+    , ""
+    , "               False then"
+    , "                 case is_homer of"
+    , "                   True then"
+    , "                     (map_insert location severity map_create, Some time)"
+    , "                   False then"
+    , "                     (map_create, Some time)"
+    , ""
+    , "in (group fold (k, v) = fst x in min v)"
     ])
   ]
 

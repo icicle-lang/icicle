@@ -25,7 +25,7 @@ import           Icicle.Dictionary.Data
 import           Icicle.Data
 import           Icicle.Repl.Data
 import           Icicle.Repl.Flag
-import qualified Icicle.Source.ToCore.Context as STC
+import qualified Icicle.Source.Query as STC
 import           Icicle.Source.Lexer.Token (keywords, Variable)
 import           Icicle.Source.Lexer.Lexer (lexerString)
 import           Icicle.Source.Parser.Token (pUnresolvedInputId)
@@ -55,7 +55,7 @@ completionCommands =
   , (":help", Haskeline.noCompletion)
   , (":quit", Haskeline.noCompletion)
   , (":let", completeLetExpression)
-  , ("feature", completeFeatureExpression)
+  , ("from", completeFeatureExpression)
   ]
 
 -- | Completer for the icicle REPL
@@ -117,7 +117,7 @@ completeFeatureExpression (prefix0, suffix) = do
          in  wrapPure " " candidates (prefix0, suffix)
     -- If we've written that, then we need a flows
     -- into before the query can begin.
-    3 -> wrapPure " " ["~>"] (prefix0, suffix)
+    3 -> wrapPure " " ["in"] (prefix0, suffix)
     -- Now we're inside the query, and the second
     -- item lexed is the fact name. So we will look
     -- up the fact in the dictionary so we can then

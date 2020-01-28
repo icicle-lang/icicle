@@ -9,9 +9,7 @@ module Icicle.Sorbet.Lexical.Syntax (
   ) where
 
 import           Data.Data (Data)
-import qualified Data.List.NonEmpty as NonEmpty
 import           Data.Scientific (Scientific)
-import           Data.String (String)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as Lazy
 import qualified Data.Text.Lazy.Builder as Lazy
@@ -22,6 +20,7 @@ import           Data.Typeable (Typeable)
 
 import           GHC.Generics (Generic)
 
+import           Icicle.Internal.Pretty
 import           Icicle.Sorbet.Lexical.Escape
 
 import           P
@@ -48,12 +47,21 @@ data Token =
   | Tok_RArrowEquals -- ^  =>
   | Tok_Equals       -- ^  =
   | Tok_Colon        -- ^  :
+  | Tok_EqualsColon  -- ^  =:
   | Tok_At           -- ^  @
+  | Tok_FlowsInto    -- ^  ~>
 
   --
   -- Reserved Identifiers
   --
+  | Tok_Dictionary
+  | Tok_Import
+  | Tok_Where
+  | Tok_Input
+  | Tok_Feature
+  --
   | Tok_Wild
+  | Tok_Case
   | Tok_Of
   | Tok_If
   | Tok_Then
@@ -62,6 +70,8 @@ data Token =
   | Tok_In
   --
   | Tok_Let
+  | Tok_Fold
+  | Tok_Fold1
   | Tok_Windowed
   | Tok_Group
   | Tok_Distinct
@@ -69,7 +79,10 @@ data Token =
   | Tok_Latest
   --
   | Tok_Between
+  | Tok_Before
+  | Tok_After
   | Tok_And
+  | Tok_Seconds
   | Tok_Days
   | Tok_Months
   | Tok_Weeks
@@ -113,8 +126,16 @@ renderToken = \case
   Tok_RArrowEquals      -> "=>"
   Tok_Equals            -> "="
   Tok_Colon             -> ":"
+  Tok_EqualsColon       -> "=:"
   Tok_At                -> "@"
+  Tok_FlowsInto         -> "~>"
+  Tok_Dictionary        -> "dictionary"
+  Tok_Import            -> "import"
+  Tok_Where             -> "where"
+  Tok_Input             -> "input"
+  Tok_Feature           -> "feature"
   Tok_Wild              -> "_"
+  Tok_Case              -> "case"
   Tok_Of                -> "of"
   Tok_If                -> "if"
   Tok_Then              -> "then"
@@ -122,13 +143,18 @@ renderToken = \case
   Tok_From              -> "from"
   Tok_In                -> "in"
   Tok_Let               -> "let"
+  Tok_Fold              -> "fold"
+  Tok_Fold1             -> "fold1"
   Tok_Windowed          -> "windowed"
   Tok_Group             -> "group"
   Tok_Distinct          -> "distinct"
   Tok_Filter            -> "filter"
   Tok_Latest            -> "latest"
   Tok_Between           -> "between"
+  Tok_Before            -> "before"
+  Tok_After             -> "after"
   Tok_And               -> "and"
+  Tok_Seconds           -> "seconds"
   Tok_Days              -> "days"
   Tok_Months            -> "months"
   Tok_Weeks             -> "weeks"
@@ -154,6 +180,6 @@ enquote :: [Char] -> [Char]
 enquote str =
   "\"" <> str <> "\""
 
--- showSorbetTokens :: NonEmpty.NonEmpty Token -> String
--- showSorbetTokens =
---   T.unpack . T.unwords . fmap renderToken . NonEmpty.toList
+instance Pretty Token where
+  pretty =
+    pretty . renderToken

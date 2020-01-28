@@ -1,10 +1,13 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Sorbet.Lexical.Layout (
     layoutProgram
+  , layoutRepl
 
   , LayoutError(..)
+  , renderLayoutError
   ) where
 
 import           Icicle.Sorbet.Lexical.Syntax
@@ -13,9 +16,20 @@ import           Icicle.Sorbet.Position
 import           P
 
 
-data LayoutError =
-    UnexpectedEndOfScope !ScopeType !ScopeEnv !(Positioned Token)
-    deriving (Eq, Ord, Show)
+data LayoutError
+  = UnexpectedEndOfScope !ScopeType !ScopeEnv !(Positioned Token)
+  deriving (Eq, Ord, Show)
+
+
+renderLayoutError :: LayoutError -> Text
+renderLayoutError = \case
+  UnexpectedEndOfScope _ env _ ->
+    mconcat [
+      "Unexpected end of scope of `"
+    , renderToken . posTail . envLineStart $ env
+    , "` beginning at: "
+    , renderPosition (posStart . envLineStart $ env)
+    ]
 
 data ScopeEnv =
   ScopeEnv {
@@ -46,15 +60,30 @@ data Line =
   | SameLine
     deriving (Eq, Ord, Show)
 
+
+layoutRepl :: [Positioned Token] -> Either LayoutError [Positioned Token]
+layoutRepl xs =
+  case xs of
+    -- If the first token is 'from' then we assume repl mode, so we don't need
+    -- an outer layout block.
+    x@(Positioned _ _ Tok_From) : _ ->
+      layoutLine (ScopeEnv x []) xs
+
+    -- Doesn't appear to be a repl program, try layout with standard scope.
+    _ ->
+      layoutProgram xs
+
+
+
 layoutProgram :: [Positioned Token] -> Either LayoutError [Positioned Token]
 layoutProgram xs =
   case xs of
     [] ->
       pure []
 
-    -- If the first token is 'from' then we assume repl mode, so we don't need
-    -- an outer layout block.
-    x@(Positioned _ _ Tok_From) : _ ->
+    -- If the first token is 'dictionary' then we expect a dictionary, and
+    -- a where will open the first outer block
+    x@(Positioned _ _ Tok_Dictionary) : _ ->
       layoutLine (ScopeEnv x []) xs
 
     -- If the first token is '{' then we assume an extras file with explicit
@@ -189,10 +218,45 @@ layoutTokens env = \case
   --     }in
   --
   x@(Positioned _ _ Tok_Let) : y : xs
-    | (notLBrace y)
+    | notLBrace y
     ->
       x <:> before y Tok_LBrace <:>
       layoutTokens (startImplicit y $ startExplicit Context env) (y : xs)
+
+
+  --
+  -- Layout for 'where' is similar to that of 'let', but can't be closed
+  -- by a keyword.
+  --
+  --   xyz where
+  --     |xyz =
+  --     |  123
+  --     |abc =
+  --     |  457
+  --
+  --   ==>
+  --
+  --   xyz where
+  --     {xyz =
+  --        123
+  --     ;abc =
+  --        457
+  --   }
+  x@(Positioned _ _ Tok_Where) : y : xs
+    | notLBrace y
+    ->
+      x <:> before y Tok_LBrace <:>
+      layoutTokens (startImplicit y env) (y : xs)
+
+
+  --
+  -- Open group fold special case.
+  -- We only want to open one context environment here, rather than
+  -- the two for both group and fold.
+  --
+  x@(Positioned _ _ Tok_Group) : y@(Positioned _ _ Tok_Fold) : xs
+    ->
+      x <:> y <:> layoutLine (startExplicit Context env) xs
 
   --
   -- Open brace / paren / bracket / context / if.
@@ -288,6 +352,10 @@ takeOpenScope = \case
     Just Context
   Tok_Let ->
     Just Context
+  Tok_Fold ->
+    Just Context
+  Tok_Fold1 ->
+    Just Context
   Tok_Windowed ->
     Just Context
   Tok_Group ->
@@ -311,6 +379,8 @@ takeCloseScope = \case
   Tok_RBracket ->
     Just Bracket
   Tok_In ->
+    Just Context
+  Tok_FlowsInto ->
     Just Context
   _ ->
     Nothing
@@ -340,7 +410,11 @@ onSameLineAs x y =
 
 before :: Positioned b -> a -> Positioned a
 before (Positioned s _ _) x =
-  Positioned s s x
+  Positioned s (before' s) x
+
+before' :: Position -> Position
+before' (Position file line col) =
+  Position file line (col - 1)
 
 nextLine :: Positioned a -> Positioned a
 nextLine (Positioned s e x) =

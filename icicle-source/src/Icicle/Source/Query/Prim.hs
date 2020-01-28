@@ -22,7 +22,7 @@ import                  P
 import                  Data.Hashable (Hashable)
 
 
-primLookup' :: Hashable n => Prim -> Fresh.Fresh n (FunctionType n)
+primLookup' :: Hashable n => Prim -> Fresh.Fresh n (Scheme n)
 primLookup' prim
  = case prim of
     -- Negate on Doubles will not introduce NaN or Inf
@@ -43,7 +43,7 @@ primLookup' prim
 
 
     Op (Relation _)
-     -> f1 $ \a at -> FunctionType [a] [] [at, at] BoolT
+     -> f1 $ \a at -> functionType [a] [] [at, at] BoolT
 
     Op (LogicalUnary _)
      -> f0 [BoolT] BoolT
@@ -57,7 +57,7 @@ primLookup' prim
            b <- Fresh.fresh
            let at = TypeVar a
            let bt = TypeVar b
-           return $ FunctionType [a,b] [] [at, bt] (PairT at bt)
+           return $ functionType [a,b] [] [at, bt] (PairT at bt)
 
     -- Literals will not be NaN or Inf
     Lit (LitInt _)
@@ -100,6 +100,8 @@ primLookup' prim
     -- But conversions are OK
     Fun (BuiltinMath ToDouble)
      -> fNumDefinitely $ \at -> ([at], DoubleT)
+    Fun (BuiltinMath FromInteger)
+     -> fNumDefinitely $ \at -> ([IntT], at)
     Fun (BuiltinMath Abs)
      -> fNumDefinitely $ \at -> ([at], at)
     Fun (BuiltinMath Floor)
@@ -135,38 +137,38 @@ primLookup' prim
      -> f0 [TimeT] IntT
 
     Fun (BuiltinData Seq)
-     -> f2 $ \a at b bt -> FunctionType [a,b] [] [at,bt] bt
+     -> f2 $ \a at b bt -> functionType [a,b] [] [at,bt] bt
     Fun (BuiltinData Box)
-     -> f1 $ \a at -> FunctionType [a] [] [SumT ErrorT at] (Possibility PossibilityPossibly at)
+     -> f1 $ \a at -> functionType [a] [] [SumT ErrorT at] (Possibility PossibilityPossibly at)
 
     Fun (BuiltinArray ArraySort)
-     -> f1 $ \a at -> FunctionType [a] [] [ArrayT at] (ArrayT at)
+     -> f1 $ \a at -> functionType [a] [] [ArrayT at] (ArrayT at)
     Fun (BuiltinArray ArrayLength)
-     -> f1 $ \a at -> FunctionType [a] [] [ArrayT at] IntT
+     -> f1 $ \a at -> functionType [a] [] [ArrayT at] IntT
     Fun (BuiltinArray ArrayIndex)
-     -> f1 $ \a at -> FunctionType [a] [] [ArrayT at, IntT] (Possibility PossibilityPossibly at)
+     -> f1 $ \a at -> functionType [a] [] [ArrayT at, IntT] (Possibility PossibilityPossibly at)
 
     Fun (BuiltinMap MapKeys)
-     -> f2 $ \a at b bt -> FunctionType [a,b] [] [GroupT at bt] (ArrayT at)
+     -> f2 $ \a at b bt -> functionType [a,b] [] [GroupT at bt] (ArrayT at)
     Fun (BuiltinMap MapValues)
-     -> f2 $ \a at b bt -> FunctionType [a,b] [] [GroupT at bt] (ArrayT bt)
+     -> f2 $ \a at b bt -> functionType [a,b] [] [GroupT at bt] (ArrayT bt)
     Fun (BuiltinMap MapCreate)
-     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [] (GroupT kt vt)
+     -> f2 $ \k kt v vt -> functionType [k, v] [] [] (GroupT kt vt)
     Fun (BuiltinMap MapInsert)
-     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [kt, vt, GroupT kt vt] (Possibility PossibilityPossibly (GroupT kt vt))
+     -> f2 $ \k kt v vt -> functionType [k, v] [] [kt, vt, GroupT kt vt] (Possibility PossibilityPossibly (GroupT kt vt))
     Fun (BuiltinMap MapDelete)
-     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [kt, GroupT kt vt] (GroupT kt vt)
+     -> f2 $ \k kt v vt -> functionType [k, v] [] [kt, GroupT kt vt] (GroupT kt vt)
     Fun (BuiltinMap MapLookup)
-     -> f2 $ \k kt v vt -> FunctionType [k, v] [] [kt, GroupT kt vt] (OptionT vt)
+     -> f2 $ \k kt v vt -> functionType [k, v] [] [kt, GroupT kt vt] (OptionT vt)
 
     PrimCon ConSome
-     -> f1 $ \a at -> FunctionType [a] [] [at] (OptionT at)
+     -> f1 $ \a at -> functionType [a] [] [at] (OptionT at)
 
     PrimCon ConNone
-     -> f1 $ \a at -> FunctionType [a] [] [] (OptionT at)
+     -> f1 $ \a at -> functionType [a] [] [] (OptionT at)
 
     PrimCon ConTuple
-     -> f2 $ \a at b bt -> FunctionType [a, b] [] [at, bt] (PairT at bt)
+     -> f2 $ \a at b bt -> functionType [a, b] [] [at, bt] (PairT at bt)
 
     PrimCon ConTrue
      -> f0 [] BoolT
@@ -174,17 +176,20 @@ primLookup' prim
      -> f0 [] BoolT
 
     PrimCon ConLeft
-     -> f2 $ \a at b bt -> FunctionType [a, b] [] [at] (SumT at bt)
+     -> f2 $ \a at b bt -> functionType [a, b] [] [at] (SumT at bt)
     PrimCon ConRight
-     -> f2 $ \a at b bt -> FunctionType [a, b] [] [bt] (SumT at bt)
+     -> f2 $ \a at b bt -> functionType [a, b] [] [bt] (SumT at bt)
 
     PrimCon (ConError _)
      -> f0 [] ErrorT
 
  where
+  functionType foralls constraints arguments simpleType
+   = Forall foralls constraints
+   $ foldr TypeArrow simpleType arguments
 
   f0 argsT resT
-   = return $ FunctionType [] [] argsT resT
+   = return $ functionType [] [] argsT resT
 
   -- A num operation that can introduce NaN or Inf and must be checked
   fNumPossibly f
@@ -196,10 +201,10 @@ primLookup' prim
   fNumDefinitely f
    = f1 $ \a at ->
      let (args,ret) = f at
-     in  FunctionType [a] [CIsNum at] args ret
+     in  functionType [a] [CIsNum at] args ret
 
   fNum f
-   = f2 (\a at p pt -> uncurry (FunctionType [a,p] [CPossibilityOfNum pt at]) (f pt at))
+   = f2 (\a at p pt -> uncurry (functionType [a,p] [CPossibilityOfNum pt at]) (f pt at))
 
   possiblyDouble = Possibility PossibilityPossibly DoubleT
 

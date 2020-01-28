@@ -9,14 +9,13 @@ import           Icicle.Internal.Pretty
 
 import           P
 
-
 data BuiltinFun
- = BuiltinMath  !BuiltinMath
- | BuiltinText  !BuiltinText
- | BuiltinTime  !BuiltinTime
- | BuiltinData  !BuiltinData
- | BuiltinArray !BuiltinArray
- | BuiltinMap   !BuiltinMap
+ = BuiltinMath   !BuiltinMath
+ | BuiltinText   !BuiltinText
+ | BuiltinTime   !BuiltinTime
+ | BuiltinData   !BuiltinData
+ | BuiltinArray  !BuiltinArray
+ | BuiltinMap    !BuiltinMap
  deriving (Show, Eq, Ord, Generic)
 
 -- | Functions wired into the Parser.
@@ -26,7 +25,7 @@ data BuiltinFun
 --   directly written in by the Parser.
 listOfWiredFuns :: [BuiltinFun]
 listOfWiredFuns = concat
-  [ fmap BuiltinTime    [minBound..maxBound]
+  [ fmap BuiltinTime    [DaysBetween, DaysJulianEpoch, SecondsBetween, SecondsJulianEpoch]
   ]
 
 -- | Functions wired in through the type
@@ -40,6 +39,7 @@ listOfIntroducedFuns = concat
   , fmap BuiltinData    [minBound..maxBound]
   , fmap BuiltinArray   [minBound..maxBound]
   , fmap BuiltinMap     [minBound..maxBound]
+  , fmap BuiltinTime    [ProjectDay, ProjectMonth, ProjectYear]
   ]
 
 data BuiltinMath
@@ -58,6 +58,7 @@ data BuiltinMath
  | Tan
  | Tanh
  | ToDouble
+ | FromInteger
  | Floor
  | Ceiling
  | Round
@@ -133,6 +134,7 @@ instance Pretty BuiltinMath where
  pretty Tan         = "tan"
  pretty Tanh        = "tanh"
  pretty ToDouble    = "double"
+ pretty FromInteger = "from_integer"
  pretty Abs         = "abs"
  pretty Floor       = "floor"
  pretty Ceiling     = "ceil"

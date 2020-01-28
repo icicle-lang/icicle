@@ -6,13 +6,13 @@
 
 -- Get latest ten, but only for the last 3 months.
 -- 1970-09-01 should be in the result
-feature salary ~> windowed 3 months ~> latest 10 ~> value
+from salary ~> windowed 3 months ~> latest 10 ~> value
 
 -- Older-than window
-feature salary ~> windowed between 1 months and 3 months ~> latest 10 ~> value
+from salary ~> windowed between 1 months and 3 months ~> latest 10 ~> value
 
 -- Do the same, one day later. 1970-09-01 should no longer be in result.
 :set snapshot 1970-12-02
-feature salary ~> windowed 3 months ~> latest 10 ~> value
-feature salary ~> windowed between 1 months and 3 months ~> latest 10 ~> value
+from salary ~> windowed 3 months ~> latest 10 ~> value
+from salary ~> windowed between 1 months and 3 months ~> latest 10 ~> value
 

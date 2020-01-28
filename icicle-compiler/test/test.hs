@@ -33,10 +33,12 @@ import qualified Icicle.Test.Runtime.Evaluator
 import qualified Icicle.Test.Runtime.Serial.Psv.Schema
 import qualified Icicle.Test.Runtime.Serial.Zebra
 
-import qualified Icicle.Test.Source.PrettyParse
 import qualified Icicle.Test.Source.Progress
 import qualified Icicle.Test.Source.Convert
 import qualified Icicle.Test.Source.MaxMapSize
+
+import qualified Icicle.Test.Sorbet.PrettyParse
+import qualified Icicle.Test.Sorbet.Lexical.Lexer
 
 import qualified Icicle.Test.Sea.Name
 import qualified Icicle.Test.Sea.Text
@@ -98,15 +100,22 @@ sundry =
     , Icicle.Test.Serial.tests
     , Icicle.Test.Source.Convert.tests
     , Icicle.Test.Source.MaxMapSize.tests
-    , Icicle.Test.Source.PrettyParse.tests
     , Icicle.Test.Source.Progress.tests
     ]
+
+sorbet :: TestSuite
+sorbet =
+  TestSuite "sorbet" [
+    Icicle.Test.Sorbet.PrettyParse.tests
+  , Icicle.Test.Sorbet.Lexical.Lexer.tests
+  ]
 
 suites :: Map String TestSuite
 suites =
   Map.fromList $ fmap (\x -> (suiteName x, x)) [
       runtime
     , sundry
+    , sorbet
     ]
 
 runTestSuite :: TestSuite -> IO ()

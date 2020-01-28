@@ -22,8 +22,8 @@ import           P
 
 
 data Context' q a n
- = Windowed a WindowUnit (Maybe WindowUnit)
- | Latest a Int
+ = Windowed  a WindowUnit  (Maybe WindowUnit)
+ | Latest    a Int
  | GroupBy   a             (Exp' q a n)
  | Distinct  a             (Exp' q a n)
  | Filter    a             (Exp' q a n)
@@ -34,6 +34,18 @@ data Context' q a n
 
 instance (NFData (q a n), NFData a, NFData n) => NFData (Context' q a n)
 
+instance TraverseAnnot q => TraverseAnnot (Context' q)  where
+  traverseAnnot f cc =
+    case cc of
+      Windowed  a b c   -> Windowed  <$> f a <*> pure b <*> pure c
+      Latest    a i     -> Latest    <$> f a <*> pure i
+      GroupBy   a x     -> GroupBy   <$> f a <*> traverseAnnot f x
+      GroupFold a k v x -> GroupFold <$> f a <*> pure k <*> pure v <*> traverseAnnot f x
+      Distinct  a x     -> Distinct  <$> f a <*> traverseAnnot f x
+      Filter    a x     -> Filter    <$> f a <*> traverseAnnot f x
+      LetFold   a ff    -> LetFold   <$> f a <*> traverseAnnot f ff
+      Let      a n x    -> Let       <$> f a <*> pure n <*> traverseAnnot f x
+
 data Fold q a n
  = Fold
  { foldBind :: Pattern n
@@ -41,6 +53,13 @@ data Fold q a n
  , foldWork :: Exp' q a n
  , foldType :: FoldType }
  deriving (Show, Eq, Ord, Generic)
+
+instance TraverseAnnot q => TraverseAnnot (Fold q)  where
+  traverseAnnot f ff =
+    Fold (foldBind ff)
+      <$> traverseAnnot f (foldInit ff)
+      <*> traverseAnnot f (foldWork ff)
+      <*> pure            (foldType ff)
 
 instance (NFData (q a n), NFData a, NFData n) => NFData (Fold q a n)
 

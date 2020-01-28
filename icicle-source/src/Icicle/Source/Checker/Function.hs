@@ -2,14 +2,18 @@
 {-# LANGUAGE DoAndIfThenElse #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE TupleSections #-}
 module Icicle.Source.Checker.Function (
     checkF
   , checkFs
+
+  , checkF'
   ) where
 
 import                  Icicle.Source.Checker.Base
 import                  Icicle.Source.Checker.Error
 import                  Icicle.Source.Checker.Constraint
+import                  Icicle.Source.Checker.Subsumption
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
@@ -21,6 +25,7 @@ import                  Icicle.Internal.Pretty (Pretty, pretty)
 import                  P
 
 import                  Control.Monad.Trans.Either
+import                  Control.Monad.Trans.Class (lift)
 
 import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
@@ -28,48 +33,73 @@ import qualified        Data.List               as List
 import                  Data.Hashable           (Hashable)
 
 
-type Funs a n = [((a, Name n), Function a n)]
+type Funs a n = [ Decl a n ]
 type FunEnvT a n = [ ResolvedFunction a n ]
 
 
 checkFs :: (Hashable n, Eq n, Pretty n)
         => FunEnvT a n
         -> Funs a n
-        -> EitherT (CheckError a n) (Fresh.Fresh n)
+        -> EitherT (CheckError a n, [CheckLog a n]) (Fresh.Fresh n)
                    (FunEnvT a n, [[CheckLog a n]])
 
-checkFs env functions
+checkFs env decls
  = foldlM go (env,[]) functions
  where
+  functions = [((a, n), x) | DeclFun a n x <- decls]
+  sigs = Map.fromList [(n, t) | DeclType _ n t <- decls]
+
   go (env0,logs0) (name,fun)
    = do
     let envMap = Map.fromList $ fmap ((,) <$> functionName <*> functionType) env0
-    ((annotfun, funtype),logs') <- checkF envMap fun
+    (checkResult,logs') <- lift $ checkF envMap sigs name fun
+    (annotfun, funtype) <- hoistEither $ first (,logs') checkResult
     if List.elem (snd name) (fmap functionName env0)
-    then hoistEither $ Left $ CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) []
+    then hoistEither $ Left $ (CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) [], [])
     else pure (env0 <> [ResolvedFunction (snd name) funtype annotfun], logs0 <> [logs'])
 
 checkF  :: (Hashable n, Eq n, Pretty n)
-        => Map.Map (Name n) (FunctionType n)
-        -> Function a n
-        -> EitherT (CheckError a n) (Fresh.Fresh n)
-                   ((Function (Annot a n) n, FunctionType n), [CheckLog a n])
+        => Map.Map (Name n) (Scheme n)
+        -> Map.Map (Name n) (Scheme n)
+        -> (a, Name n)
+        -> Exp a n
+        -> (Fresh.Fresh n) (Either (CheckError a n) (Exp (Annot a n) n, Scheme n), [CheckLog a n])
 
-checkF env fun
- = evalGen $ checkF' fun env
+checkF env sigs name fun
+ = evalGen $ checkF' fun env >>= constrain sigs name
 
+
+constrain :: (Hashable n, Eq n, Pretty n)
+          => Map.Map (Name n) (Scheme n)
+          -> (a, Name n)
+          -> (Exp (Annot a n) n, Scheme n)
+          -> Gen a n (Exp (Annot a n) n, Scheme n)
+constrain sigs (ann, nm) (x, inferred) = do
+  case Map.lookup nm sigs of
+    -- No explicit type signature
+    -- Return the inferred result.
+    Nothing ->
+      return (x, inferred)
+
+    -- We have a type, run subsumption,
+    -- seeing if the inferred type is a least
+    -- as polymorphic as the explicit type
+    -- signature.
+    Just explicit -> do
+      subsume ann x inferred explicit
 
 -- | Typecheck a function definition, generalising types and pulling out constraints
 checkF' :: (Hashable n, Eq n, Pretty n)
-        => Function a n
+        => Exp a n
         -> GenEnv n
-        -> Gen a n (Function (Annot a n) n, FunctionType n)
+        -> Gen a n (Exp (Annot a n) n, Scheme n)
 
 checkF' fun env
- = do -- Give each argument a fresh type variable
-      env' <- foldM bindArg env $ arguments fun
+ = do let (arguments, body) = takeLams fun
+      -- Give each argument a fresh type variable
+      env' <- foldM bindArg env $ arguments
       -- Get the type annotated body
-      (q', subs', cons') <- generateQ (body fun) env'
+      (q', subs', cons') <- generateX body env'
 
       -- Perform top-level discharge of any silly
       -- leftover Possibility or Temporality joins
@@ -81,7 +111,7 @@ checkF' fun env
       -- Look up the argument types after solving all constraints.
       -- Because they started as fresh unification variables,
       -- they will end up being unified to the actual types.
-      args <- mapM (lookupArg subs env') (arguments fun)
+      args <- traverse (lookupArg subs env') arguments
 
       -- Find all leftover constraints
       let constrs = fmap snd cons
@@ -141,17 +171,21 @@ checkF' fun env
 
       -- Fix the modes of all the argument and result types
       let argTs = fmap (fixmodes . annResult . fst) args
-      let resT  = fixmodes $ annResult $ annotOfQuery q
+
+      let resT  = fixmodes $ annResult $ annotOfExp q
 
       -- Find free variables in types and constraints - these have to be bound as foralls.
       let binds = Set.toList
                 $ Set.unions
                 $ keepModes : freeT resT : fmap freeT argTs
 
-      -- Put it all together
-      let funT  = FunctionType binds constrs argTs resT
+      let arrT  = foldr TypeArrow resT argTs
+      let lams  = foldr (uncurry Lam) q args
 
-      return (Function args q, funT)
+      -- Put it all together
+      let funT  = Forall binds constrs arrT
+
+      return (lams, funT)
  where
   bindArg cx (_,n)
    = do t <- freshType
@@ -163,20 +197,20 @@ checkF' fun env
    <*>                  (TypeVar <$> fresh))
 
   lookupArg subs e (a,n)
-   = do (_,_,t,_) <- lookup a n e
+   = do (_,t,_) <- lookup a n e
         return (Annot a (substT subs t) [], n)
 
   dischargeInfo q cons subs =
-    DischargeInfo (annResult (annotOfQuery q)) cons subs
+    DischargeInfo (annResult (annotOfExp q)) cons subs
 
   dischargeF q subs cons =
     case dischargeCS' dischargeC'toplevel cons of
       Left errs
         -> genHoistEither
-        $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot (annotOfQuery q)) errs)
+        $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annAnnot (annotOfExp q)) errs)
       Right (sub, cons')
        -> do let subs'     = compose subs sub
-             let q'        = substTQ sub q
+             let q'        = substTX sub q
              let log_ppr   = pretty fun
              let log_info0 = dischargeInfo q cons subs
              let log_info1 = dischargeInfo q' cons' subs'

@@ -21,7 +21,7 @@ substX :: (Hashable n, Eq n)
        -> Exp a n
        -> Fresh n (Exp a n)
 substX ms x
- = reannotX fst
+ = reannot fst
  <$> substX' (fmap allvarsX ms) (allvarsX x)
 
 substQ :: (Hashable n, Eq n)
@@ -29,7 +29,7 @@ substQ :: (Hashable n, Eq n)
        -> Query a n
        -> Fresh n (Query a n)
 substQ ms q
- = reannotQ fst
+ = reannot fst
  <$> substQ' (fmap allvarsX ms) (allvarsQ q)
 
 --------------
@@ -51,14 +51,24 @@ substX' s x
      -> return x'
      | otherwise
      -> return x
+    Lam a n p
+     | Map.member n s
+     -> Lam a n <$> substX' (Map.delete n s) p
+     | otherwise
+     -> Lam a n <$> substX' s p
     Nested a q
      -> Nested a <$> substQ' s q
     App a p q
      -> App a <$> substX' s p <*> substX' s q
     Prim{}
      -> return x
+    If a p t f
+     -> If a <$> substX' s p <*> substX' s t <*> substX' s f
     Case a scrut pats
      -> Case a <$> substX' s scrut <*> mapM goPat pats
+    Access a e f
+     -> Access a <$> substX' s e <*> pure f
+
 
  where
   goPat (p,alt)

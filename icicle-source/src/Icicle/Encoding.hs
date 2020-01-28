@@ -14,6 +14,7 @@ module Icicle.Encoding (
   , valueOfJSON
   , jsonOfValue
   , sourceTypeOfEncoding
+  , encodingOfSourceType
 
   , renderOutputValue
   , renderJsonValue
@@ -37,6 +38,7 @@ import qualified Data.Set               as Set
 import qualified Icicle.Common.Type     as IT
 import           Icicle.Data
 import           Icicle.Data.Time
+import           Icicle.Internal.Pretty (pretty)
 
 import           P
 
@@ -46,6 +48,7 @@ data DecodeError =
  | DecodeErrorMissingStructField Text
  | DecodeErrorNotInDictionary    InputName
  | DecodeErrorValueForVirtual    InputName
+ | DecodeErrorNonJsonInput       IT.ValType
    deriving (Eq, Show)
 
 
@@ -58,6 +61,8 @@ renderDecodeError (DecodeErrorNotInDictionary attr) =
   "Given attribute is not in dictionary: " <> renderInputName attr
 renderDecodeError (DecodeErrorValueForVirtual attr) =
   "Cannot set values for virtual features: " <> renderInputName attr
+renderDecodeError (DecodeErrorNonJsonInput vt) =
+  "Cannot parse type from psv format: " <> (T.pack . show . pretty $ vt)
 
 primitiveEncoding :: Encoding -> Bool
 primitiveEncoding e
@@ -341,6 +346,35 @@ readAll r t
 
  | otherwise
  = Nothing
+
+
+encodingOfSourceType :: IT.ValType -> Maybe Encoding
+encodingOfSourceType vt
+ = case vt of
+    IT.StringT
+     -> Just StringEncoding
+    IT.IntT
+     -> Just IntEncoding
+    IT.DoubleT
+     -> Just DoubleEncoding
+    IT.BoolT
+     -> Just BooleanEncoding
+    IT.TimeT
+     -> Just TimeEncoding
+    IT.StructT (IT.StructType fs)
+     -> StructEncoding
+     <$> traverse goStructField (Map.toList fs)
+    IT.ArrayT e'
+     -> ListEncoding <$> encodingOfSourceType e'
+    _
+     -> Nothing
+
+ where
+  goStructField ( IT.StructField attr, IT.OptionT t)
+    = StructField Optional attr <$> encodingOfSourceType t
+
+  goStructField ( IT.StructField attr, t)
+    = StructField Mandatory attr <$> encodingOfSourceType t
 
 sourceTypeOfEncoding :: Encoding -> IT.ValType
 sourceTypeOfEncoding e

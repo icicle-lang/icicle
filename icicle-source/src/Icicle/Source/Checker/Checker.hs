@@ -11,14 +11,11 @@ import                  Icicle.Source.Checker.Error
 import                  Icicle.Source.Checker.Constraint
 import                  Icicle.Source.Checker.Invariants
 import                  Icicle.Source.Checker.Resumable
-import                  Icicle.Source.ToCore.Context
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
-import                  Icicle.Source.Lexer.Token
 
 import                  Icicle.Data.Name
 
-import                  Icicle.Dictionary.Data
 import                  Icicle.Internal.Pretty (Pretty)
 
 import qualified        Icicle.Common.Fresh     as Fresh
@@ -37,7 +34,7 @@ type Result r a n = EitherT (CheckError a n) (Fresh.Fresh n) (r, Type n)
 -- | Check a top-level Query, returning the query with type annotations and casts inserted.
 checkQT :: (Hashable n, Eq n, Pretty n)
         => CheckOptions
-        -> Features () n (InputKey ann Variable)
+        -> Features () n inputKey
         -> QueryTop a n
         -> Result (QueryTop (Annot a n) n) a n
 checkQT opts features qt
@@ -46,7 +43,7 @@ checkQT opts features qt
      -> do  let env = Map.unions
                       [ fmap function0 (envOfFeatureContext f)
                       , featuresFunctions features
-                      , fmap function0 (envOfFeatureNow opts (featureNow features)) ]
+                      , fmap function0 (envOfFeatureNow (checkOptionNowPure opts) (featureNow features)) ]
             (q,t) <- checkQ opts (emptyCheckEnv { checkEnvironment = env }) (query qt)
             return (qt { query = q }, t)
 
@@ -80,8 +77,14 @@ checkQ opts ctx q
        _
          -> hoistEither
           $ errorSuggestions
-              (ErrorReturnNotAggregate (annotOfQuery $ q) t)
+              (ErrorReturnNotAggregate (annotOfQuery q) t)
               [Suggest "The return must be an aggregate, otherwise the result could be quite large"]
+
+      when (anyArrows t)
+        $ hoistEither
+        $ errorSuggestions
+            (ErrorReturnNotAggregate (annotOfQuery q) t)
+            [Suggest "The return must not contain functions or type abstractions"]
 
       hoistEither $ invariantQ ctx q
 
@@ -89,4 +92,3 @@ checkQ opts ctx q
         hoistEither $ checkResumableQ ctx q
 
       return (q', t)
-

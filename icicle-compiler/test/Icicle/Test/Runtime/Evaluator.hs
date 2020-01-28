@@ -20,9 +20,9 @@ import           Hedgehog
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 
+import qualified Icicle.Common.Type as CT
 import qualified Icicle.Compiler as Compiler
 import qualified Icicle.Compiler.Source as Compiler
-import           Icicle.Data.Fact
 import           Icicle.Data.Name
 import           Icicle.Dictionary.Data
 import           Icicle.Runtime.Data
@@ -31,7 +31,7 @@ import qualified Icicle.Runtime.Data.Schema as Schema
 import qualified Icicle.Runtime.Data.Striped as Striped
 import           Icicle.Runtime.Evaluator (Runtime)
 import qualified Icicle.Runtime.Evaluator as Runtime
-import           Icicle.Test.Gen.Data.Fact
+import qualified Icicle.Test.Gen.Core.Type as CoreGen
 import           Icicle.Test.Gen.Data.Name
 import           Icicle.Test.Gen.Runtime.Data (genEntityInputColumn, genEntityKey)
 import           Icicle.Test.Gen.Runtime.Data (genSnapshotTime, genQueryTime)
@@ -49,7 +49,7 @@ genDictionaryInput :: Gen DictionaryInput
 genDictionaryInput =
   DictionaryInput
     <$> genInputId
-    <*> genEncoding
+    <*> Gen.filter (not . CT.anyBuffers) CoreGen.genValType
     <*> pure Set.empty
     <*> pure unkeyed
 
@@ -58,15 +58,15 @@ latest n input =
   let
     vname =
       case inputEncoding input of
-        StructEncoding _ ->
+        CT.StructT _ ->
           "fields"
         _ ->
           "value"
   in
     Text.pack $
-      "feature " <>
+      "from " <>
       show (renderInputId (inputId input)) <>
-      " ~> latest " <> show n <> " ~> " <>
+      "in latest " <> show n <> " in " <>
       vname
 
 fromInputId :: Int -> InputId -> OutputId
@@ -107,7 +107,7 @@ genDictionary = do
 
 genDictionaryInputColumn :: DictionaryInput -> Gen InputColumn
 genDictionaryInputColumn input =
-  case Schema.fromEncoding $ inputEncoding input of
+  case Schema.fromValType $ inputEncoding input of
     Left x ->
       Savage.error $ "genDictionaryInputColumn: " <> show x
     Right schema ->
@@ -314,7 +314,7 @@ compareInputOutput input output = do
       concatMap two .
       Map.toList $
       inputColumns input
-  
+
   annotateShow input
   inputAsOutput === outputColumns output
 

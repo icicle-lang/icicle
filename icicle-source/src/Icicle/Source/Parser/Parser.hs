@@ -32,16 +32,23 @@ top name
         q <- query                                              <?> "query"
         return $ Q.QueryTop v name q
 
-functions :: Parser [((T.SourcePos, Name Var), (Q.Function T.SourcePos Var))]
+functions :: Parser [((T.SourcePos, Name Var), (Q.Exp T.SourcePos Var))]
 functions
  = ((,) <$> ((,) <$> getPosition <*> pVariable) <*> function) `sepEndBy` (pEq T.TStatementEnd)
 
-function :: Parser (Q.Function T.SourcePos Var)
+function :: Parser (Q.Exp T.SourcePos Var)
 function
- = do   v <- many ((,) <$> getPosition <*> pVariable)       <?> "function variables"
+ = do   vs <- many ((,) <$> getPosition <*> pVariable)      <?> "function variables"
         pEq T.TEqual                                        <?> "equals"
-        q <- query
-        return $ Q.Function v q
+        q <- (,) <$> getPosition <*> query
+        let lams = foldr (uncurry Q.Lam) (uncurry simpNested q) vs
+        return lams
+ where
+  simpNested _ (Q.Query [] x)
+   = x
+  simpNested p q
+   = Q.Nested p q
+
 
 query :: Parser (Q.Query T.SourcePos Var)
 query
@@ -62,7 +69,7 @@ context
    <|> pKeyword T.Distinct *> (flip Q.Distinct <$> exp      <*> getPosition)
    <|> pKeyword T.Filter   *> (flip Q.Filter   <$> exp      <*> getPosition)
    <|> pKeyword T.Latest   *> (flip Q.Latest   <$> pLitInt  <*> getPosition)
-   <|> pKeyword T.Let      *> clet
+   <|> pKeyword T.Let      *> (try clet        <|> cpatternbinding)
    <|> cletfold
 
   cwindowed
@@ -88,7 +95,14 @@ context
         pEq T.TEqual
         e <- exp
         return $ Q.GroupFold p k v e
+
   clet
+   = do n <- pVariable                                      <?> "function binding name"
+        p <- getPosition
+        x <- function                                       <?> "let definition expression"
+        return $ Q.Let p (Q.PatVariable n) x
+
+  cpatternbinding
    = do n <- pattern                                        <?> "binding pattern"
         p <- getPosition
         pEq T.TEqual
@@ -189,8 +203,7 @@ primitives
 
 timePrimitives :: Parser Q.Prim
 timePrimitives
- =   asum (fmap (\(k,q) -> pKeyword k *> return q) simpleTime)
- <|> try  (Q.Fun (Q.BuiltinTime Q.DaysBetween)
+ =   try  (Q.Fun (Q.BuiltinTime Q.DaysBetween)
             <$ pKeyword T.Days
             <* pKeyword T.Between)
  <|> try  (Q.Fun (Q.BuiltinTime Q.DaysJulianEpoch)
@@ -202,10 +215,3 @@ timePrimitives
  <|> try  (Q.Fun (Q.BuiltinTime Q.SecondsJulianEpoch)
              <$ pKeyword T.Seconds
              <* notFollowedBy (pKeyword T.Before <|> pKeyword T.After))
-
-simpleTime :: [(T.Keyword, Q.Prim)]
-simpleTime
- = [ (T.Day_Of,      Q.Fun (Q.BuiltinTime  Q.ProjectDay ))
-   , (T.Month_Of,    Q.Fun (Q.BuiltinTime  Q.ProjectMonth ))
-   , (T.Year_Of,     Q.Fun (Q.BuiltinTime  Q.ProjectYear ))
-   ]

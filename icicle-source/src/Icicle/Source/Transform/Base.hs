@@ -74,7 +74,13 @@ transformC t cc
         -> do x' <- goX x
               return (s, GroupBy a x')
        GroupFold a k v x
-        -> do x' <- goX x
+        -- Note: expression x does not see the outer state
+        --       context in its transformation as it happens
+        --       `before` the group fold operation.
+        --       This is important for the inliner, as
+        --       > group fold (k, sum) = sum severity in sum
+        --       should have the original sum inside.
+        -> do x' <- transformX t x
               return (s, GroupFold a k v x')
        Distinct a x
         -> do x' <- goX x
@@ -87,7 +93,10 @@ transformC t cc
                w' <- goX $ foldWork f
                return (s, LetFold a (f { foldInit = i', foldWork = w' }))
        Let a n x
-        -> do  x' <- goX x
+        -- Note: see above. Let bindings are non-recursive, so
+        --       we need to inline only subsequent declarations,
+        --       not the internal one.
+        -> do  x' <- transformX t x
                return (s, Let a n x')
 
 
@@ -108,6 +117,9 @@ transformX t xx
 
       case xx' of
        Var{} -> return xx'
+       Lam a n p
+        -> do p' <- goX p
+              return $ Lam a n p'
        Nested a q
         -> do q' <- goQ q
               return $ Nested a q'
@@ -117,8 +129,15 @@ transformX t xx
               return $ App a p' q'
        Prim{}
         -> return xx'
+       If a scr true false
+        -> do scr'   <- goX scr
+              true'  <- goX true
+              false' <- goX false
+              return $ If a scr' true' false'
        Case a scr pats
         -> do scr'  <- goX scr
               pats' <- mapM goP pats
               return $ Case a scr' pats'
-
+       Access a x f
+        -> do x' <- goX x
+              return $ Access a x' f

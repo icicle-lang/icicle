@@ -37,8 +37,10 @@ renderDefixError e
  = "the prefix operator \"" <> unpack op <> "\" was used in an infix position."
  | ErrorNoSuchInfixOperator op <- e
  = "no such infix operator \"" <> unpack op <> "\" exists."
+ | ErrorExpectedExpressionGotEnd <- e
+ = "no postfix operators are supported. Expected the expression to continue."
  | otherwise
- = show e -- The others seem much less likely
+ = show e
 
 data Ops
  = Ops Text OpsOfSymbol
