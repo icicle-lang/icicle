@@ -111,13 +111,13 @@ pCompile =
   Compile
     <$> pure icicleFingerprint
     <*> pMaximumQueriesPerKernel
-    <*> pInputDictionaryToml
+    <*> pInputDictionary
     <*> pOutputDictionarySea
 
 pCheck :: Parser Check
 pCheck =
   Check
-    <$> pInputDictionaryToml
+    <$> pInputDictionary
     <*> pColourOutput
 
 pMaximumQueriesPerKernel :: Parser MaximumQueriesPerKernel
@@ -130,13 +130,26 @@ pMaximumQueriesPerKernel =
     Options.metavar "QUERY_COUNT" <>
     Options.help "The maximum number of queries to include in each compute kernel."
 
-pInputDictionaryToml :: Parser InputDictionaryToml
+
+pInputDictionary :: Parser InputDictionary
+pInputDictionary =
+  pInputDictionaryToml <|> pInputDictionaryIcicle
+
+pInputDictionaryToml :: Parser InputDictionary
 pInputDictionaryToml =
   fmap InputDictionaryToml .
   Options.option Options.str $
     Options.long "input-toml" <>
     Options.metavar "DICTIONARY_TOML" <>
-    Options.help "Path to a TOML dictionary to compile."
+    Options.help "(deprecated) Path to a TOML dictionary to compile."
+
+pInputDictionaryIcicle :: Parser InputDictionary
+pInputDictionaryIcicle =
+  fmap InputDictionarySorbet .
+  Options.option Options.str $
+    Options.long "input-icicle" <>
+    Options.metavar "DICTIONARY_ICICLE" <>
+    Options.help "Path to a ICICLE dictionary to compile."
 
 pOutputDictionarySea :: Parser OutputDictionarySea
 pOutputDictionarySea =

@@ -9,7 +9,7 @@ module Icicle.Command.Compile (
 
   , Fingerprint(..)
   , MaximumQueriesPerKernel(..)
-  , InputDictionaryToml(..)
+  , InputDictionary(..)
   , OutputDictionarySea(..)
 
   , icicleCompile
@@ -47,30 +47,25 @@ import qualified Icicle.Storage.Dictionary.Toml   as Toml
 import           P
 
 import           System.IO as IO (IO, FilePath)
-import qualified System.FilePath as FilePath
-
-isToml :: FilePath -> Bool
-isToml =
-  (== ".toml") . FilePath.takeExtension
 
 data Compile =
   Compile {
       compileFingerprint :: !Fingerprint
     , compileMaximumQueriesPerKernel :: !MaximumQueriesPerKernel
-    , compileInputDictionary :: !InputDictionaryToml
+    , compileInputDictionary :: !InputDictionary
     , compileOutputDictionary :: !OutputDictionarySea
     } deriving (Eq, Ord, Show)
 
 data Check =
   Check {
-      checkInputDictionary :: !InputDictionaryToml
+      checkInputDictionary :: !InputDictionary
     , checkColourOutput    :: !Pretty.UseColor
     } deriving (Eq, Ord, Show)
 
-newtype InputDictionaryToml =
-  InputDictionaryToml {
-      unInputDictionaryToml :: FilePath
-    } deriving (Eq, Ord, Show)
+data InputDictionary
+  = InputDictionaryToml FilePath
+  | InputDictionarySorbet FilePath
+  deriving (Eq, Ord, Show)
 
 newtype OutputDictionarySea =
   OutputDictionarySea {
@@ -97,13 +92,14 @@ renderCompileError = \case
   CompileAvalancheError x ->
     "Failed to compile avalanche: " <> Runtime.renderRuntimeError x
 
-loadDictionary :: InputDictionaryToml -> EitherT CompileError IO Dictionary
-loadDictionary (InputDictionaryToml path) = do
+loadDictionary :: InputDictionary -> EitherT CompileError IO Dictionary
+loadDictionary input =
   firstT CompileLoadDictionaryError $
-    if isToml path then
-      Toml.loadDictionary Source.defaultCheckOptions Toml.ImplicitPrelude path
-    else
-      Sorbet.loadDictionary Source.defaultCheckOptions Toml.ImplicitPrelude path
+    case input of
+      InputDictionaryToml path ->
+        Toml.loadDictionary Source.defaultCheckOptions Toml.ImplicitPrelude path
+      InputDictionarySorbet path ->
+        Sorbet.loadDictionary Source.defaultCheckOptions Toml.ImplicitPrelude path
 
 compileDictionary ::
      Monad m
