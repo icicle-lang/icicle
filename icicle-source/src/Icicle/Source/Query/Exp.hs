@@ -119,30 +119,40 @@ class TraverseAnnot q where
 reannot :: TraverseAnnot q => (a -> a') -> q a n -> q a' n
 reannot = over traverseAnnot
 
-instance TraverseAnnot q => TraverseAnnot (Exp' q)  where
+instance TraverseAnnot q => TraverseAnnot (Exp' q) where
   traverseAnnot f xx =
     case xx of
-      Var    a n   -> Var    <$> f a <*> pure n
-      Lam    a n q -> Lam    <$> f a <*> pure n            <*> traverseAnnot f q
-      Nested a q   -> Nested <$> f a <*> traverseAnnot f q
-      App    a x y -> App    <$> f a <*> traverseAnnot f x <*> traverseAnnot f y
-      Prim   a p   -> Prim   <$> f a <*> pure p
-      If     a pred true false
-        -> If <$> f a <*> traverseAnnot f pred
-              <*> traverseAnnot f true <*> traverseAnnot f false
-      Case a scrut pats
-        -> Case <$> f a <*> traverseAnnot f scrut
-                <*> traverse (\(p,x) -> (p,) <$> traverseAnnot f x) pats
-      Access a x n
-        -> Access <$> f a <*> traverseAnnot f x <*> pure n
-
+      Var a n ->
+        Var <$> f a <*> pure n
+      Lam a n q ->
+        Lam <$> f a <*> pure n <*> traverseAnnot f q
+      Nested a q ->
+        Nested <$> f a <*> traverseAnnot f q
+      App a x y ->
+        App <$> f a <*> traverseAnnot f x <*> traverseAnnot f y
+      Prim a p ->
+        Prim <$> f a <*> pure p
+      If a pred true false ->
+        If
+          <$> f a
+          <*> traverseAnnot f pred
+          <*> traverseAnnot f true
+          <*> traverseAnnot f false
+      Case a scrut pats ->
+        Case
+          <$> f a
+          <*> traverseAnnot f scrut
+          <*> traverse (\(p, x) -> (p,) <$> traverseAnnot f x) pats
+      Access a x n ->
+        Access <$> f a <*> traverseAnnot f x <*> pure n
 
 instance TraverseAnnot q => TraverseAnnot (Decl' q) where
   traverseAnnot f decl =
     case decl of
-      DeclFun a n x -> DeclFun <$> f a <*> pure n <*> traverseAnnot f x
-      DeclType a n t -> DeclType <$> f a <*> pure n <*> pure t
-
+      DeclFun a n x ->
+        DeclFun <$> f a <*> pure n <*> traverseAnnot f x
+      DeclType a n t ->
+        DeclType <$> f a <*> pure n <*> pure t
 
 takeLams :: Exp' q a n -> ([(a, Name n)], Exp' q a n)
 takeLams (Lam a n x) =
