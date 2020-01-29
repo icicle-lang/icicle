@@ -200,8 +200,9 @@ defineFunction function =
     dictionary <- gets stateDictionary
 
     let
-      decaln (Source.DeclFun _ n _) = n
-      decln (Source.DeclType _ n _) = n
+      decln = \case
+        Source.DeclFun _ n _ -> n
+        Source.DeclType _ n _ -> n
 
       names =
         Set.fromList $ fmap decln parsed

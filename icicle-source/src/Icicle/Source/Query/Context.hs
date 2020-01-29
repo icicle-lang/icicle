@@ -21,6 +21,7 @@ import           Icicle.Common.Base
 import           P
 
 
+-- | Icicle Source Language Contexts.
 data Context' q a n
  = Windowed  a WindowUnit  (Maybe WindowUnit)
  | Latest    a Int
