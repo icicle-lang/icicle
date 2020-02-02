@@ -46,7 +46,7 @@ import           GHC.Generics (Generic)
 import           Icicle.Source.Query.Builtin
 import           Icicle.Source.Query.Constructor
 import           Icicle.Source.Query.Operators
-import           Icicle.Source.Type (Scheme)
+import           Icicle.Source.Type (Scheme, Annot (..))
 import           Icicle.Internal.Pretty
 import           Icicle.Common.Base
 
@@ -116,8 +116,17 @@ data Decl' q a n
 class TraverseAnnot q where
   traverseAnnot :: Applicative f => (a -> f a') -> q a n -> f (q a' n)
 
+
 reannot :: TraverseAnnot q => (a -> a') -> q a n -> q a' n
 reannot = over traverseAnnot
+
+
+instance TraverseAnnot Annot where
+  traverseAnnot f xx =
+    case xx of
+      Annot a r cs ->
+        Annot <$> f a <*> pure r <*> traverse (\(p, x) -> (,x) <$> f p) cs
+
 
 instance TraverseAnnot q => TraverseAnnot (Exp' q) where
   traverseAnnot f xx =

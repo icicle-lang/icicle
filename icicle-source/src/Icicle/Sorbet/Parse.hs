@@ -15,10 +15,12 @@ module Icicle.Sorbet.Parse (
   , sorbetUnresolvedInputId
 
   , ParseError (..)
-  , annotOfParseError
+  , positionedParseError
   ) where
 
 import           Data.String (String)
+import           Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.Text as Text
 
 import           Icicle.Sorbet.Abstract.Parser
 import           Icicle.Sorbet.Abstract.Tokens
@@ -105,9 +107,23 @@ instance Pretty ParseError where
       pretty (Mega.errorBundlePretty bundle)
 
 
-annotOfParseError :: ParseError -> Maybe Parsec.SourcePos
-annotOfParseError = \case
-  LayoutParseError (UnexpectedEndOfScope _ _ (Positioned s _ _)) ->
-    Just (toParsec s)
-  _ ->
-    Nothing
+positionedParseError :: ParseError -> NonEmpty (String, String, Position)
+positionedParseError = \case
+  LexParseError bundle ->
+    let
+      (withPositions, _) =
+        Mega.attachSourcePos Mega.errorOffset (Mega.bundleErrors bundle) (Mega.bundlePosState bundle)
+
+    in
+      fmap (\(e,p) -> ("Lexer", Mega.parseErrorTextPretty e, fromSourcePos p)) withPositions
+
+  LayoutParseError le@(UnexpectedEndOfScope _ _ (Positioned s _ _)) ->
+    ("Layout", Text.unpack (renderLayoutError le), s) :| []
+
+  AbstractParseError bundle ->
+    let
+      (withPositions, _) =
+        Mega.attachSourcePos Mega.errorOffset (Mega.bundleErrors bundle) (Mega.bundlePosState bundle)
+
+    in
+      fmap (\(e,p) -> ("Parser", Mega.parseErrorTextPretty e, fromSourcePos p)) withPositions

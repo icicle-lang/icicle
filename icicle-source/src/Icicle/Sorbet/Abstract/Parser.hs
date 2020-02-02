@@ -285,8 +285,9 @@ pPattern
 
 pExp :: Parser s m => m (Exp Position Var)
 pExp = do
+  o  <- Mega.getOffset
   xs <- some ((Left <$> pExp1) <|> pOp) <?> "expression"
-  either (fail . renderDefixError) return (defix xs)
+  either (failAtOffset o . renderDefixError) return (defix xs)
 
  where
   pOp = do (p, o) <- pVarOp <|> (, Operator ",") <$> pToken Tok_Comma
@@ -366,27 +367,18 @@ primitives
 
 pConstructor :: Parser s m => m (Position, Constructor)
 pConstructor
- = do (p, Construct n) <- pConId
+ = do o                <- Mega.getOffset
+      (p, Construct n) <- pConId
       case List.lookup n constructors of
         Just c -> return (p, c)
-        Nothing -> fail ("Not a known constructor: " <> show n)
+        Nothing -> failAtOffset o ("Not a known constructor: " <> show n)
 
 
 
 timePrimitives :: Parser s m => m Prim
 timePrimitives
- =   Mega.try  (Fun (BuiltinTime DaysBetween)
-            <$ pToken Tok_Days
-            <* pToken Tok_Between)
- <|> Mega.try  (Fun (BuiltinTime DaysJulianEpoch)
-             <$ pToken Tok_Days
-             <* Mega.notFollowedBy (pToken Tok_Before <|> pToken Tok_After))
- <|> Mega.try  (Fun (BuiltinTime SecondsBetween)
-            <$ pToken Tok_Seconds
-            <* pToken Tok_Between)
- <|> Mega.try  (Fun (BuiltinTime SecondsJulianEpoch)
-             <$ pToken Tok_Seconds
-             <* Mega.notFollowedBy (pToken Tok_Before <|> pToken Tok_After))
+ =   Fun (BuiltinTime DaysJulianEpoch) <$ pToken Tok_Days
+ <|> Fun (BuiltinTime SecondsJulianEpoch) <$ pToken Tok_Seconds
 
 
 pWindowSizeUnit :: Parser s m => m Common.WindowUnit

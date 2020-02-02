@@ -148,7 +148,7 @@ annotOfError e
     ErrorSourceDesugar e'
      -> Desugar.annotOfError e'
     ErrorSourceCheck       e'
-     -> Check.annotOfError  e'
+     -> Just (Check.annotOfError e')
     ErrorSourceResolveError _
      -> Nothing
 

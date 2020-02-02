@@ -17,9 +17,6 @@ import           Icicle.Dictionary.Data
 import           Icicle.Internal.Pretty                        hiding ((</>))
 
 import           Icicle.Source.Checker                         (CheckOptions (..))
-import qualified Icicle.Source.Parser                          as SP
-import           Icicle.Source.Query                           (QueryTop (..), Query (..), Exp, Decl)
-import qualified Icicle.Source.Query                           as SQ
 
 import           Icicle.Storage.Dictionary.Common
 import           Icicle.Storage.Dictionary.Data
@@ -30,19 +27,12 @@ import           Icicle.Storage.Dictionary.Toml.Types
 import qualified Control.Exception                             as E
 import           Control.Monad.Trans.Either
 
-import qualified Data.Map.Strict                               as Map
-
 import           System.FilePath
 import           System.IO
 
-import qualified Data.Set                                      as Set
-import qualified Data.Text                                     as T
-import qualified Data.Text.IO                                  as T
 import           Data.Validation (toEither)
 
-import           Text.Parsec                                   (SourcePos)
 import qualified Text.Parsec                                   as Parsec
-import qualified Text.Parsec.Pos                               as Parsec
 
 import           P
 

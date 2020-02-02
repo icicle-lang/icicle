@@ -25,7 +25,7 @@ data BuiltinFun
 --   directly written in by the Parser.
 listOfWiredFuns :: [BuiltinFun]
 listOfWiredFuns = concat
-  [ fmap BuiltinTime    [DaysBetween, DaysJulianEpoch, SecondsBetween, SecondsJulianEpoch]
+  [ fmap BuiltinTime    [ DaysJulianEpoch, SecondsBetween ]
   ]
 
 -- | Functions wired in through the type
@@ -39,7 +39,7 @@ listOfIntroducedFuns = concat
   , fmap BuiltinData    [minBound..maxBound]
   , fmap BuiltinArray   [minBound..maxBound]
   , fmap BuiltinMap     [minBound..maxBound]
-  , fmap BuiltinTime    [ProjectDay, ProjectMonth, ProjectYear]
+  , fmap BuiltinTime    [ProjectDay, ProjectMonth, ProjectYear, DaysBetween, SecondsJulianEpoch]
   ]
 
 data BuiltinMath
@@ -73,8 +73,8 @@ data BuiltinText
 
 data BuiltinTime
  = DaysBetween
- | DaysJulianEpoch
  | SecondsBetween
+ | DaysJulianEpoch
  | SecondsJulianEpoch
  | ProjectDay
  | ProjectMonth
@@ -147,9 +147,9 @@ instance Pretty BuiltinText where
  pretty ToUpper    = "toupper"
 
 instance Pretty BuiltinTime where
- pretty DaysBetween        = "days between"
+ pretty DaysBetween        = "days_between"
+ pretty SecondsBetween     = "seconds_between"
  pretty DaysJulianEpoch    = "days"
- pretty SecondsBetween     = "seconds between"
  pretty SecondsJulianEpoch = "seconds"
  pretty ProjectDay         = "day_of"
  pretty ProjectMonth       = "month_of"

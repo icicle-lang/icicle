@@ -191,12 +191,12 @@ variance v =
     fold (n, m, m2) =
       (0, 0, 0) then
         let
-          nn = n + 1
+          n = n + 1
           d = v - m
-          mm = m + d / nn
-          m22 = m2 + d * (v - mm)
+          m = m + d / n
+          m2 = m2 + d * (v - m)
         in
-          (nn, mm, m22)
+          (n, m, m2)
     in
       m2 / (n - 1)
 
@@ -216,14 +216,14 @@ covariance a b =
     fold (n, m1, m2, m12) =
       (0, 0, 0, 0) then
         let
-          nn   = n + 1
-          d1   = (a - m1) / nn
-          mm1  = m1 + d1
-          d2   = (b - m2) / nn
-          mm2  = m2 + d2
-          mm12 = m12 + n * d1 * d2 - m12 / nn
+          n   = n + 1
+          d1  = (a - m1) / n
+          m1  = m1 + d1
+          d2  = (b - m2) / n
+          m2  = m2 + d2
+          m12 = m12 + n * d1 * d2 - m12 / n
         in
-          (nn, mm1, mm2, mm12)
+          (n, m1, m2, m12)
     in
       m12 * n / (n - 1)
 
@@ -323,3 +323,49 @@ circular_stats theta =
       z_test = n * radius * radius
     in
       (mean, sd, z_test)
+
+
+--------------------------------------------------------------------------------
+-- Time and Date Statistics
+--------------------------------------------------------------------------------
+
+
+-- Count the days that an entity has spent in different states.
+-- e.g. days-in state time now = [("NSW", 20), ("QLD", 1)]
+days_in : Element a -> Element Time -> Aggregate Time -> Aggregate (Possibly (Group a Int))
+days_in x tx now =
+    fold (s, nv, m) =
+      (None, 0, map_create) then
+        case s of
+          None then
+            (Some (x, tx), 1, m)
+
+          Some (v, tv) then
+            let
+              nx = days_between tv tx
+              n  = nv + nx
+            in
+              if v == x then
+                (Some (x, tx), nv + nx, m)
+              else
+                let
+                  m' =
+                    case (map_lookup v m) of
+                      None then
+                        map_insert v n m
+                      Some nv' then
+                        map_insert v (n + nv') m
+                in
+                  (Some (x, tx), 0, m')
+  in
+    let
+      x_new   = newest x
+      tx_new  = newest tx
+      tx_days = days_between tx_new now
+  in
+    case (map_lookup x_new m) of
+      None then
+        map_insert x_new tx_days m
+      Some n then
+        map_insert x_new (tx_days + n) m
+

@@ -138,13 +138,6 @@ pInput ns = do
     DictionaryInput' (InputId ns n) vt Nothing (ConcreteKey' Nothing)
 
 
-pPositionedFail :: Parser s m => m a -> (a -> Maybe b) -> String -> m b
-pPositionedFail x check err = do
-  o <- Mega.getOffset
-  v <- x
-  maybe (Mega.setOffset o >> fail err) pure (check v)
-
-
 pOutput :: Parser s m => Namespace -> m DictionaryOutput'
 pOutput ns = do
   _      <- pToken Tok_Feature
