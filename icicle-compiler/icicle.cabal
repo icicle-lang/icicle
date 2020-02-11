@@ -269,7 +269,7 @@ test-suite test
                      , parsec
                      , pretty-show
                      , hashable
-                     , hedgehog
+                     , hedgehog                        >= 1.0.2      && < 1.1
                      , hedgehog-quickcheck
                      , unordered-containers
                      , QuickCheck

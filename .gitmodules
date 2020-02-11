@@ -25,6 +25,3 @@
 [submodule "lib/viking"]
 	path = lib/viking
 	url = ../viking
-[submodule "lib/haskell-hedgehog"]
-	path = lib/haskell-hedgehog
-	url = https://github.com/hedgehogqa/haskell-hedgehog.git
