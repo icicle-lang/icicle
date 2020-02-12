@@ -107,10 +107,8 @@ type Fun = BuiltinFun
 
 
 data Decl' q a n
-  = DeclFun a (Name n) (Exp' q a n)
-  | DeclType a (Name n) (Scheme n)
+  = DeclFun a (Name n) (Maybe (Scheme n)) (Exp' q a n)
   deriving (Eq, Show)
-
 
 
 class TraverseAnnot q where
@@ -158,10 +156,8 @@ instance TraverseAnnot q => TraverseAnnot (Exp' q) where
 instance TraverseAnnot q => TraverseAnnot (Decl' q) where
   traverseAnnot f decl =
     case decl of
-      DeclFun a n x ->
-        DeclFun <$> f a <*> pure n <*> traverseAnnot f x
-      DeclType a n t ->
-        DeclType <$> f a <*> pure n <*> pure t
+      DeclFun a n t x ->
+        DeclFun <$> f a <*> pure n <*> pure t <*> traverseAnnot f x
 
 takeLams :: Exp' q a n -> ([(a, Name n)], Exp' q a n)
 takeLams (Lam a n x) =

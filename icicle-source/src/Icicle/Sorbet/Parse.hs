@@ -37,8 +37,6 @@ import           Icicle.Data.Name
 
 import           P
 
-import qualified Text.Parsec.Pos as Parsec
-
 import qualified Text.Megaparsec as Mega
 import           Text.Megaparsec (MonadParsec)
 

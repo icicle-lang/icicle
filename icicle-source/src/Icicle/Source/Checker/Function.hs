@@ -44,38 +44,33 @@ checkFs :: (Hashable n, Eq n, Pretty n)
                    (FunEnvT a n, [[CheckLog a n]])
 
 checkFs env decls
- = foldlM go (env,[]) functions
+ = foldlM go (env,[]) decls
  where
-  functions = [((a, n), x) | DeclFun a n x <- decls]
-  sigs = Map.fromList [(n, t) | DeclType _ n t <- decls]
-
-  go (env0,logs0) (name,fun)
+  go (env0,logs0) decl@(DeclFun ann name _ _)
    = do
     let envMap = Map.fromList $ fmap ((,) <$> functionName <*> functionType) env0
-    (checkResult,logs') <- lift $ checkF envMap sigs name fun
+    (checkResult,logs') <- lift $ checkF envMap decl
     (annotfun, funtype) <- hoistEither $ first (,logs') checkResult
-    if List.elem (snd name) (fmap functionName env0)
-    then hoistEither $ Left $ (CheckError (ErrorDuplicateFunctionNames (fst name) (snd name)) [], [])
-    else pure (env0 <> [ResolvedFunction (snd name) funtype annotfun], logs0 <> [logs'])
+    if List.elem name (fmap functionName env0)
+    then hoistEither $ Left $ (CheckError (ErrorDuplicateFunctionNames ann name) [], [])
+    else pure (env0 <> [ResolvedFunction name funtype annotfun], logs0 <> [logs'])
 
 checkF  :: (Hashable n, Eq n, Pretty n)
         => Map.Map (Name n) (Scheme n)
-        -> Map.Map (Name n) (Scheme n)
-        -> (a, Name n)
-        -> Exp a n
+        -> Decl a n
         -> (Fresh.Fresh n) (Either (CheckError a n) (Exp (Annot a n) n, Scheme n), [CheckLog a n])
 
-checkF env sigs name fun
- = evalGen $ checkF' fun env >>= constrain sigs name
+checkF env (DeclFun a _ t fun)
+ = evalGen $ checkF' fun env >>= constrain a t
 
 
 constrain :: (Hashable n, Eq n, Pretty n)
-          => Map.Map (Name n) (Scheme n)
-          -> (a, Name n)
+          => a
+          -> Maybe (Scheme n)
           -> (Exp (Annot a n) n, Scheme n)
           -> Gen a n (Exp (Annot a n) n, Scheme n)
-constrain sigs (ann, nm) (x, inferred) = do
-  case Map.lookup nm sigs of
+constrain ann sig (x, inferred) = do
+  case sig of
     -- No explicit type signature
     -- Return the inferred result.
     Nothing ->

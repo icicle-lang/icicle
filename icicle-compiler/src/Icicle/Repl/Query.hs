@@ -201,8 +201,7 @@ defineFunction function =
 
     let
       decln = \case
-        Source.DeclFun _ n _ -> n
-        Source.DeclType _ n _ -> n
+        Source.DeclFun _ n _ _ -> n
 
       names =
         Set.fromList $ fmap decln parsed

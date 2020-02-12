@@ -79,6 +79,11 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
           , prettyAnnotK "else" a
           , indent 4 $ pretty (PrettyAnnot false)
           ]
+
+
+      Access _ expression field ->
+        pretty expression <> "." <> pretty field
+
    where
     annotPrim a p
      | primRequiresAnnot p

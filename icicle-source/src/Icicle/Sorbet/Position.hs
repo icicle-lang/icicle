@@ -146,9 +146,9 @@ toSourcePos = \case
 
 fromSourcePos :: SourcePos -> Position
 fromSourcePos = \case
-  SourcePos file line col ->
+  SourcePos file srcLine col ->
     Position file
-      (fromIntegral $ unPos line)
+      (fromIntegral $ unPos srcLine)
       (fromIntegral $ unPos col)
 
 

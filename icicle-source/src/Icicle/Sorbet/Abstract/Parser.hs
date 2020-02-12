@@ -43,8 +43,8 @@ import           Icicle.Sorbet.Position
 import           Icicle.Common.Base as Common
 import           Icicle.Data.Name
 import           Icicle.Data.Time (Date (..), midnight)
+import           Icicle.Internal.Pretty (pretty)
 import           Icicle.Source.Query
-import           Icicle.Source.Type
 import           Icicle.Source.Parser.Constructor (checkPat, constructors)
 import           Icicle.Source.Parser.Operators
 
@@ -88,14 +88,28 @@ pDecl = do
   (pos, var) <- pVariable
 
   -- Read the rest of the function or type signature.
-  DeclFun pos var <$> pFunction <|> DeclType pos var <$> pDeclType
+  DeclFun pos var Nothing <$> pFunction <|> pDeclTyped pos var
 
 
-pDeclType :: Parser s m => m (Scheme Var)
-pDeclType = do
-  _ <- pToken Tok_Colon
-  pTypeScheme
+pDeclTyped :: Parser s m => Position -> Name Var -> m (Decl Position Var)
+pDeclTyped pos typName = do
+  _        <- pToken Tok_Colon
+  s        <- pTypeScheme
+  _        <- pToken Tok_Semi
+  offset   <- Mega.getOffset
+  (_, var) <- pVariable
+  unless (typName == var) $
+    failAtOffset offset $ List.unlines
+      [ "Name declared in type annotation:"
+      , "  " <> show (pretty typName)
+      , ""
+      , "doesn't match the name defined for the expression:"
+      , "  " <> show (pretty var)
+      ]
 
+  fun      <- pFunction
+  return $
+    DeclFun pos var (Just s) fun
 
 
 pFunction :: Parser s m => m (Exp Position Var)

@@ -37,6 +37,7 @@ data EvalError a n
  | EvalErrorPrimBadArgs      a Prim [BaseValue]
 
  | EvalErrorExpNeitherSort   a (Exp a n)
+ | EvalErrorBadMapLookup     a (Exp a n)
 
  | EvalErrorApplicationOfNonPrimitive a (Exp a n)
 
@@ -199,6 +200,18 @@ evalX x vs env
     Case _ scrut pats
      -> do scrut' <- evalX scrut vs env
            goPats scrut' pats
+
+    Access ann expression field
+     -> do m <- evalX expression vs env
+           case m of
+             VStruct mm ->
+               case Map.lookup field mm of
+                 Just xx ->
+                     Right xx
+                 Nothing ->
+                    Left $ EvalErrorBadMapLookup ann x
+             _ ->
+               Left $ EvalErrorBadMapLookup ann x
 
  where
   goPats v []
