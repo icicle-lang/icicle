@@ -197,7 +197,17 @@ simpleEqualityConstraints
      ,("DataOfLatest",            three . CDataOfLatest)
      ,("PossibilityOfLatest",     two   . CPossibilityOfLatest)
      ,("PossibilityJoin",         two   . CPossibilityJoin)
+     ,("HasField",                  \k -> CHasField k <$> (snd <$> pTypeSimple) <*> pField)
      ]
+  where
+    pField :: Parser s m => m StructField
+    pField =
+      label "field" .
+      tryToken $ \_ -> \case
+        Tok_VarId fieldId ->
+          Just (StructField fieldId)
+        _ ->
+          Nothing
 
 -- | Shunt infix type operators to a type.
 --
