@@ -36,7 +36,7 @@ type Var = Variable
 
 pTypeScheme :: Parser s m => m (Scheme Var)
 pTypeScheme = do
-  (_, constraints) <- List.unzip <$> many (try pConstraint)
+  (_, constraints) <- List.unzip <$> many pConstraint
   (_, typ)         <- pType
   let
     freeVars =
@@ -164,25 +164,30 @@ pConstraintSingle =
 pConstraintSimple :: Parser s m => m (Position, Constraint Var)
 pConstraintSimple =
   label "type constraint" $ do
-    o  <- Mega.getOffset
-    (p, Construct n) <- pConId
-    case List.lookup n simpleConstraints of
-      Just c  -> do rest <- c; return (p, rest)
-      Nothing -> failAtOffset o ("Not a type constructor: " <> show n)
+    o <- Mega.getOffset
+    (p, c) <- try $ do
+      (p, Construct n) <- pConId
+      case List.lookup n simpleConstraints of
+        Just c  -> return (p, c)
+        Nothing -> failAtOffset o ("Not a constraint: " <> show n)
+    rest <- c
+    return (p, rest)
 
 
 simpleConstraints :: Parser s m => [(Text, m (Constraint Var))]
 simpleConstraints
-   = [("Num",                  one CIsNum)
-     ]
+   = [("Num", one CIsNum)]
 
 
 pEqualityConstraint :: Parser s m => m (Position, Constraint Var)
 pEqualityConstraint =
   label "equality constraint" $ do
+    (p, ret) <- try $ do
+      s <- pTypeSimple
+      _ <- pToken Tok_EqualsColon
+      return s
+
     o                <- Mega.getOffset
-    (p, ret)         <- pTypeSimple
-    _                <- pToken Tok_EqualsColon
     (_, Construct n) <- pConId
     case List.lookup n simpleEqualityConstraints of
       Just c  -> do rest <- c ret; return (p, rest)
@@ -197,7 +202,7 @@ simpleEqualityConstraints
      ,("DataOfLatest",            three . CDataOfLatest)
      ,("PossibilityOfLatest",     two   . CPossibilityOfLatest)
      ,("PossibilityJoin",         two   . CPossibilityJoin)
-     ,("HasField",                  \k -> CHasField k <$> (snd <$> pTypeSimple) <*> pField)
+     ,("HasField",          \k -> one    (CHasField k) <*> pField)
      ]
   where
     pField :: Parser s m => m StructField

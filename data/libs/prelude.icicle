@@ -46,27 +46,30 @@ not b = if b then False else True
 
 
 is_some : Option a -> Bool
-is_some o = case o of
-  Some _ then
-    True
-  None then
-    False
+is_some o =
+  case o of
+    Some _ then
+      True
+    None then
+      False
 
 
 is_none : Option a -> Bool
-is_none o = case o of
-  Some _ then
-    False
-  None then
-    True
+is_none o =
+  case o of
+    Some _ then
+      False
+    None then
+      True
 
 
 get : Option a -> Possibly a
-get a = case a of
-  Some a' then
-    a'
-  None then
-    box (Left ExceptTombstone)
+get a =
+  case a of
+    Some a' then
+      a'
+    None then
+      box (Left ExceptTombstone)
 
 
 get_or_else : a -> Option a -> a
@@ -255,6 +258,7 @@ numflips v =
         (v, i + 1)
   in
     from_integer i
+
 
 -- Version of num flips which will accommodate
 -- tombstone values by having the tombstone
