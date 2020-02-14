@@ -28,10 +28,8 @@ module Icicle.Storage.Dictionary.Sorbet.Parser (
   ) where
 
 import qualified Data.Char as Char
-import qualified Data.List as List
 import qualified Data.Text as Text
-import           Data.String (String, unlines)
-import           Data.Scientific (toRealFloat)
+import           Data.String (unlines)
 
 import           Icicle.Sorbet.Abstract.Parser
 import           Icicle.Sorbet.Abstract.Tokens
@@ -40,23 +38,16 @@ import           Icicle.Sorbet.Abstract.Type
 import           Icicle.Sorbet.Lexical.Syntax
 import           Icicle.Sorbet.Position
 
-import           Icicle.Common.Base as Common
 import           Icicle.Data.Name
-import           Icicle.Data.Time (Date (..), midnight)
 import           Icicle.Source.Query
 import           Icicle.Source.Type
-import           Icicle.Source.Parser.Constructor (checkPat, constructors)
-import           Icicle.Source.Parser.Operators
 
 import           Icicle.Storage.Dictionary.Data
 
 
 import           P
 
-import           Text.Megaparsec (choice)
 import qualified Text.Megaparsec as Mega
-
-type Var = Variable
 
 
 pDictionary :: Parser s m => m (DictionaryConfig, [DictionaryInput'], [DictionaryOutput'])
@@ -64,11 +55,11 @@ pDictionary = do
   name    <- pDictionaryName
 
   let
-    namespace = do
+    namespaceText = do
       (c,cs) <- Text.uncons name
       parseNamespace $ Text.cons (Char.toLower c) cs
 
-  nspace  <- maybe (fail "Invalid namespace") pure namespace
+  nspace  <- maybe (fail "Invalid namespace") pure namespaceText
   _       <- pToken Tok_LBrace
   imports <- pImport `Mega.sepEndBy` pToken Tok_Semi
   ios     <- (fmap Left (pInput nspace) <|> fmap Right (pOutput nspace)) `Mega.sepEndBy` pToken Tok_Semi
@@ -136,13 +127,6 @@ pInput ns = do
 
   pure $
     DictionaryInput' (InputId ns n) vt Nothing (ConcreteKey' Nothing)
-
-
-pPositionedFail :: Parser s m => m a -> (a -> Maybe b) -> String -> m b
-pPositionedFail x check err = do
-  o <- Mega.getOffset
-  v <- x
-  maybe (Mega.setOffset o >> fail err) pure (check v)
 
 
 pOutput :: Parser s m => Namespace -> m DictionaryOutput'

@@ -29,7 +29,6 @@ import           Icicle.Test.Arbitrary.Program
 import qualified Icicle.Compiler        as Compiler
 import qualified Icicle.Compiler.Source as Source
 import qualified Icicle.Core as Core
-import qualified Icicle.Data as Data
 import qualified Icicle.Source.Lexer.Token as T
 import qualified Icicle.Storage.Dictionary.Sorbet as DictionaryLoad
 

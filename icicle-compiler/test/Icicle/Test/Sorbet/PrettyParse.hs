@@ -13,8 +13,6 @@ import           P
 import qualified Data.Text as Text
 import           Data.String
 
-import qualified Text.Megaparsec as Mega
-
 import           System.IO
 
 import           Hedgehog hiding (Var)
@@ -24,9 +22,7 @@ import           Icicle.Common.Base
 import           Icicle.Internal.Pretty
 
 import           Icicle.Sorbet.Parse
-import           Icicle.Sorbet.Lexical.Lexer
 import           Icicle.Sorbet.Render
-import           Icicle.Sorbet.Abstract.Type
 
 import           Icicle.Source.Query as Query
 import           Icicle.Source.Type  as Type

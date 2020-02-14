@@ -46,7 +46,7 @@ import           GHC.Generics (Generic)
 import           Icicle.Source.Query.Builtin
 import           Icicle.Source.Query.Constructor
 import           Icicle.Source.Query.Operators
-import           Icicle.Source.Type (Scheme)
+import           Icicle.Source.Type (Scheme, Annot (..))
 import           Icicle.Internal.Pretty
 import           Icicle.Common.Base
 
@@ -107,17 +107,24 @@ type Fun = BuiltinFun
 
 
 data Decl' q a n
-  = DeclFun a (Name n) (Exp' q a n)
-  | DeclType a (Name n) (Scheme n)
+  = DeclFun a (Name n) (Maybe (Scheme n)) (Exp' q a n)
   deriving (Eq, Show)
-
 
 
 class TraverseAnnot q where
   traverseAnnot :: Applicative f => (a -> f a') -> q a n -> f (q a' n)
 
+
 reannot :: TraverseAnnot q => (a -> a') -> q a n -> q a' n
 reannot = over traverseAnnot
+
+
+instance TraverseAnnot Annot where
+  traverseAnnot f xx =
+    case xx of
+      Annot a r cs ->
+        Annot <$> f a <*> pure r <*> traverse (\(p, x) -> (,x) <$> f p) cs
+
 
 instance TraverseAnnot q => TraverseAnnot (Exp' q) where
   traverseAnnot f xx =
@@ -149,10 +156,8 @@ instance TraverseAnnot q => TraverseAnnot (Exp' q) where
 instance TraverseAnnot q => TraverseAnnot (Decl' q) where
   traverseAnnot f decl =
     case decl of
-      DeclFun a n x ->
-        DeclFun <$> f a <*> pure n <*> traverseAnnot f x
-      DeclType a n t ->
-        DeclType <$> f a <*> pure n <*> pure t
+      DeclFun a n t x ->
+        DeclFun <$> f a <*> pure n <*> pure t <*> traverseAnnot f x
 
 takeLams :: Exp' q a n -> ([(a, Name n)], Exp' q a n)
 takeLams (Lam a n x) =

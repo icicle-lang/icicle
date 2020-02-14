@@ -201,6 +201,7 @@ reserved =
     , "else"
     , "from"
     , "in"
+    , "~>"
     , "let"
     , "windowed"
     , "group"

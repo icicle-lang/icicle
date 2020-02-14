@@ -15,6 +15,8 @@ module Icicle.Sorbet.Position (
 
   , renderPosition
   , toParsec
+  , fromParsec
+  , fromSourcePos
   ) where
 
 import qualified Data.List.NonEmpty as NonEmpty
@@ -142,10 +144,25 @@ toSourcePos = \case
       (mkPos srcCol)
 
 
+fromSourcePos :: SourcePos -> Position
+fromSourcePos = \case
+  SourcePos file srcLine col ->
+    Position file
+      (fromIntegral $ unPos srcLine)
+      (fromIntegral $ unPos col)
+
+
 toParsec :: Position -> Parsec.SourcePos
 toParsec = \case
   Position file srcLine col ->
     Parsec.newPos file srcLine col
+
+
+
+fromParsec ::  Parsec.SourcePos -> Position
+fromParsec =
+  Position <$> Parsec.sourceName <*> Parsec.sourceLine <*> Parsec.sourceColumn
+
 
 instance Pretty Position where
   pretty =

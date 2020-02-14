@@ -131,6 +131,15 @@ library
                        Icicle.Internal.Rename
                        Icicle.Internal.WrappedResourceT
 
+                       Icicle.LSP.Driver
+                       Icicle.LSP.Interface
+                       Icicle.LSP.Protocol
+                       Icicle.LSP.Protocol.Base
+                       Icicle.LSP.Protocol.Initialize
+                       Icicle.LSP.Protocol.Request
+                       Icicle.LSP.State
+                       Icicle.LSP.Task.Diagnostics
+
                        Icicle.Repl
                        Icicle.Repl.Completion
                        Icicle.Repl.Data

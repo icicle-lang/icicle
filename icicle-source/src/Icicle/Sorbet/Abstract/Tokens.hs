@@ -34,6 +34,9 @@ module Icicle.Sorbet.Abstract.Tokens (
   , (<?>)
   , sepBy1
   , position
+
+  , failAtOffset
+  , pPositionedFail
   ) where
 
 import           Data.List.NonEmpty (NonEmpty(..))
@@ -203,3 +206,17 @@ position = do
     Position file
       (fromIntegral $ Mega.unPos line)
       (fromIntegral $ Mega.unPos col)
+
+
+failAtOffset :: Parser s m => Int -> String -> m b
+failAtOffset offset errMsg =
+  Mega.setOffset offset >> fail errMsg
+
+
+
+pPositionedFail :: Parser s m => m a -> (a -> Maybe b) -> String -> m b
+pPositionedFail x check err = do
+  o <- Mega.getOffset
+  v <- x
+  maybe (failAtOffset o err) pure (check v)
+

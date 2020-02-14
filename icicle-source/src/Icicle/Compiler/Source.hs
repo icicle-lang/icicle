@@ -64,7 +64,6 @@ import qualified Icicle.Dictionary                        as Dict
 import           Icicle.Internal.Pretty
 
 import qualified Icicle.Sorbet.Parse                      as Parse
-import qualified Icicle.Sorbet.Position                   as Parse
 import qualified Icicle.Source.Checker                    as Check
 import qualified Icicle.Source.Parser                     as Parse
 import qualified Icicle.Source.Query                      as Query
@@ -81,7 +80,6 @@ import           Data.String
 import           Data.Hashable                            (Hashable)
 
 import qualified Text.ParserCombinators.Parsec            as Parsec
-import qualified Text.Parsec.Pos                          as Parsec
 
 import           GHC.Generics                             (Generic)
 
@@ -148,7 +146,7 @@ annotOfError e
     ErrorSourceDesugar e'
      -> Desugar.annotOfError e'
     ErrorSourceCheck       e'
-     -> Check.annotOfError  e'
+     -> Just (Check.annotOfError e')
     ErrorSourceResolveError _
      -> Nothing
 
@@ -234,10 +232,9 @@ sourceDesugarDecl
  :: Query.Decl Parsec.SourcePos Var
  -> Fresh.FreshT Var (EitherT (Desugar.DesugarError Parsec.SourcePos Var) Identity)
                      (Query.Decl Parsec.SourcePos Var)
-sourceDesugarDecl (Query.DeclFun a ns x)
- = Query.DeclFun a ns <$> Desugar.desugarX x
-sourceDesugarDecl declType
- = return declType
+sourceDesugarDecl (Query.DeclFun a ns t x)
+ = Query.DeclFun a ns t <$> Desugar.desugarX x
+
 
 sourceDesugarF :: Funs Parsec.SourcePos Var
                -> Either (ErrorSource Var) (Funs Parsec.SourcePos Var)

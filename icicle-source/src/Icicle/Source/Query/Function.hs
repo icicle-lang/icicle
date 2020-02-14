@@ -60,3 +60,10 @@ instance Pretty n => Pretty (ResolvedFunction a n) where
 
   prettyList =
     align . vsep . fmap pretty
+
+
+instance TraverseAnnot ResolvedFunction where
+  traverseAnnot f xx =
+    case xx of
+      ResolvedFunction n t q ->
+        ResolvedFunction n t <$> traverseAnnot (traverseAnnot f) q

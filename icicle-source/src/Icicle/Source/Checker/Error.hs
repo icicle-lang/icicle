@@ -59,43 +59,43 @@ data ErrorInfo a n
 
 instance (NFData a, NFData n) => NFData (ErrorInfo a n)
 
-annotOfError :: CheckError a n -> Maybe a
+annotOfError :: CheckError a n -> a
 annotOfError (CheckError e _)
  = case e of
     ErrorNoSuchVariable a _
-     -> Just a
+     -> a
     ErrorNoSuchInput a _
-     -> Just a
+     -> a
     ErrorContextNotAllowedHere  a _
-     -> Just a
+     -> a
     ErrorFunctionWrongArgs      a _ _ _
-     -> Just a
+     -> a
     ErrorSchemesMatchError      a _ _
-     -> Just a
+     -> a
     ErrorApplicationNotFunction a _
-     -> Just a
+     -> a
     ErrorConstraintsNotSatisfied          a _
-     -> Just a
+     -> a
     ErrorConstraintLeftover a _
-     -> Just a
+     -> a
     ErrorCantInferConstraints a _ _
-     -> Just a
+     -> a
     ErrorReturnNotAggregate          a _
-     -> Just a
+     -> a
     ErrorDuplicateFunctionNames      a _
-     -> Just a
+     -> a
     ErrorEmptyCase          a _
-     -> Just a
+     -> a
     ErrorPartialBinding        a _
-     -> Just a
+     -> a
     ErrorCaseBadPattern          a _
-     -> Just a
+     -> a
     ErrorResumableFoldNotAllowedHere a _
-     -> Just a
+     -> a
     ErrorInFunctionCall a _ _
-     -> Just a
+     -> a
     ErrorImpossible a
-     -> Just a
+     -> a
 
 data ErrorSuggestion a n
  = AvailableFeatures UnresolvedInputId [(InputId, Type n)]

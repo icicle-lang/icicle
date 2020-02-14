@@ -43,8 +43,8 @@ import           Icicle.Sorbet.Position
 import           Icicle.Common.Base as Common
 import           Icicle.Data.Name
 import           Icicle.Data.Time (Date (..), midnight)
+import           Icicle.Internal.Pretty (pretty)
 import           Icicle.Source.Query
-import           Icicle.Source.Type
 import           Icicle.Source.Parser.Constructor (checkPat, constructors)
 import           Icicle.Source.Parser.Operators
 
@@ -88,14 +88,28 @@ pDecl = do
   (pos, var) <- pVariable
 
   -- Read the rest of the function or type signature.
-  DeclFun pos var <$> pFunction <|> DeclType pos var <$> pDeclType
+  DeclFun pos var Nothing <$> pFunction <|> pDeclTyped pos var
 
 
-pDeclType :: Parser s m => m (Scheme Var)
-pDeclType = do
-  _ <- pToken Tok_Colon
-  pTypeScheme
+pDeclTyped :: Parser s m => Position -> Name Var -> m (Decl Position Var)
+pDeclTyped pos typName = do
+  _        <- pToken Tok_Colon
+  s        <- pTypeScheme
+  _        <- pToken Tok_Semi
+  offset   <- Mega.getOffset
+  (_, var) <- pVariable
+  unless (typName == var) $
+    failAtOffset offset $ List.unlines
+      [ "Name declared in type annotation:"
+      , "  " <> show (pretty typName)
+      , ""
+      , "doesn't match the name defined for the expression:"
+      , "  " <> show (pretty var)
+      ]
 
+  fun      <- pFunction
+  return $
+    DeclFun pos var (Just s) fun
 
 
 pFunction :: Parser s m => m (Exp Position Var)
@@ -285,8 +299,9 @@ pPattern
 
 pExp :: Parser s m => m (Exp Position Var)
 pExp = do
+  o  <- Mega.getOffset
   xs <- some ((Left <$> pExp1) <|> pOp) <?> "expression"
-  either (fail . renderDefixError) return (defix xs)
+  either (failAtOffset o . renderDefixError) return (defix xs)
 
  where
   pOp = do (p, o) <- pVarOp <|> (, Operator ",") <$> pToken Tok_Comma
@@ -366,27 +381,18 @@ primitives
 
 pConstructor :: Parser s m => m (Position, Constructor)
 pConstructor
- = do (p, Construct n) <- pConId
+ = do o                <- Mega.getOffset
+      (p, Construct n) <- pConId
       case List.lookup n constructors of
         Just c -> return (p, c)
-        Nothing -> fail ("Not a known constructor: " <> show n)
+        Nothing -> failAtOffset o ("Not a known constructor: " <> show n)
 
 
 
 timePrimitives :: Parser s m => m Prim
 timePrimitives
- =   Mega.try  (Fun (BuiltinTime DaysBetween)
-            <$ pToken Tok_Days
-            <* pToken Tok_Between)
- <|> Mega.try  (Fun (BuiltinTime DaysJulianEpoch)
-             <$ pToken Tok_Days
-             <* Mega.notFollowedBy (pToken Tok_Before <|> pToken Tok_After))
- <|> Mega.try  (Fun (BuiltinTime SecondsBetween)
-            <$ pToken Tok_Seconds
-            <* pToken Tok_Between)
- <|> Mega.try  (Fun (BuiltinTime SecondsJulianEpoch)
-             <$ pToken Tok_Seconds
-             <* Mega.notFollowedBy (pToken Tok_Before <|> pToken Tok_After))
+ =   Fun (BuiltinTime DaysJulianEpoch) <$ pToken Tok_Days
+ <|> Fun (BuiltinTime SecondsJulianEpoch) <$ pToken Tok_Seconds
 
 
 pWindowSizeUnit :: Parser s m => m Common.WindowUnit

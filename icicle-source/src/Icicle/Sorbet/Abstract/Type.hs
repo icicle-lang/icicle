@@ -36,7 +36,7 @@ type Var = Variable
 
 pTypeScheme :: Parser s m => m (Scheme Var)
 pTypeScheme = do
-  (_, constraints) <- List.unzip <$> many (try pConstraint)
+  (_, constraints) <- List.unzip <$> many pConstraint
   (_, typ)         <- pType
   let
     freeVars =
@@ -57,9 +57,10 @@ pConstraint =
 pType :: Parser s m => m (Position, Type Var)
 pType =
   label "type" $ do
+    o  <- Mega.getOffset
     p  <- position
     xs <- some ((Left <$> pTypeSimple) <|> (Right <$> pTypeOperator)) <?> "expression"
-    either fail (\t -> return (p, t)) (defixType xs)
+    either (failAtOffset o) (\t -> return (p, t)) (defixType xs)
 
 
 pTypeSimple :: Parser s m => m (Position, Type Var)
@@ -92,10 +93,11 @@ pTypeOperator =
 pTypeSingle :: Parser s m => m (Position, Type Var)
 pTypeSingle =
   label "type constructor" $ do
+    o                <- Mega.getOffset
     (p, Construct n) <- pConId
     case List.lookup n simpleTypes of
       Just c  -> do rest <- c; return (p, rest)
-      Nothing -> fail ("Not a type constructor: " <> show n)
+      Nothing -> failAtOffset o ("Not a type constructor: " <> show n)
 
 
 pTypeVar :: Parser s m => m (Position, Type Var)
@@ -162,27 +164,34 @@ pConstraintSingle =
 pConstraintSimple :: Parser s m => m (Position, Constraint Var)
 pConstraintSimple =
   label "type constraint" $ do
-    (p, Construct n) <- pConId
-    case List.lookup n simpleConstraints of
-      Just c  -> do rest <- c; return (p, rest)
-      Nothing -> fail ("Not a type constructor: " <> show n)
+    o <- Mega.getOffset
+    (p, c) <- try $ do
+      (p, Construct n) <- pConId
+      case List.lookup n simpleConstraints of
+        Just c  -> return (p, c)
+        Nothing -> failAtOffset o ("Not a constraint: " <> show n)
+    rest <- c
+    return (p, rest)
 
 
 simpleConstraints :: Parser s m => [(Text, m (Constraint Var))]
 simpleConstraints
-   = [("Num",                  one CIsNum)
-     ]
+   = [("Num", one CIsNum)]
 
 
 pEqualityConstraint :: Parser s m => m (Position, Constraint Var)
 pEqualityConstraint =
   label "equality constraint" $ do
-    (p, ret)         <- pTypeSimple
-    _                <- pToken Tok_EqualsColon
+    (p, ret) <- try $ do
+      s <- pTypeSimple
+      _ <- pToken Tok_EqualsColon
+      return s
+
+    o                <- Mega.getOffset
     (_, Construct n) <- pConId
     case List.lookup n simpleEqualityConstraints of
       Just c  -> do rest <- c ret; return (p, rest)
-      Nothing -> fail ("Not an equality constraint: " <> show n)
+      Nothing -> failAtOffset o ("Not an equality constraint: " <> show n)
 
 
 simpleEqualityConstraints :: Parser s m => [(Text, Type Var -> m (Constraint Var))]
@@ -193,7 +202,17 @@ simpleEqualityConstraints
      ,("DataOfLatest",            three . CDataOfLatest)
      ,("PossibilityOfLatest",     two   . CPossibilityOfLatest)
      ,("PossibilityJoin",         two   . CPossibilityJoin)
+     ,("HasField",          \k -> one    (CHasField k) <*> pField)
      ]
+  where
+    pField :: Parser s m => m StructField
+    pField =
+      label "field" .
+      tryToken $ \_ -> \case
+        Tok_VarId fieldId ->
+          Just (StructField fieldId)
+        _ ->
+          Nothing
 
 -- | Shunt infix type operators to a type.
 --

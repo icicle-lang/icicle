@@ -22,7 +22,6 @@ import qualified Text.Parsec.Pos as Pos
 import           Text.Parsec (runParser)
 import           Text.Parsec.Error
 
-import           Icicle.Common.Type
 import           Icicle.Data
 import           Icicle.Encoding
 import           Icicle.Source.Lexer.Token

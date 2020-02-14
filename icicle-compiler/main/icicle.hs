@@ -19,6 +19,7 @@ import           Icicle.Command.Compile
 import           Icicle.Command.Query
 import           Icicle.Data.Time (dateOfText)
 import           Icicle.Repl
+import           Icicle.LSP.Driver
 
 import           P
 
@@ -34,6 +35,7 @@ data IcicleCommand =
   | IcicleCompile !Compile
   | IcicleQuery !Query
   | IcicleCheck !Check
+  | IcicleLSP !(Maybe FilePath)
     deriving (Eq, Ord, Show)
 
 main :: IO ()
@@ -66,6 +68,10 @@ commands = [
       "check"
       "Check an icicle dictionary for type errors."
       (IcicleCheck <$> pCheck)
+  , Options.command'
+      "lsp"
+      "Run language server protocol"
+      (IcicleLSP <$> pLSP)
   ]
 
 pRepl :: Parser ReplOptions
@@ -248,6 +254,15 @@ pColourOutput =
   Options.flag NoColor UseColor $
     Options.long "colour"
 
+pLSP :: Parser (Maybe FilePath)
+pLSP =
+  optional $
+    Options.option Options.str $
+      Options.long "debug-path" <>
+      Options.metavar "PATH" <>
+      Options.help "Prefix for debug files"
+
+
 tryRead :: [Char] -> ([Char] -> Maybe a) -> (a -> b) -> Options.ReadM b
 tryRead err f g =
   Options.readerAsk >>= \s ->
@@ -280,3 +295,6 @@ runCommand = \case
   IcicleCheck dictionary -> do
     orDie renderCompileError $
       icicleCheck dictionary
+
+  IcicleLSP path -> do
+    runLSP path
