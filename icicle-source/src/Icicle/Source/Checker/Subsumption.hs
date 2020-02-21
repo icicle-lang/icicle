@@ -26,6 +26,17 @@ import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
 
 
+visitForalls
+  :: (Hashable n, Eq n)
+  => a
+  -> Scheme n
+  -> Gen a n (Scheme n, Type n, GenConstraintSet a n)
+visitForalls ann f
+ = case f of
+    Forall _ cs x -> do
+      return (f, x, fmap (ann,) cs)
+
+
 -- | Check that the inferred type is at least as polymorphic as the
 --   required type, and that all required constraints are specified.
 subsume :: (Pretty n, Hashable n, Eq n) => a -> Exp (Annot a n) n -> Scheme n -> Scheme n -> Gen a n (Exp (Annot a n) n, Scheme n)
@@ -38,7 +49,7 @@ subsume ann q inf req = do
   (_, skol, inf'c)  <- introForalls ann inf
 
   -- Introduce the desired type.
-  (_, intro, req'c) <- introForalls ann req
+  (_, intro, req'c) <- visitForalls ann req
 
   -- Unify the types, with substitutions to turn the inferred
   -- type variables into the desired ones.
