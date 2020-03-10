@@ -37,6 +37,7 @@ import           Icicle.Internal.Pretty (Pretty)
 import qualified Icicle.Internal.Pretty as Pretty
 import           Icicle.Repl.Data
 import           Icicle.Repl.Flag
+import qualified Icicle.Sorbet.Position as Sorbet
 
 import           P
 
@@ -44,8 +45,6 @@ import           System.Console.ANSI (Color(..), ColorIntensity(..))
 import qualified System.Console.ANSI as ANSI
 import qualified System.Console.Terminal.Size as Terminal
 import qualified System.IO as IO
-
-import qualified Text.ParserCombinators.Parsec as Parsec
 
 
 data UseColor =
@@ -144,7 +143,7 @@ putPrettyWith use width x =
     Pretty.renderPretty 0.4 width $
     Pretty.pretty x
 
-putErrorPosition :: (MonadState State m, MonadIO m) => Maybe Parsec.SourcePos -> m ()
+putErrorPosition :: (MonadState State m, MonadIO m) => Maybe Sorbet.Position -> m ()
 putErrorPosition = \case
   Nothing ->
     pure ()
@@ -152,10 +151,10 @@ putErrorPosition = \case
   Just x -> do
     use <- getUseColor
     liftIO . IO.putStrLn $
-      List.replicate (Parsec.sourceColumn x + 1) ' ' <>
+      List.replicate (Sorbet.posColumn x + 1) ' ' <>
       setColor use Pretty.AnnError <> "^" <> sgrReset use
 
-putError :: (MonadState State m, MonadIO m) => Pretty.Doc -> Maybe Parsec.SourcePos -> m ()
+putError :: (MonadState State m, MonadIO m) => Pretty.Doc -> Maybe Sorbet.Position -> m ()
 putError x mpos = do
   putErrorPosition mpos
   putPretty . Pretty.reannotate Pretty.AnnErrorHeading $ Pretty.prettyH1 "Error"

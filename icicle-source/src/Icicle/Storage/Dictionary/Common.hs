@@ -20,6 +20,7 @@ import           Icicle.Internal.Pretty                        hiding ((</>))
 import qualified Icicle.Compiler.Source                        as P
 
 import qualified Icicle.Sorbet.Parse                           as Sorbet
+import qualified Icicle.Sorbet.Position                        as Sorbet
 
 import           Icicle.Source.Checker                         (CheckOptions (..))
 import qualified Icicle.Source.Parser                          as SP
@@ -41,9 +42,7 @@ import qualified Data.Set                                      as Set
 import qualified Data.Text                                     as T
 import qualified Data.Text.IO                                  as T
 
-import           Text.Parsec                                   (SourcePos)
 import qualified Text.Parsec                                   as Parsec
-import qualified Text.Parsec.Pos                               as Parsec
 
 import           P
 
@@ -58,7 +57,7 @@ data DictionaryImportError
   deriving (Show)
 
 type Funs a  = [ Decl a SP.Variable ]
-type FunEnvT = [ ResolvedFunction Parsec.SourcePos SP.Variable ]
+type FunEnvT = [ ResolvedFunction Sorbet.Position SP.Variable ]
 
 
 loadDictionary'
@@ -129,11 +128,11 @@ readImport repoPath fileRel
      src <- T.readFile fileAbs
      return (fileRel, src)
 
-parseImport :: FilePath -> Text -> Either DictionaryImportError (Funs Parsec.SourcePos)
+parseImport :: FilePath -> Text -> Either DictionaryImportError (Funs Sorbet.Position)
 parseImport path src
  = first DictionaryErrorCompilation (P.sourceParseF path src)
 
-loadImports :: FunEnvT -> [Funs Parsec.SourcePos] -> EitherT DictionaryImportError IO FunEnvT
+loadImports :: FunEnvT -> [Funs Sorbet.Position] -> EitherT DictionaryImportError IO FunEnvT
 loadImports parentFuncs parsedImports
  = hoistEither . first DictionaryErrorCompilation
  $ foldlM (go parentFuncs) [] parsedImports
@@ -164,11 +163,11 @@ checkDefs checkOpts d defs
 checkKey :: CheckOptions
          -> Dictionary
          -> InputId
-         -> Exp SourcePos P.Var
+         -> Exp Sorbet.Position P.Var
          -> Either DictionaryImportError (InputKey AnnotSource P.Var)
 checkKey checkOpts d iid xx = do
-  let l = Parsec.initialPos "dummy_pos_ctx"
-  let p = Parsec.initialPos "dummy_pos_final"
+  let l = Sorbet.Position "dummy_pos_ctx"  0 0
+  let p = Sorbet.Position "dummy_pos_final"  0 0
   let q = QueryTop (QualifiedInput iid) [outputid|dummy_namespace:dummy_output|]
           -- We know the key must be of Pure or Element temporality,
           -- so it's ok to wrap it in a Group.

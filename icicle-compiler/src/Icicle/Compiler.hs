@@ -107,6 +107,7 @@ import qualified Icicle.Dictionary as Dict
 import           Icicle.Internal.Pretty
 import           Icicle.Internal.Rename
 
+import qualified Icicle.Sorbet.Position as Sorbet
 import qualified Icicle.Source.Parser as Source
 import qualified Icicle.Source.Query as Query
 import qualified Icicle.Source.ToCore.Base as ToCore
@@ -117,8 +118,6 @@ import qualified Icicle.Simulator as Sim
 import qualified Icicle.Compiler.Source as Source
 
 import           P
-
-import qualified Text.ParserCombinators.Parsec as Parsec
 
 
 
@@ -144,8 +143,9 @@ annotTypeDummy = Common.Annot (Common.FunT [] Common.ErrorT) ()
 
 data ErrorCompile var
  = ErrorSource      !(Source.ErrorSource                       var                  )
+ | ErrorSourceResolveError !UnresolvedInputId
  -- Core
- | ErrorConvert     !(ToCore.ConvertError     Parsec.SourcePos var                  )
+ | ErrorConvert     !(ToCore.ConvertError     Sorbet.Position  var                  )
  | ErrorFusion      !(Core.FusionError                         Source.Var           )
  | ErrorCoreCheck   !(Source.QueryTyped                        var                  )
                     !(Core.ProgramError       Source.AnnotUnit var                  )
@@ -155,16 +155,18 @@ data ErrorCompile var
  | ErrorAvalanche   !(Avalanche.ProgramError  Source.AnnotUnit var         Flat.Prim)
  deriving (Show, Generic)
 
--- FIXME We can't implement NFData properly for this type because Parsec.SourcePos is
+-- FIXME We can't implement NFData properly for this type because Sorbet.Position is
 -- FIXME not NFData, we really should define our own type for source positions.
 instance NFData (ErrorCompile a) where rnf x = seq x ()
 
 
-annotOfError :: ErrorCompile a -> Maybe Parsec.SourcePos
+annotOfError :: ErrorCompile a -> Maybe Sorbet.Position
 annotOfError e
  = case e of
     ErrorSource e'
      -> Source.annotOfError e'
+    ErrorSourceResolveError _
+     -> Nothing
     ErrorConvert e'
      -> ToCore.annotOfError e'
     ErrorCoreCheck _ _
@@ -184,6 +186,12 @@ instance (Hashable a, Eq a, IsString a, Pretty a, Show a) => Pretty (ErrorCompil
      ErrorSource se
       -> "Source error:" <> line
       <> indent 2 (pretty se)
+     ErrorSourceResolveError t
+      -> vsep [
+          reannotate AnnErrorHeading $ prettyH2 "Could not resolve input name"
+        , mempty
+        , indent 2 $ pretty t
+        ]
      ErrorConvert ce
       -> "Convert error:" <> line
       <> indent 2 (pretty ce)
@@ -273,7 +281,7 @@ sourceInputId query d =
     iid =
       Query.queryInput query
   in
-    maybeToRight (ErrorSource (Source.ErrorSourceResolveError iid)) $
+    maybeToRight (ErrorSourceResolveError iid) $
       resolveInputId iid (Map.keys $ Dict.dictionaryInputs d)
 
 coreOfSource :: Source.IcicleCompileOptions

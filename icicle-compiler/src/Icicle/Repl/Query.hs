@@ -61,6 +61,7 @@ import qualified Icicle.Sea.Preamble as Sea
 import qualified Icicle.Serial as Serial
 import qualified Icicle.Source.PrettyAnnot as Source
 import qualified Icicle.Sorbet.Render as Sorbet
+import qualified Icicle.Sorbet.Position as Sorbet
 import qualified Icicle.Source.Query as Source
 
 import           P
@@ -69,7 +70,6 @@ import           System.IO (FilePath)
 import qualified System.IO as IO
 import           System.IO.Error (IOError)
 
-import qualified Text.ParserCombinators.Parsec as Parsec
 import           Text.Show.Pretty (ppShow)
 
 import           Viking (Stream, Of)
@@ -87,7 +87,7 @@ import           Zebra.X.Either (firstJoin)
 data CompiledQuery =
   CompiledQuery {
       compiledOutputId :: OutputId
-    , compiledSource :: Source.QueryTop (Source.TypeAnnot Parsec.SourcePos) Source.Var
+    , compiledSource :: Source.QueryTop (Source.TypeAnnot Sorbet.Position) Source.Var
     , compiledCore :: Source.CoreProgramUntyped Source.Var
     , compiledAvalanche :: Maybe (Compiler.AvalProgramTyped Source.Var Flat.Prim)
     }
@@ -109,7 +109,7 @@ data QueryError =
  | QueryUnexpectedInputType !ValType
  | QueryOutputMissing !OutputId
 
-posOfError :: QueryError -> Maybe Parsec.SourcePos
+posOfError :: QueryError -> Maybe Sorbet.Position
 posOfError = \case
   QuerySourceError x ->
     Source.annotOfError x

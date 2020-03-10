@@ -604,7 +604,8 @@ generateX x env
            return (x', sq, cons')
 
     -- Struct fields require that the expression have a struct type
-    -- with the a right field type.
+    -- with the a right field type. We enforce this with a CHasField
+    -- constraint.
     Access a e f
       -> do resT             <- TypeVar <$> fresh
             (q, subs, cons)  <- generateX e env

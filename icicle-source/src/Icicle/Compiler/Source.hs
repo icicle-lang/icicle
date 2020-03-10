@@ -64,6 +64,7 @@ import qualified Icicle.Dictionary                        as Dict
 import           Icicle.Internal.Pretty
 
 import qualified Icicle.Sorbet.Parse                      as Parse
+import qualified Icicle.Sorbet.Position                   as Sorbet
 import qualified Icicle.Source.Checker                    as Check
 import qualified Icicle.Source.Parser                     as Parse
 import qualified Icicle.Source.Query                      as Query
@@ -96,8 +97,8 @@ type TypeAnnot a = Type.Annot a Var
 type Funs a b = [ Query.Decl a b ]
 type FunEnvT a b = [ Query.ResolvedFunction a b ]
 
-type QueryUntyped v = Query.QueryTop            Parsec.SourcePos  v
-type QueryTyped   v = Query.QueryTop (TypeAnnot Parsec.SourcePos) v
+type QueryUntyped v = Query.QueryTop            Sorbet.Position  v
+type QueryTyped   v = Query.QueryTop (TypeAnnot Sorbet.Position) v
 
 type CoreProgramUntyped v = Core.Program AnnotUnit v
 
@@ -129,26 +130,23 @@ defaultFusionOptions = FusionOptions 100
 
 data ErrorSource var
  = ErrorSourceParse       !Parse.ParseError
- | ErrorSourceDesugar     !(Desugar.DesugarError Parsec.SourcePos var)
- | ErrorSourceCheck       !(Check.CheckError     Parsec.SourcePos var)
- | ErrorSourceResolveError !UnresolvedInputId
+ | ErrorSourceDesugar     !(Desugar.DesugarError Sorbet.Position var)
+ | ErrorSourceCheck       !(Check.CheckError     Sorbet.Position var)
  deriving (Show, Generic)
 
--- FIXME We can't implement NFData properly for this type because Parsec.SourcePos is
+-- FIXME We can't implement NFData properly for this type because Parse.ParseError is
 -- FIXME not NFData, we really should define our own type for source positions.
 instance NFData (ErrorSource a) where rnf x = seq x ()
 
-annotOfError :: ErrorSource a -> Maybe Parsec.SourcePos
+annotOfError :: ErrorSource a -> Maybe Sorbet.Position
 annotOfError e
  = case e of
     ErrorSourceParse _
      -> Nothing
     ErrorSourceDesugar e'
-     -> Desugar.annotOfError e'
+     -> Just (Desugar.annotOfError e')
     ErrorSourceCheck       e'
      -> Just (Check.annotOfError e')
-    ErrorSourceResolveError _
-     -> Nothing
 
 instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) where
   pretty = \case
@@ -171,13 +169,6 @@ instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) wher
           reannotate AnnErrorHeading $ prettyH2 "Check error"
         , mempty
         , indent 2 $ pretty ce
-        ]
-
-    ErrorSourceResolveError t ->
-      vsep [
-          reannotate AnnErrorHeading $ prettyH2 "Could not resolve input name"
-        , mempty
-        , indent 2 $ pretty t
         ]
 
 --------------------------------------------------------------------------------
@@ -214,7 +205,7 @@ sourceParseQT oid t
 
 sourceParseF :: Parsec.SourceName
              -> Text
-             -> Either Error (Funs Parsec.SourcePos Var)
+             -> Either Error (Funs Sorbet.Position Var)
 sourceParseF env t
  = first ErrorSourceParse
  $ Parse.parseFunctions env t
@@ -229,15 +220,15 @@ sourceDesugarQT q
 
 
 sourceDesugarDecl
- :: Query.Decl Parsec.SourcePos Var
- -> Fresh.FreshT Var (EitherT (Desugar.DesugarError Parsec.SourcePos Var) Identity)
-                     (Query.Decl Parsec.SourcePos Var)
+ :: Query.Decl Sorbet.Position Var
+ -> Fresh.FreshT Var (EitherT (Desugar.DesugarError Sorbet.Position Var) Identity)
+                     (Query.Decl Sorbet.Position Var)
 sourceDesugarDecl (Query.DeclFun a ns t x)
  = Query.DeclFun a ns t <$> Desugar.desugarX x
 
 
-sourceDesugarF :: Funs Parsec.SourcePos Var
-               -> Either (ErrorSource Var) (Funs Parsec.SourcePos Var)
+sourceDesugarF :: Funs Sorbet.Position Var
+               -> Either (ErrorSource Var) (Funs Sorbet.Position Var)
 sourceDesugarF fun
  = runIdentity . runEitherT . bimapEitherT ErrorSourceDesugar snd
  $ Fresh.runFreshT
@@ -265,17 +256,17 @@ sourceCheckQT opts d q
      $ runEitherT
      $ Check.checkQT opts d' q
 
-sourceCheckF :: FunEnvT Parsec.SourcePos Var
-             -> Funs    Parsec.SourcePos Var
-             -> Either  Error (FunEnvT Parsec.SourcePos Var)
+sourceCheckF :: FunEnvT Sorbet.Position Var
+             -> Funs    Sorbet.Position Var
+             -> Either  Error (FunEnvT Sorbet.Position Var)
 sourceCheckF env parsedImport
  = first fst
  $ second fst
  $ sourceCheckFunLog env parsedImport
 
-sourceCheckFunLog :: FunEnvT Parsec.SourcePos Var
-                  -> Funs    Parsec.SourcePos Var
-                  -> Either  (Error, [Check.CheckLog Parsec.SourcePos Var]) (FunEnvT Parsec.SourcePos Var, [[Check.CheckLog Parsec.SourcePos Var]])
+sourceCheckFunLog :: FunEnvT Sorbet.Position Var
+                  -> Funs    Sorbet.Position Var
+                  -> Either  (Error, [Check.CheckLog Sorbet.Position Var]) (FunEnvT Sorbet.Position Var, [[Check.CheckLog Sorbet.Position Var]])
 sourceCheckFunLog env parsedImport
  = first (first ErrorSourceCheck)
  $ snd
@@ -300,7 +291,7 @@ sourceInline opt d q
                 (Inline.inlineQT opt funs q')
                 (freshNamer "inline")
 
-readIcicleLibrary :: Var -> Parsec.SourceName -> Text -> Either Error (FunEnvT Parsec.SourcePos Var)
+readIcicleLibrary :: Var -> Parsec.SourceName -> Text -> Either Error (FunEnvT Sorbet.Position Var)
 readIcicleLibrary _name source input
  = do input' <- first ErrorSourceParse $ Parse.parseFunctions source input
       let

@@ -19,7 +19,6 @@ import Icicle.Source.Query
 import Icicle.Data.Name
 
 import Icicle.Internal.Pretty
-import Text.Parsec (SourcePos)
 
 import Data.Text
 
@@ -27,21 +26,21 @@ import P
 
 import System.IO (FilePath)
 
-parseFunctions :: FilePath -> Text -> Either ParseError [Decl SourcePos Variable]
+parseFunctions :: FilePath -> Text -> Either ParseError [Decl Position Variable]
 parseFunctions source inp
- = do decls <- sorbetFunctions source inp
-      return $ reannot toParsec <$> decls
+ = sorbetFunctions source inp
 
-parseQueryTop :: OutputId -> Text -> Either ParseError (QueryTop SourcePos Variable)
+
+parseQueryTop :: OutputId -> Text -> Either ParseError (QueryTop Position Variable)
 parseQueryTop name inp
- = reannot toParsec <$> sorbet name inp
+ = sorbet name inp
 
 parseFactName :: Text -> Either ParseError UnresolvedInputId
 parseFactName inp = sorbetUnresolvedInputId inp
 
-parseQuery :: UnresolvedInputId -> OutputId -> Text -> Either ParseError (QueryTop SourcePos Variable)
+parseQuery :: UnresolvedInputId -> OutputId -> Text -> Either ParseError (QueryTop Position Variable)
 parseQuery v name inp
- = do q <- reannot toParsec <$> sorbetQuery inp
+ = do q <- sorbetQuery inp
       return $ QueryTop v name q
 
 prettyParse :: OutputId -> Text -> [Char]

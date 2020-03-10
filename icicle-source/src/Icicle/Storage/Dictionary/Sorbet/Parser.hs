@@ -36,10 +36,8 @@ import           Icicle.Sorbet.Abstract.Tokens
 import           Icicle.Sorbet.Abstract.Type
 
 import           Icicle.Sorbet.Lexical.Syntax
-import           Icicle.Sorbet.Position
 
 import           Icicle.Data.Name
-import           Icicle.Source.Query
 import           Icicle.Source.Type
 
 import           Icicle.Storage.Dictionary.Data
@@ -137,5 +135,5 @@ pOutput ns = do
   t      <- pTop (OutputId ns n)
 
   pure $
-    DictionaryOutput' (OutputId ns n) (reannot toParsec t)
+    DictionaryOutput' (OutputId ns n) t
 

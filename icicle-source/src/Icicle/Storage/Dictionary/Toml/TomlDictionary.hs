@@ -24,6 +24,7 @@ import           Text.Parsec.Error
 
 import           Icicle.Data
 import           Icicle.Encoding
+import qualified Icicle.Sorbet.Position as Sorbet
 import           Icicle.Source.Lexer.Token
 import           Icicle.Source.Lexer.Lexer
 import           Icicle.Source.Parser.Parser
@@ -195,7 +196,7 @@ validateFact conf name x =
 
 validateExpression :: Text
                    -> (Node, SourcePos)
-                   -> Validation [DictionaryValidationError] (Exp SourcePos Variable)
+                   -> Validation [DictionaryValidationError] (Exp Sorbet.Position Variable)
 validateExpression fname expression = fromEither $ do
    expression' <- maybeToRight [BadType fname "string" (expression ^. _2)]
                 $ expression ^? _1 . _NTValue . _VString
@@ -204,7 +205,7 @@ validateExpression fname expression = fromEither $ do
    e           <- first (pure . ParseError)
                 $ runParser Source.exp () "" toks
 
-   pure e
+   pure (reannot Sorbet.fromParsec e)
 
 
 -- | Validate a TOML node is a feature.
@@ -244,7 +245,7 @@ validateFeature conf name x = fromEither $ do
                $ runParser (top oid) () "" toks
 
   -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
-  pure $ DictionaryOutput' oid q
+  pure $ DictionaryOutput' oid (reannot Sorbet.fromParsec q)
 
 -- | Validate a TOML node is a fact encoding.
 --

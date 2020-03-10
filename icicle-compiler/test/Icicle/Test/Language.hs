@@ -22,6 +22,7 @@ import qualified Icicle.Compiler as P
 import qualified Icicle.Compiler.Sea as P
 import qualified Icicle.Compiler.Source as Source
 
+import qualified Icicle.Sorbet.Position  as Sorbet
 import qualified Icicle.Source.Parser  as SP
 
 import           Icicle.Test.Arbitrary
@@ -37,7 +38,6 @@ import qualified Data.Map  as Map
 import qualified Data.Text as Text
 import           Test.QuickCheck
 import           Test.QuickCheck.Property
-import qualified Text.Parsec.Pos as Parsec
 
 import           P
 import qualified Prelude as Savage
@@ -110,7 +110,7 @@ mkFacts wt =
 dummySourceVar :: P.QueryTyped Source.Var
 dummySourceVar
   = let x = nameOf $ NameBase $ SP.Variable "dummy"
-        pos = Parsec.initialPos "dummy"
+        pos = Sorbet.Position "dummy" 0 0
         input = [inputid|default:input|]
     in  S.QueryTop
           (D.QualifiedInput input)

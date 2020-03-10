@@ -28,9 +28,10 @@ import qualified Icicle.Common.Exp                  as X
 import qualified Icicle.Common.Fresh                as Fresh
 import qualified Icicle.Core                        as X
 import           Icicle.Common.Base
-import           Icicle.Common.Type (ValType(..), StructType(..))
+import           Icicle.Common.Type                 (ValType(..), StructType(..))
 
-import           Icicle.Source.Query (QueryTop (..), ResolvedFunction (..), FeatureVariable (..))
+import           Icicle.Sorbet.Position             (Position (..))
+import           Icicle.Source.Query                (QueryTop (..), ResolvedFunction (..), FeatureVariable (..))
 import qualified Icicle.Source.Query                as SQ
 import           Icicle.Source.Lexer.Token
 import qualified Icicle.Source.Type                 as ST
@@ -46,12 +47,10 @@ import qualified Data.Map as Map
 import           Data.Set (Set)
 import           Data.String
 
-import           Text.Parsec.Pos (newPos)
-
 import           P
 
 type DictionaryFunction
-  = ResolvedFunction SourcePos Variable
+  = ResolvedFunction Position Variable
 
 data Dictionary =
   Dictionary {
@@ -71,7 +70,7 @@ data DictionaryInput =
 data DictionaryOutput =
   DictionaryOutput {
       outputId :: OutputId
-    , outputQuery :: QueryTop (ST.Annot SourcePos Variable) Variable
+    , outputQuery :: QueryTop (ST.Annot Position Variable) Variable
     } deriving (Eq, Show)
 
 -- | The query is keyed by this "virtual key". Facts (for one entity) are nubbed by this key.
@@ -80,7 +79,7 @@ newtype InputKey a n =
       unInputKey :: Maybe (SQ.Exp a n)
     } deriving (Eq, Show)
 
-type AnnotSource = ST.Annot SourcePos Variable
+type AnnotSource = ST.Annot Position Variable
 
 unkeyed :: InputKey AnnotSource Variable
 unkeyed = InputKey Nothing
@@ -96,7 +95,7 @@ emptyDictionary =
     builtinFunctions
       = snd
       $ Fresh.runFresh
-        (SQ.builtinDefinitions (newPos "builtin" 0 0))
+        (SQ.builtinDefinitions (Position "builtin" 0 0))
         freshNamer
 
     freshNamer

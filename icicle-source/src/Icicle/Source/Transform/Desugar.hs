@@ -56,11 +56,11 @@ instance (Pretty a, Pretty n) => Pretty (DesugarError a n) where
 
 type DesugarM a n x = FreshT n (EitherT (DesugarError a n) Identity) x
 
-annotOfError :: DesugarError a n -> Maybe a
-annotOfError (DesugarErrorNoAlternative a _) = Just a
-annotOfError (DesugarErrorImpossible a)      = Just a
-annotOfError (DesugarOverlappingPattern a _) = Just a
-annotOfError (DesugarIllTypedPatterns a _)   = Just a
+annotOfError :: DesugarError a n -> a
+annotOfError (DesugarErrorNoAlternative a _) = a
+annotOfError (DesugarErrorImpossible a)      = a
+annotOfError (DesugarOverlappingPattern a _) = a
+annotOfError (DesugarIllTypedPatterns a _)   = a
 
 runDesugar :: NameState n -> DesugarM a n x -> Either (DesugarError a n) x
 runDesugar n m = runIdentity . runEitherT . bimapEitherT id snd $ runFreshT m n

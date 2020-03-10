@@ -62,6 +62,7 @@ instance Show Position where
   showsPrec =
     gshowsPrec
 
+instance NFData Position
 
 data PositionedStream a =
   PositionedStream {

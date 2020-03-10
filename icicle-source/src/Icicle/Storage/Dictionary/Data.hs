@@ -19,10 +19,9 @@ import           Data.FileEmbed (embedFile)
 
 import           Icicle.Common.Type
 import           Icicle.Data
+import qualified Icicle.Sorbet.Position as Sorbet
 import           Icicle.Source.Query
 import           Icicle.Source.Lexer.Token (Variable)
-
-import qualified Text.Parsec.Pos as Pos
 
 import           System.FilePath
 
@@ -68,12 +67,12 @@ data DictionaryInput' =
 data DictionaryOutput' =
   DictionaryOutput' {
       outputId' :: OutputId
-    , outputQuery' :: QueryTop Pos.SourcePos Variable
+    , outputQuery' :: QueryTop Sorbet.Position Variable
     } deriving (Eq, Show)
 
 
 newtype ConcreteKey' = ConcreteKey' {
-    concreteKey :: Maybe (Exp Pos.SourcePos Variable)
+    concreteKey :: Maybe (Exp Sorbet.Position Variable)
   } deriving (Eq, Show)
 
 

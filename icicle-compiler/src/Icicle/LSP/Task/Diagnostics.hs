@@ -5,21 +5,17 @@ module Icicle.LSP.Task.Diagnostics where
 import           Icicle.Internal.Pretty
 import           Icicle.LSP.State
 import           Icicle.LSP.Interface
+import qualified Icicle.Source.Checker                    as Check
 import qualified Icicle.Sorbet.Parse as Sorbet
-import           Icicle.Sorbet.Position (Position (..), fromParsec)
-import qualified Icicle.Source.Checker as Check
-import           Icicle.Source.Query (reannot)
+import           Icicle.Sorbet.Position (Position (..))
+import qualified Icicle.Source.Transform.Desugar          as Desugar
 import           Icicle.Source.Lexer.Token (Variable)
-import           Icicle.Compiler.Source (FunEnvT, Funs, freshNamer)
-import qualified Icicle.Common.Fresh as Fresh
+import qualified Icicle.Compiler.Source as Compiler
 import qualified Icicle.Dictionary as Dictionary
 
-import           Control.Monad.Trans.Either
-
 import           Data.Aeson
-import           Data.Hashable (Hashable)
 import qualified Data.Text as Text
-import           Data.String (String, IsString)
+import           Data.String (String)
 import qualified Data.Vector as Vector
 import qualified Data.List.NonEmpty as NonEmpty
 
@@ -32,49 +28,21 @@ import           P
 -- | Compute diagnostics for a source file, and push them to the client.
 updateDiagnostics :: State -> Text -> Text -> IO ()
 updateDiagnostics state sUri sSource = do
-  let
-    parseResult =
-      Sorbet.sorbetFunctions (takeFileName (Text.unpack sUri)) sSource
-
-  case parseResult of
-    Right funs -> do
-      updateCheckDiagnostics state sUri funs
-    Left fu -> do
-      lspLog  state ("* Sending Parse Errors")
-      sendDiagnostics state sUri (Vector.fromList (NonEmpty.toList (fmap packError (Sorbet.positionedParseError fu))))
-
-
-updateCheckDiagnostics
-  :: State
-  -> Text
-  -> Funs Position Variable
-  -> IO ()
-updateCheckDiagnostics state sUri funs = do
-  let
-    checkResult =
-      sourceCheckF (reannot fromParsec <$> Dictionary.dictionaryFunctions Dictionary.emptyDictionary) funs
-
-  case checkResult of
+  case updateDiagnostics' state sUri sSource of
     Right _ -> do
       sendClearDiagnostics state sUri
     Left fu -> do
-      lspLog  state ("* Sending Check Errors")
-      sendDiagnostics state sUri (Vector.singleton (packError ("Checker", show (pretty fu), Check.annotOfError fu)))
+      lspLog  state ("* Sending Parse Errors")
+      sendDiagnostics state sUri (errorVector fu)
 
 
-sourceCheckF
-  :: (Eq v, IsString v, Hashable v, Pretty v)
-  => FunEnvT Position v
-  -> Funs    Position v
-  -> Either  (Check.CheckError Position v) (FunEnvT Position v)
-sourceCheckF env parsedImport
- = second fst
- $ first fst
- $ snd
- $ flip Fresh.runFresh (freshNamer "check")
- $ runEitherT
- $ Check.checkFs env
- $ parsedImport
+-- | Compute diagnostics for a source file
+updateDiagnostics' :: State -> Text -> Text -> Either (Compiler.ErrorSource Variable) ()
+updateDiagnostics' _state sUri sSource = do
+  funs <- Compiler.sourceParseF (takeFileName (Text.unpack sUri)) sSource
+  _    <- Compiler.sourceDesugarF funs
+  _    <- Compiler.sourceCheckF (Dictionary.dictionaryFunctions Dictionary.emptyDictionary) funs
+  return ()
 
 
 -- | Clear diagnostics for the given file.
@@ -92,6 +60,18 @@ sendDiagnostics state sUri diags = do
     [ "method" .= t "textDocument/publishDiagnostics"
     , "params" .= object [ "uri" .= sUri, "diagnostics" .= diags ]]
 
+
+
+-- | Expand and pack compiler error into JSON.
+errorVector :: Compiler.ErrorSource Variable -> Vector.Vector Value
+errorVector err =
+  case err of
+    Compiler.ErrorSourceParse pe ->
+      Vector.fromList (NonEmpty.toList (fmap packError (Sorbet.positionedParseError pe)))
+    Compiler.ErrorSourceDesugar de ->
+      Vector.singleton (packError ("Desugar", show (pretty err), Desugar.annotOfError de))
+    Compiler.ErrorSourceCheck ce ->
+      Vector.singleton (packError ("Check", show (pretty err), Check.annotOfError ce))
 
 
 -- | Expand and pack a lexer error into JSON.

@@ -108,7 +108,7 @@ type Fun = BuiltinFun
 
 data Decl' q a n
   = DeclFun a (Name n) (Maybe (Scheme n)) (Exp' q a n)
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show, Generic)
 
 
 class TraverseAnnot q where
