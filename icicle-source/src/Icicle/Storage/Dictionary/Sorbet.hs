@@ -49,7 +49,7 @@ import           P
 -- Top level IO function which loads all dictionaries and imports
 loadDictionary :: CheckOptions -> ImplicitPrelude -> FilePath -> EitherT DictionaryImportError IO Dictionary
 loadDictionary checkOpts impPrelude dictionary
- = loadDictionary' checkOpts impPrelude (dictionaryFunctions emptyDictionary) mempty parseSorbet [] dictionary
+ = loadDictionary' checkOpts impPrelude builtinFunctions mempty parseSorbet [] dictionary
 
 
 parseSorbet :: DictionaryConfig

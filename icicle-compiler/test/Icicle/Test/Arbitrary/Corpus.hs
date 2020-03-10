@@ -30,6 +30,7 @@ import qualified Icicle.Compiler        as Compiler
 import qualified Icicle.Compiler.Source as Source
 import qualified Icicle.Core as Core
 import qualified Icicle.Source.Lexer.Token as T
+import qualified Icicle.Source.Query as Query
 import qualified Icicle.Storage.Dictionary.Sorbet as DictionaryLoad
 
 import qualified Prelude as Savage
@@ -212,7 +213,7 @@ testAllCorpus prop =
 
 prelude :: Either Savage.String [DictionaryFunction]
 prelude =
-  mconcat <$>
+  mconcat . fmap Query.resolvedEntries <$>
     nobodyCares (mapM (uncurry $ Source.readIcicleLibrary "check") DictionaryLoad.prelude)
 
 inputDictionary :: Either Savage.String Dictionary

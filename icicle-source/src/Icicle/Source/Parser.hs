@@ -1,9 +1,10 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Source.Parser (
     parseQueryTop
   , parseQuery
   , parseFactName
-  , parseFunctions
+  , parseModule
   , prettyParse
   , Position
   -- , ParseError
@@ -26,9 +27,9 @@ import P
 
 import System.IO (FilePath)
 
-parseFunctions :: FilePath -> Text -> Either ParseError [Decl Position Variable]
-parseFunctions source inp
- = sorbetFunctions source inp
+parseModule :: FilePath -> Text -> Either ParseError (Module Position Variable)
+parseModule source inp
+ = sorbetModule source inp
 
 
 parseQueryTop :: OutputId -> Text -> Either ParseError (QueryTop Position Variable)

@@ -27,7 +27,7 @@ module Icicle.Sorbet.Abstract.Parser (
 
   , pTop
   , pQuery
-  , pDecls
+  , pModule
   , pUnresolvedInputId
   ) where
 
@@ -56,6 +56,38 @@ import qualified Text.Megaparsec as Mega
 type Var = Variable
 
 
+pModule :: Parser s m => m (Module Position Var)
+pModule = do
+  name    <- pModuleName <|> pure (ModuleName "Default")
+  _       <- pToken Tok_LBrace
+  imports <- pImport `Mega.sepEndBy` pToken Tok_Semi
+  decls   <- pDecl   `Mega.sepEndBy` pToken Tok_Semi
+  _       <- pToken Tok_RBrace
+  return $
+    Module name imports decls
+
+
+pImport :: Parser s m => m (ModuleImport Position)
+pImport = do
+  _      <- pToken Tok_Import
+  (p, s) <- pConstructorText
+  return (ModuleImport p (ModuleName s))
+
+
+pModuleName :: Parser s m => m ModuleName
+pModuleName = do
+  _ <- pToken Tok_Module
+  n <- pConstructorText
+  _ <- pToken Tok_Where
+  return (ModuleName (snd n))
+
+
+pConstructorText :: Parser s m => m (Position, Text)
+pConstructorText = do
+  (p, Construct x) <- pConId
+  return (p, x)
+
+
 pTop :: Parser s m => OutputId -> m (QueryTop Position Var)
 pTop name = do
   _ <- pToken Tok_From                                    <?> "feature start"
@@ -71,14 +103,6 @@ pQuery = do
   x  <- pExp                                              <?> "expression"
   return $ Query cs x
 
-
-
-pDecls :: Parser s m => m (Position, [Decl Position Var])
-pDecls =
-  (,)
-    <$> pToken Tok_LBrace
-    <*> (pDecl `Mega.sepEndBy` pToken Tok_Semi)
-    <*  pToken Tok_RBrace
 
 
 pDecl :: Parser s m => m (Decl Position Var)

@@ -5,7 +5,7 @@
 {-# LANGUAGE TupleSections #-}
 module Icicle.Source.Checker.Function (
     checkF
-  , checkFs
+  , checkModule
 
   , checkF'
   ) where
@@ -33,32 +33,45 @@ import qualified        Data.List               as List
 import                  Data.Hashable           (Hashable)
 
 
-type Funs a n = [ Decl a n ]
 type FunEnvT a n = [ ResolvedFunction a n ]
 
 
-checkFs :: (Hashable n, Eq n, Pretty n)
-        => FunEnvT a n
-        -> Funs a n
-        -> EitherT (CheckError a n, [CheckLog a n]) (Fresh.Fresh n)
-                   (FunEnvT a n, [[CheckLog a n]])
+checkModule
+  :: (Hashable n, Eq n, Pretty n)
+  => FunEnvT a n
+  -> Module a n
+  -> EitherT (CheckError a n, [CheckLog a n]) (Fresh.Fresh n)
+             (ResolvedModule a n, [[CheckLog a n]])
 
-checkFs env decls
- = foldlM go (env,[]) decls
+
+checkModule env module'
+ = do (entries, logs) <- foldlM go (env,[]) (moduleEntries module')
+      return $
+        (ResolvedModule (moduleName module') (moduleImports module') entries, logs)
+
  where
-  go (env0,logs0) decl@(DeclFun ann name _ _)
-   = do
-    let envMap = Map.fromList $ fmap ((,) <$> functionName <*> functionType) env0
-    (checkResult,logs') <- lift $ checkF envMap decl
-    (annotfun, funtype) <- hoistEither $ first (,logs') checkResult
-    if List.elem name (fmap functionName env0)
-    then hoistEither $ Left $ (CheckError (ErrorDuplicateFunctionNames ann name) [], [])
-    else pure (env0 <> [ResolvedFunction name funtype annotfun], logs0 <> [logs'])
+  go (env0,logs0) decl@(DeclFun ann name _ _) = do
+    let
+      env1 =
+        env <> env0
+      envMap =
+        Map.fromList $ fmap ((,) <$> functionName <*> functionType) env1
 
-checkF  :: (Hashable n, Eq n, Pretty n)
-        => Map.Map (Name n) (Scheme n)
-        -> Decl a n
-        -> (Fresh.Fresh n) (Either (CheckError a n) (Exp (Annot a n) n, Scheme n), [CheckLog a n])
+    (checkResult,logs') <-
+      lift $ checkF envMap decl
+    (annotfun, funtype) <-
+      hoistEither $ first (,logs') checkResult
+
+    if List.elem name (fmap functionName env1) then
+      hoistEither $ Left $ (CheckError (ErrorDuplicateFunctionNames ann name) [], [])
+    else
+      pure (env0 <> [ResolvedFunction name funtype annotfun], logs0 <> [logs'])
+
+checkF
+  :: (Hashable n, Eq n, Pretty n)
+  => Map.Map (Name n) (Scheme n)
+  -> Decl a n
+  -> (Fresh.Fresh n) (Either (CheckError a n) (Exp (Annot a n) n, Scheme n), [CheckLog a n])
 
 checkF env (DeclFun a _ t fun)
  = evalGen $ checkF' fun env >>= constrain a t

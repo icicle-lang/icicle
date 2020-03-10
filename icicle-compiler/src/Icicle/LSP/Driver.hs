@@ -11,6 +11,8 @@ module Icicle.LSP.Driver (
     runLSP
   ) where
 
+import           Control.Exception
+
 import           Data.Aeson
 import           Data.IORef
 import qualified Data.Map as Map
@@ -40,7 +42,8 @@ import           P
 runLSP :: Maybe FilePath -> IO ()
 runLSP mFileLog = do
   state <- lspBegin mFileLog
-  lspLoop state
+  lspLoop state `onException'` (\e -> lspLog state (displayException e))
+
 
 ---------------------------------------------------------------------------------------------------
 
@@ -184,7 +187,7 @@ lspInitialized state req
   , Just (Object jDoc)        <- HashMap.lookup "textDocument" jParams
   , Just (String sUri)        <- HashMap.lookup "uri" jDoc
   , Just (Number iVersion)    <- HashMap.lookup "version" jDoc
-  , Just (Array jChangeArr)   <- HashMap.lookup  "contentChanges" jParams
+  , Just (Array jChangeArr)   <- HashMap.lookup "contentChanges" jParams
   , [Object jChange]          <- Vector.toList jChangeArr
   , Just (String sText)       <- HashMap.lookup "text" jChange
   = do
@@ -228,3 +231,10 @@ lspInitialized state req
         lspLog  state "* Request"
         lspLog  state (T.ppShow req)
         lspLoop state
+
+
+-- | Like 'finally', but only performs the final action if there was an
+-- exception raised by the computation.
+onException' :: IO a -> (SomeException -> IO b) -> IO a
+onException' io what =
+  io `catch` (\e -> do _ <- what e; throwIO e)

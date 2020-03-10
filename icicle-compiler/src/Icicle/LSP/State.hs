@@ -10,6 +10,9 @@ import qualified System.Exit    as System
 import qualified System.IO      as System
 import           System.IO      (IO, FilePath)
 
+import qualified Icicle.Dictionary as Dictionary
+import qualified Icicle.Source.Query as Query
+
 import P
 
 -- | Language server plugin state.
@@ -19,7 +22,7 @@ data State
         , stateLogDebug         :: Maybe (FilePath, System.Handle)
 
           -- | Checked core files.
-        , stateCoreChecked      :: IORef (Map FilePath (Maybe ())) }
+        , stateCoreChecked      :: IORef (Map Query.ModuleName [Dictionary.DictionaryFunction]) }
 
 
 -- | Phase of the LSP server protocol.

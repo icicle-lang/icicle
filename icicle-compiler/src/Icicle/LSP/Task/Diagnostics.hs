@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Icicle.LSP.Task.Diagnostics where
 
-import           Icicle.Internal.Pretty
+import           Icicle.Internal.Pretty hiding ((</>))
 import           Icicle.LSP.State
 import           Icicle.LSP.Interface
 import qualified Icicle.Source.Checker                    as Check
@@ -10,11 +10,18 @@ import qualified Icicle.Sorbet.Parse as Sorbet
 import           Icicle.Sorbet.Position (Position (..))
 import qualified Icicle.Source.Transform.Desugar          as Desugar
 import           Icicle.Source.Lexer.Token (Variable)
+import           Icicle.Source.Query                      as Query
 import qualified Icicle.Compiler.Source as Compiler
 import qualified Icicle.Dictionary as Dictionary
 
+import           Control.Monad.IO.Class
+import           Control.Monad.Trans.Either
+
+import           Data.IORef
 import           Data.Aeson
+import qualified Data.List as List
 import qualified Data.Text as Text
+import qualified Data.Map as Map
 import           Data.String (String)
 import qualified Data.Vector as Vector
 import qualified Data.List.NonEmpty as NonEmpty
@@ -28,7 +35,10 @@ import           P
 -- | Compute diagnostics for a source file, and push them to the client.
 updateDiagnostics :: State -> Text -> Text -> IO ()
 updateDiagnostics state sUri sSource = do
-  case updateDiagnostics' state sUri sSource of
+  diagnostics <- runEitherT $
+    updateDiagnostics' state sUri sSource
+
+  case diagnostics of
     Right _ -> do
       sendClearDiagnostics state sUri
     Left fu -> do
@@ -37,12 +47,43 @@ updateDiagnostics state sUri sSource = do
 
 
 -- | Compute diagnostics for a source file
-updateDiagnostics' :: State -> Text -> Text -> Either (Compiler.ErrorSource Variable) ()
-updateDiagnostics' _state sUri sSource = do
-  funs <- Compiler.sourceParseF (takeFileName (Text.unpack sUri)) sSource
-  _    <- Compiler.sourceDesugarF funs
-  _    <- Compiler.sourceCheckF (Dictionary.dictionaryFunctions Dictionary.emptyDictionary) funs
+updateDiagnostics' :: State -> Text -> Text -> EitherT (Compiler.ErrorSource Variable) IO ()
+updateDiagnostics' state sUri sSource = do
+  funs  <- hoistEither $ Compiler.sourceParseF (takeFileName (Text.unpack sUri)) sSource
+  let
+    imports =
+      Query.moduleImports funs
+
+    rootDir =
+      fromMaybe (Text.unpack sUri) $
+        List.stripPrefix "file://" $
+          takeDirectory (Text.unpack sUri)
+
+  rsvd <- traverse (collectOrAdd rootDir state) imports
+  let
+    env0 =
+      join rsvd <> Dictionary.builtinFunctions
+
+  _    <- hoistEither $ Compiler.sourceDesugarF funs
+  _    <- hoistEither $ Compiler.sourceCheckF env0 funs
   return ()
+
+
+collectOrAdd :: FilePath -> State -> Query.ModuleImport Position -> EitherT (Compiler.ErrorSource Variable) IO [Dictionary.DictionaryFunction]
+collectOrAdd rootDir state mi = do
+  let
+    name =
+      Query.importName mi
+
+  known <- liftIO (readIORef (stateCoreChecked state))
+
+  case Map.lookup name known of
+    Just x  -> return x
+    Nothing -> do
+      envFor <- snd <$> Compiler.readIcicleModule rootDir name
+      liftIO  $ modifyIORef (stateCoreChecked state) (Map.insert name envFor)
+      return envFor
+
 
 
 -- | Clear diagnostics for the given file.
@@ -72,6 +113,8 @@ errorVector err =
       Vector.singleton (packError ("Desugar", show (pretty err), Desugar.annotOfError de))
     Compiler.ErrorSourceCheck ce ->
       Vector.singleton (packError ("Check", show (pretty err), Check.annotOfError ce))
+    Compiler.ErrorSourceModuleError (Query.ModuleNotFound a fp) ->
+      Vector.singleton (packError ("Module", "Couldn't find " <> fp, a))
 
 
 -- | Expand and pack a lexer error into JSON.
@@ -113,3 +156,7 @@ t = id
 
 i :: Int -> Int
 i = id
+
+
+hoistWith :: Monad m => (a -> c) -> Either a b -> EitherT c m b
+hoistWith f = hoistEither . first f

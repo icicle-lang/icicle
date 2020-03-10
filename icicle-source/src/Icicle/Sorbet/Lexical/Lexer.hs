@@ -134,6 +134,7 @@ reservedIdentifiers :: Map [Char] Token
 reservedIdentifiers =
   Map.fromList [
       ("dictionary", Tok_Dictionary)
+    , ("module", Tok_Module)
     , ("import", Tok_Import)
     , ("where", Tok_Where)
     , ("input", Tok_Input)

@@ -27,7 +27,7 @@ data ResolvedFunction a n =
      functionName :: Name n
    , functionType :: Scheme n
    , functionDefinition :: Exp (Annot a n) n
-   } deriving (Eq, Show)
+   } deriving (Eq, Ord, Show)
 
 -- | Build a function environment containing our builtin functions.
 builtinDefinitions :: (IsString n, Hashable n, Eq n) => a -> Fresh.Fresh n [ResolvedFunction a n]

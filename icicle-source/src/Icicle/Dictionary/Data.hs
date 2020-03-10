@@ -12,6 +12,7 @@ module Icicle.Dictionary.Data (
   , InputKey(..)
   , AnnotSource
   , emptyDictionary
+  , builtinFunctions
   , mapOfInputs
   , mapOfOutputs
   , unkeyed
@@ -91,15 +92,14 @@ tombstonesOfDictionary =
 emptyDictionary :: Dictionary
 emptyDictionary =
   Dictionary Map.empty Map.empty builtinFunctions
-  where
-    builtinFunctions
-      = snd
-      $ Fresh.runFresh
-        (SQ.builtinDefinitions (Position "builtin" 0 0))
-        freshNamer
 
-    freshNamer
-      = Fresh.counterPrefixNameState (fromString . show) "builtin"
+builtinFunctions :: [DictionaryFunction]
+builtinFunctions
+  = snd
+  $ Fresh.runFresh
+    (SQ.builtinDefinitions (Position "builtin" 1 1))
+    (Fresh.counterPrefixNameState (fromString . show) "builtin")
+
 
 mapOfInputs :: [DictionaryInput] -> Map InputId DictionaryInput
 mapOfInputs =

@@ -110,7 +110,7 @@ mkFacts wt =
 dummySourceVar :: P.QueryTyped Source.Var
 dummySourceVar
   = let x = nameOf $ NameBase $ SP.Variable "dummy"
-        pos = Sorbet.Position "dummy" 0 0
+        pos = Sorbet.Position "dummy" 1 1
         input = [inputid|default:input|]
     in  S.QueryTop
           (D.QualifiedInput input)

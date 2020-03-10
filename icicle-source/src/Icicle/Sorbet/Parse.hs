@@ -10,7 +10,7 @@
 module Icicle.Sorbet.Parse (
     sorbet
   , sorbetQuery
-  , sorbetFunctions
+  , sorbetModule
   , sorbetType
   , sorbetUnresolvedInputId
 
@@ -42,12 +42,12 @@ import           Text.Megaparsec (MonadParsec)
 
 
 
-sorbetFunctions :: String -> Text -> Either ParseError [Decl Position Variable]
-sorbetFunctions source input = do
+sorbetModule :: String -> Text -> Either ParseError (Module Position Variable)
+sorbetModule source input = do
   lexed  <- first LexParseError $ Mega.runParser (consumeAll lexProgram) source input
   layed  <- first LayoutParseError $ layoutProgram lexed
-  parsed <- first AbstractParseError $ Mega.runParser (consumeAll pDecls) source (PositionedStream input layed)
-  return (snd parsed)
+  parsed <- first AbstractParseError $ Mega.runParser (consumeAll pModule) source (PositionedStream input layed)
+  return parsed
 
 
 sorbet :: OutputId -> Text -> Either ParseError (QueryTop Position Variable)

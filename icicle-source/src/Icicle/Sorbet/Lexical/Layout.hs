@@ -81,6 +81,11 @@ layoutProgram xs =
     [] ->
       pure []
 
+    -- If the first token is 'module' then we expect a module, and
+    -- a where will open the first outer block
+    x@(Positioned _ _ Tok_Module) : _ ->
+      layoutLine (ScopeEnv x []) xs
+
     -- If the first token is 'dictionary' then we expect a dictionary, and
     -- a where will open the first outer block
     x@(Positioned _ _ Tok_Dictionary) : _ ->

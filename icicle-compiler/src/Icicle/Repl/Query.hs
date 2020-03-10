@@ -204,7 +204,7 @@ defineFunction function =
         Source.DeclFun _ n _ _ -> n
 
       names =
-        Set.fromList $ fmap decln parsed
+        Set.fromList $ fmap decln (Source.moduleEntries parsed)
 
       funEnv =
         List.filter (not . flip Set.member names . functionName) $
@@ -222,7 +222,7 @@ defineFunction function =
 
     let
       fundefs =
-        List.filter (flip Set.member names . functionName) funEnv'
+        List.filter (flip Set.member names . functionName) (Source.resolvedEntries funEnv')
 
     for_ (List.zip fundefs logs) $ \((ResolvedFunction nm typ annot), log0) -> do
       whenSet FlagType $
@@ -240,7 +240,7 @@ defineFunction function =
         liftIO $ IO.putStrLn ""
 
     modify $ \s ->
-      s { stateDictionary = dictionary { dictionaryFunctions = funEnv' } }
+      s { stateDictionary = dictionary { dictionaryFunctions = Source.resolvedEntries funEnv' } }
 
 compileQuery :: String -> EitherT QueryError Repl CompiledQuery
 compileQuery query = do

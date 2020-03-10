@@ -55,6 +55,7 @@ data Token =
   -- Reserved Identifiers
   --
   | Tok_Dictionary
+  | Tok_Module
   | Tok_Import
   | Tok_Where
   | Tok_Input
@@ -130,6 +131,7 @@ renderToken = \case
   Tok_At                -> "@"
   Tok_FlowsInto         -> "~>"
   Tok_Dictionary        -> "dictionary"
+  Tok_Module            -> "module"
   Tok_Import            -> "import"
   Tok_Where             -> "where"
   Tok_Input             -> "input"

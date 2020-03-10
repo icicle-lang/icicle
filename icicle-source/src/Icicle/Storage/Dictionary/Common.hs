@@ -24,7 +24,7 @@ import qualified Icicle.Sorbet.Position                        as Sorbet
 
 import           Icicle.Source.Checker                         (CheckOptions (..))
 import qualified Icicle.Source.Parser                          as SP
-import           Icicle.Source.Query                           (QueryTop (..), Query (..), Exp, Decl)
+import           Icicle.Source.Query                           (QueryTop (..), Query (..), Exp)
 import qualified Icicle.Source.Query                           as SQ
 
 import           Icicle.Storage.Dictionary.Data
@@ -56,7 +56,7 @@ data DictionaryImportError
   | DictionaryErrorImpossible
   deriving (Show)
 
-type Funs a  = [ Decl a SP.Variable ]
+type Module  = SQ.Module Sorbet.Position SP.Variable
 type FunEnvT = [ ResolvedFunction Sorbet.Position SP.Variable ]
 
 
@@ -128,11 +128,11 @@ readImport repoPath fileRel
      src <- T.readFile fileAbs
      return (fileRel, src)
 
-parseImport :: FilePath -> Text -> Either DictionaryImportError (Funs Sorbet.Position)
+parseImport :: FilePath -> Text -> Either DictionaryImportError Module
 parseImport path src
  = first DictionaryErrorCompilation (P.sourceParseF path src)
 
-loadImports :: FunEnvT -> [Funs Sorbet.Position] -> EitherT DictionaryImportError IO FunEnvT
+loadImports :: FunEnvT -> [Module] -> EitherT DictionaryImportError IO FunEnvT
 loadImports parentFuncs parsedImports
  = hoistEither . first DictionaryErrorCompilation
  $ foldlM (go parentFuncs) [] parsedImports
@@ -143,7 +143,7 @@ loadImports parentFuncs parsedImports
         -- Type check the function (allowing it to use parents and previous).
         f' <- P.sourceCheckF (env <> acc) f
         -- Return these functions at the end of the accumulator.
-        return $ acc <> f'
+        return $ acc <> (SQ.resolvedEntries f')
 
 checkDefs :: CheckOptions
           -> Dictionary
@@ -166,8 +166,8 @@ checkKey :: CheckOptions
          -> Exp Sorbet.Position P.Var
          -> Either DictionaryImportError (InputKey AnnotSource P.Var)
 checkKey checkOpts d iid xx = do
-  let l = Sorbet.Position "dummy_pos_ctx"  0 0
-  let p = Sorbet.Position "dummy_pos_final"  0 0
+  let l = Sorbet.Position "dummy_pos_ctx"  1 1
+  let p = Sorbet.Position "dummy_pos_final"  1 1
   let q = QueryTop (QualifiedInput iid) [outputid|dummy_namespace:dummy_output|]
           -- We know the key must be of Pure or Element temporality,
           -- so it's ok to wrap it in a Group.

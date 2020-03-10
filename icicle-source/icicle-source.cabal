@@ -87,6 +87,7 @@ library
                        Icicle.Source.Query.Exp
                        Icicle.Source.Query.Environment
                        Icicle.Source.Query.Function
+                       Icicle.Source.Query.Module
                        Icicle.Source.Query.Operators
                        Icicle.Source.Query.Prim
                        Icicle.Source.Lexer.Token
