@@ -37,7 +37,7 @@ Selected psv file as input: data/example/demographics.psv
 To find out more information about the newly loaded dictionary,
 we can use the ``:dictionary`` command. 
 ```
-λ :set
+λ :dictionary
 Dictionary
 ----------
 
@@ -98,10 +98,10 @@ see the core for each query, can be very handy.
 Mean queries
 ------------
 
-We can test the mean_salary feature by copying its definition text into the repl, with no line breaks.
+We can test the `mean_salary` feature by copying its definition text into the repl, with no line breaks.
 
 ```
-λ feature salary ~> mean value
+λ from salary ~> mean value
 C evaluation
 ------------
 
@@ -113,14 +113,26 @@ We see that homer's mean salary is around 62k, while marge's is zero.
 If we tried the same query on the next feature, ``injury``, what will happen?
 
 ```
-λ feature injury ~> mean value
-                         ^
+λ from injury ~> mean value
+                      ^
 Error
 -----
 
 ## Check error
 
-  Unknown variable value at 1:24
+  Unknown variable value at 1:21
+
+  Suggested bindings are:
+
+    vals : Group a b -> Array b
+
+    all : Element Bool -> Aggregate Bool
+
+    log : Double -> Possibly Double
+
+    abs : Num a => a -> a
+
+    acos : Double -> Possibly Double
 ```
 
 The nasty error here is because `injury` is a structure with fields,
@@ -130,10 +142,10 @@ value. However, inside structures, we refer to each field by its name
 (`action`, `location` and `severity` in this case) or `fields`
 to refer to the entire structure.
 
-Now, if we try to find the mean of severity, we would get:
+Now, if we try to find the mean of `severity`, we would get:
 
 ```
-λ feature injury ~> mean severity
+λ from injury ~> mean severity
 C evaluation
 ------------
 
@@ -144,17 +156,18 @@ However, finding the mean of location is not so simple: location is a
 string, but mean only works on numbers such as integers or doubles.
 
 ```
-λ feature injury ~> mean location
-                    ^
+λ from injury ~> mean location
+                 ^
 Error
 -----
 
 ## Check error
 
-  Cannot discharge constraints at 1:19
+  Cannot discharge constraints at 1:16
 
-    1:19  Not a number: String
-          Chances are you tried to apply some numerical computation like (+) or sum to the wrong field.
+    1:16  Not a number: String
+          Chances are you tried to apply some numerical computation like (+) or sum to the wrong field
+          or used an integer literal for a non-numeric type.
 ```
 
 The important part us on the last line: `Not a number: String`.
@@ -167,7 +180,7 @@ Consider ``newest`` and ``oldest`` which simply return the first and last entrie
 We can join the result of two aggregates with a comma.
 
 ```
-λ feature injury ~> newest location, oldest severity
+λ from injury ~> newest location, oldest severity
 C evaluation
 ------------
 
@@ -179,7 +192,7 @@ could use parentheses to nest the comma inside the argument
 to `newest` like so:
 
 ```
-λ feature injury ~> newest (location, severity)
+λ from injury ~> newest (location, severity)
 C evaluation
 ------------
 
@@ -197,19 +210,19 @@ end, as otherwise we might end up with an unbounded amount of
 output data.
 
 The source of this data is a single concrete feature. We can
-imagine that `feature salary` starts reading all entries from
+imagine that `from salary` starts reading all entries from
 the disk. The data is then passed through with the operator `~>`,
 pronounced "flows into". For example, in the simple query
 
 ```
-feature salary ~> mean value
+from salary ~> mean value
 ```
 Here, all data is being read, and passed into the `mean` aggregation.
 We can introduce new "contexts" between the source and the aggregate,
 for example if we wanted to find the mean of only positive values:
 
 ```
-λ feature salary ~> filter value > 0 ~> mean value
+λ from salary ~> filter value > 0 ~> mean value
 C evaluation
 ------------
 
@@ -225,7 +238,7 @@ numbers, we would introduce a context `filter value > 0` and
 `filter value < 0` like so:
 
 ```
-λ feature salary ~> (filter value > 0 ~> count value), (filter value < 0 ~> count value)
+λ from salary ~> (filter value > 0 ~> count value), (filter value < 0 ~> count value)
 C evaluation
 ------------
 
@@ -236,7 +249,7 @@ Of course there are no negative salaries, so a division would cause
 division by zero, however it is still valid to do so.
 
 ```
-λ feature salary ~> (filter value > 0 ~> count) / (filter value < 0 ~> count)
+λ from salary ~> (filter value > 0 ~> count value) / (filter value < 0 ~> count value)
 C evaluation
 ------------
 
@@ -250,7 +263,7 @@ for exposition, however for now the repl only handles input queries on
 a single line.
 
 ```
-λ feature salary
+λ from salary
   ~> let pos = (filter value > 0 ~> count value)
   ~> let neg = (filter value < 0 ~> count value)
   ~> pos / neg
@@ -278,17 +291,18 @@ computations, as Aggregate computations are only available at the end
 of the stream.
 
 ```
-λ feature salary ~> filter double value > mean value ~> count value
-                                        ^
+λ from salary ~> filter double value > mean value ~> count value
+                                     ^
 Error
 -----
 
 ## Check error
 
-  Cannot discharge constraints at 1:39
+  Cannot discharge constraints at 1:36
 
-    1:39  Cannot join temporalities.
-          Aggregate with Element
+    1:36  Cannot join temporalities.
+          Aggregate with Element.
+          Chances are the query requires multiple passes over the data.
 ```
 
 Again, the last lines are the most important, as well as the position
@@ -305,7 +319,7 @@ or struct fields, has a `time` attached to it. We can view the first
 and last dates quite easily:
 
 ```
-λ feature salary ~> oldest time, newest time
+λ from salary ~> oldest time, newest time
 C evaluation
 ------------
 
@@ -323,7 +337,7 @@ Snapshot mode activated with a snapshot date of 2010-01-01.
 If we wish to see the number of salary changes between late 2009 and 2010, we could do this:
 
 ```
-λ feature salary ~> windowed 30 days ~> count, sum value
+λ from salary ~> windowed 30 days ~> count value, sum value
 C evaluation
 ------------
 
@@ -340,7 +354,7 @@ to be the most severe. We would group by the `location` of the injury,
 then for each `location` find the `count` and mean with `mean severity`.
 
 ```
-λ feature injury ~> group location ~> mean severity, count
+λ from injury ~> group (tolower location) ~> mean severity, count severity
 C evaluation
 ------------
 
@@ -358,10 +372,10 @@ entries there are, versus how many different locations, as well as only
 those locations with particularly severe injuries.
 
 ```
-λ feature injury ~>
-    count location ,
-    (distinct location ~> count location) ,
-    (filter severity > 3 ~> distinct location ~> count location)
+λ from injury ~>
+    count (tolower location) ,
+    (distinct (tolower location) ~> count location) ,
+    (filter severity > 3 ~> distinct (tolower location) ~> count location)
 
 C evaluation
 ------------
@@ -381,7 +395,7 @@ to know which `location` has the highest rate of injury, we can do so
 with
 
 ```
-λ feature injury ~> group fold (loc,sev) = (group location ~> mean severity) ~> max_by sev loc
+λ from injury ~> group fold (loc, sev) = (group (tolower location) ~> mean severity) ~> max_by sev loc
 C evaluation
 ------------
 
@@ -399,20 +413,23 @@ as a fold. (Again, to input this into the repl, you will need to condense
 it onto one line)
 
 ```
-> feature salary
+> from salary
   ~> fold
        my_sum = 0
-              : my_sum + value
+              then my_sum + value
   ~> my_sum
 
-- Result:
-[homer, 372100,marge, 1]
+C evaluation
+------------
+
+homer|372101
+marge|0
 ```
 
 Here we use the `let` syntax as before to give a definition a name, but
 instead of a simple definition, this is a fold definition. The name of
 the fold is `my_sum` and its initial value is `0` - this is what the
-sum of an empty stream would produce. Then we have a colon, `:`,
+sum of an empty stream would produce. Then we have `then`,
 pronounced "followed by".
 
 After the initial value, each fact in the stream computes a new `my_sum`,
@@ -424,14 +441,17 @@ if the stream is not empty, though, called `fold1` - fold on at least one
 element. With this, we can implement an exponentially rolling average:
 
 ```
-> feature salary
+> from salary
   ~> fold1
        roll = double value
-            : double value * 0.25 + roll * 0.75
+            then double value * 0.25 + roll * 0.75
   ~> roll
 
-- Result:
-[homer, 75083.59375,marge, 0.0]
+C evaluation
+------------
+
+homer|59659.0263671875
+marge|0.0
 ```
 
 Here, the initial value of the fold is the value of the first element of
