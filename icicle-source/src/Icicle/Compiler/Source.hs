@@ -76,15 +76,14 @@ import qualified Icicle.Source.Transform.Inline           as Inline
 import qualified Icicle.Source.Transform.ReifyPossibility as Reify
 import qualified Icicle.Source.Type                       as Type
 
-import           Control.Monad.Trans.Class                (lift)
 import           Control.Monad.Trans.Either
-import qualified Control.Monad.Trans.State                as State
 import           Control.Monad.IO.Class
 
 import qualified Data.ByteString                          as ByteString
 import           Data.Functor.Identity
 import qualified Data.List                                as List
-import qualified Data.Map                                 as M
+import           Data.Map                                 (Map)
+import qualified Data.Map                                 as Map
 import           Data.String
 import           Data.Hashable                            (Hashable)
 import qualified Data.Text.Encoding                       as Text
@@ -144,6 +143,7 @@ data ErrorSource var
  | ErrorSourceDesugar     !(Desugar.DesugarError Sorbet.Position var)
  | ErrorSourceCheck       !(Check.CheckError     Sorbet.Position var)
  | ErrorSourceModuleError !(Query.ModuleError    Sorbet.Position)
+ | ErrorImpossible
  deriving (Show, Generic)
 
 -- FIXME We can't implement NFData properly for this type because Parse.ParseError is
@@ -161,6 +161,8 @@ annotOfError e
      -> Just (Check.annotOfError e')
     ErrorSourceModuleError (Query.ModuleNotFound a _)
      -> Just a
+    ErrorImpossible
+     -> Nothing
 
 
 instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) where
@@ -192,6 +194,8 @@ instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) wher
         , mempty
         , indent 2 $ "Can't find module:" <+> pretty fp
         ]
+    ErrorImpossible ->
+      "Impossible"
 --------------------------------------------------------------------------------
 
 -- * queries
@@ -305,13 +309,18 @@ sourceInline opt d q
  = Query.reannot Type.annAnnot
  $ inline q
  where
-  funs      = M.fromList
+  funs      = Map.fromList
             $ fmap (\x -> (Dict.functionName x, Dict.functionDefinition x))
             $ Dict.dictionaryFunctions d
   inline q' = snd
             $ Fresh.runFresh
                 (Inline.inlineQT opt funs q')
                 (freshNamer "inline")
+
+
+loadedPrelude :: EitherT Error IO (Query.Module Sorbet.Position Var)
+loadedPrelude =
+  hoistWith ErrorSourceParse $ uncurry (Parse.parseModule) Dict.prelude
 
 
 readIcicleLibrary :: FilePath -> Parsec.SourceName -> Text -> EitherT Error IO (Query.ResolvedModule Sorbet.Position Var)
@@ -323,28 +332,44 @@ readIcicleLibrary rootDir source input
 
       unchecked <- gatherModules rootDir imports [current]
       checked   <- checkModules unchecked
+      let
+        smooshed =
+          join $ fmap Query.resolvedEntries $ Map.elems checked
+
       return $
-        Query.ResolvedModule (Query.moduleName current) imports (snd checked)
+        Query.ResolvedModule (Query.moduleName current) imports smooshed
 
 
-readIcicleModule :: FilePath -> Query.ModuleName -> EitherT Error IO ([Query.ResolvedModule Sorbet.Position Var], [Dict.DictionaryFunction])
-readIcicleModule rootDir moduleName = do
-  unchecked <- gatherModules rootDir [Query.ModuleImport (Sorbet.Position "<implicit>" 1 1) moduleName] []
+readIcicleModule :: Sorbet.Position -> FilePath -> Query.ModuleName -> EitherT Error IO (Map Query.ModuleName (Query.ResolvedModule Sorbet.Position Var))
+readIcicleModule pos rootDir moduleName = do
+  unchecked <- gatherModules rootDir [Query.ModuleImport pos  moduleName] []
   checkModules unchecked
 
 
--- FIXME
--- Should accumulate a Map, and each check should open its
--- imports instead of using all of them.
-checkModules :: [Query.Module Sorbet.Position Var] -> EitherT Error IO ([Query.ResolvedModule Sorbet.Position Var], [Dict.DictionaryFunction])
+checkModules :: [Query.Module Sorbet.Position Var] -> EitherT Error IO (Map Query.ModuleName (Query.ResolvedModule Sorbet.Position Var))
 checkModules unchecked =
-  hoistEither $
-    flip State.runStateT Dict.builtinFunctions $
-      for unchecked $ \m -> do
-        env <- State.get
-        res <- lift $ sourceCheckF env m
-        State.put (Query.resolvedEntries res <> env)
-        return res
+  let
+    checkModule envs m = do
+      let
+        imports =
+          Query.moduleImports m
+
+      env0 <-
+        traverse (fmap Query.resolvedEntries . note ErrorImpossible . flip Map.lookup envs . Query.importName) imports
+
+      let
+        env1 =
+          Dict.builtinFunctions <> join env0
+
+      checked <-
+        sourceCheckF env1 m
+
+      return $
+        Map.insert (Query.moduleName m) checked envs
+
+  in
+    hoistEither $
+      foldM checkModule Map.empty unchecked
 
 
 openIcicleModule :: FilePath -> Query.ModuleImport Sorbet.Position -> EitherT Error IO (Query.Module Sorbet.Position Var)
@@ -354,6 +379,23 @@ openIcicleModule rootDir mi = do
   modul <- hoistWith ErrorSourceParse $ Parse.parseModule fname input
   return modul
 
+
+
+      -- prelude' <- loadedPrelude
+      -- let
+      --   implicit = Query.moduleName current == Query.moduleName prelude'
+
+      --   preludeModule =
+      --     if implicit then
+      --       []
+      --     else
+      --       [prelude']
+
+      --   preludeImport =
+      --     if implicit then
+      --       []
+      --     else
+      --       [Query.ModuleImport (Query.ModuleName (Sorbet.Position "<implicit>" 1 1) "Prelude")]
 
 -- | Build the module dependency graph.
 gatherModules
@@ -379,3 +421,9 @@ gatherModules rootDir (m:ms') accum = do
 
 hoistWith :: Monad m => (a -> c) -> Either a b -> EitherT c m b
 hoistWith f = hoistEither . first f
+
+-- | Tag a 'Nothing'.
+note :: a -> Maybe b -> Either a b
+note a Nothing = Left a
+note _ (Just b) = Right b
+{-# INLINEABLE note #-}

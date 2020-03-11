@@ -80,9 +80,13 @@ collectOrAdd rootDir state mi = do
   case Map.lookup name known of
     Just x  -> return x
     Nothing -> do
-      envFor <- snd <$> Compiler.readIcicleModule rootDir name
-      liftIO  $ modifyIORef (stateCoreChecked state) (Map.insert name envFor)
-      return envFor
+      checked <- Compiler.readIcicleModule (Query.importAnn mi) rootDir name
+      let
+        loaded =
+          fromMaybe [] $ fmap Query.resolvedEntries $ Map.lookup name checked
+
+      liftIO $ modifyIORef (stateCoreChecked state) (Map.insert name loaded)
+      return loaded
 
 
 
@@ -115,6 +119,8 @@ errorVector err =
       Vector.singleton (packError ("Check", show (pretty err), Check.annotOfError ce))
     Compiler.ErrorSourceModuleError (Query.ModuleNotFound a fp) ->
       Vector.singleton (packError ("Module", "Couldn't find " <> fp, a))
+    Compiler.ErrorImpossible ->
+      Vector.empty
 
 
 -- | Expand and pack a lexer error into JSON.

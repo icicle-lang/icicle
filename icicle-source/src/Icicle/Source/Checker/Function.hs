@@ -45,7 +45,7 @@ checkModule
 
 
 checkModule env module'
- = do (entries, logs) <- foldlM go (env,[]) (moduleEntries module')
+ = do (entries, logs) <- foldlM go ([],[]) (moduleEntries module')
       return $
         (ResolvedModule (moduleName module') (moduleImports module') entries, logs)
 

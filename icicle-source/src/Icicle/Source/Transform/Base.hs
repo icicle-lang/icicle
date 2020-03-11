@@ -4,11 +4,13 @@ module Icicle.Source.Transform.Base (
   , idTransform
   , transformQT
   , transformQ
+  , transformF
   , transformC
   , transformX
   ) where
 
 import Icicle.Source.Query
+import Icicle.Source.Type.Base (Annot)
 
 import P
 
@@ -58,6 +60,17 @@ transformQ t (Query ctxs xx)
    = do (s',c') <- transformC (t { transformState = s }) c
         (s'',cs') <- goCS s' cs
         return (s'', c' : cs')
+
+
+transformF
+    :: (Monad m)
+    => Transform m c (Annot a n) n
+    -> ResolvedFunction a n
+    -> m (ResolvedFunction a n)
+transformF t (ResolvedFunction n typ q)
+ = do   q' <- transformX t q
+        return $ ResolvedFunction n typ q'
+
 
 transformC
     :: (Monad m)

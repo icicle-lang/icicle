@@ -5,6 +5,7 @@ module Icicle.Source.Transform.Inline (
     inlineTransform
   , inlineQT
   , inlineQ
+  , inlineF
   , inlineX
   , InlineOption (..)
   , defaultInline
@@ -95,6 +96,16 @@ inlineQ :: (Hashable n, Eq n)
         -> Fresh n (Query (Annot a n) n)
 inlineQ opt funs
  = transformQ (inlineTransform opt funs)
+
+
+inlineF :: (Hashable n, Eq n)
+        => InlineOption
+        -> Map.Map (Name n) (Exp (Annot a n) n)
+        -> ResolvedFunction a n
+        -> Fresh n (ResolvedFunction a n)
+inlineF opt funs
+ = transformF (inlineTransform opt funs)
+
 
 inlineX :: (Hashable n, Eq n)
         => InlineOption
