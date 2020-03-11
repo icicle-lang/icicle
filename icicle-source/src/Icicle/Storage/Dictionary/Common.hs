@@ -75,7 +75,7 @@ loadDictionary' checkOpts impPrelude parentFuncs parentConf grabber parentInputs
   let repoPath          = takeDirectory dictPath
 
   rawImports           <- traverse (readImport repoPath) (fmap T.unpack (configImports conf))
-  let prelude'          = if impPrelude == ImplicitPrelude then prelude else []
+  let prelude'          = if impPrelude == ImplicitPrelude then [prelude] else []
   parsedImports        <- hoistEither $ traverse (uncurry parseImport) (prelude' <> rawImports)
   importedFunctions    <- loadImports parentFuncs parsedImports
 

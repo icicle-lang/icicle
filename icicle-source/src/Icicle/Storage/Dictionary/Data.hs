@@ -3,7 +3,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
 module Icicle.Storage.Dictionary.Data (
     ImplicitPrelude (..)
@@ -11,19 +10,13 @@ module Icicle.Storage.Dictionary.Data (
   , DictionaryInput' (..)
   , DictionaryOutput' (..)
   , ConcreteKey' (..)
-  , prelude
   ) where
-
-import qualified Data.Text.Encoding                            as T
-import           Data.FileEmbed (embedFile)
 
 import           Icicle.Common.Type
 import           Icicle.Data
 import qualified Icicle.Sorbet.Position as Sorbet
 import           Icicle.Source.Query
 import           Icicle.Source.Lexer.Token (Variable)
-
-import           System.FilePath
 
 import           P
 
@@ -78,8 +71,3 @@ newtype ConcreteKey' = ConcreteKey' {
 
 data ImplicitPrelude = ImplicitPrelude | NoImplicitPrelude
   deriving (Eq, Ord, Show)
-
-
-prelude :: [(FilePath, Text)]
-prelude
- = [("prelude.icicle", T.decodeUtf8 $(embedFile "data/libs/prelude.icicle"))]

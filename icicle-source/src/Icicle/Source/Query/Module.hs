@@ -10,7 +10,6 @@ module Icicle.Source.Query.Module (
   , ModuleName     (..)
   , ModuleImport   (..)
   , ResolvedModule (..)
-  , ModuleInfo     (..)
   , ModuleError    (..)
 
   , getModuleFileName
@@ -64,13 +63,6 @@ data ModuleImport a =
     } deriving (Show, Eq, Ord, Generic)
 
 
-data ModuleInfo a n =
-  ModuleInfo {
-      modInfo         :: Module a n
-    , modInfoImports  :: [ModuleImport a]
-    }
-
-
 data ModuleError a =
   ModuleNotFound a FilePath
   deriving (Show, Eq, Ord, Generic)
@@ -80,17 +72,17 @@ data ModuleError a =
 -- | Generate a sorted list of modules, based on their inputs.
 --
 --   We should be able to type check and inline in order once done.
-topSort :: Ord n => [ModuleInfo a n] -> [Module a n]
+topSort :: Ord n => [Module a n] -> [Module a n]
 topSort ms =
   let
     (gr,lu,_) =
       Graph.graphFromEdges
-        [(m, moduleName (modInfo m), importName <$> modInfoImports m) | m <- ms]
+        [(m, moduleName m, importName <$> moduleImports m) | m <- ms]
     lu' v =
       let
         (m,_,_) = lu v
       in
-        modInfo m
+        m
     sorted =
       lu' <$> Graph.topSort gr
   in

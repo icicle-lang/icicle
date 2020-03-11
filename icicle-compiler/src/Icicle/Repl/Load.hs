@@ -17,7 +17,7 @@ import qualified Data.List as List
 import qualified Data.Text.Encoding as Text
 
 import qualified Icicle.Compiler.Source as Source
-import           Icicle.Dictionary
+import           Icicle.Dictionary      as Dictionary
 import qualified Icicle.Internal.Pretty as Pretty
 import           Icicle.Repl.Data
 import           Icicle.Repl.Monad
@@ -208,7 +208,7 @@ loadFile path = do
 
               Right dictionary -> do
                 setDictionary dictionary
-                traverse_ (uncurry loadFunctionsFrom) Toml.prelude
+                uncurry loadFunctionsFrom Dictionary.prelude
                 liftIO . IO.putStrLn $ "Selected zebra binary file as input: " <> path
                 modify $ \s ->
                   s { stateInput = InputZebra path }

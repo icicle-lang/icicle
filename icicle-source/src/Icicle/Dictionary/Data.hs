@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell   #-}
 module Icicle.Dictionary.Data (
     Dictionary(..)
   , DictionaryInput(..)
@@ -13,6 +14,7 @@ module Icicle.Dictionary.Data (
   , AnnotSource
   , emptyDictionary
   , builtinFunctions
+  , prelude
   , mapOfInputs
   , mapOfOutputs
   , unkeyed
@@ -41,12 +43,15 @@ import           Icicle.Encoding
 
 import           Icicle.Internal.Pretty
 
-import qualified Data.List as List
-import qualified Data.Text as Text
-import           Data.Map (Map)
-import qualified Data.Map as Map
-import           Data.Set (Set)
+import           Data.FileEmbed                     (embedFile)
+import qualified Data.List                          as List
+import qualified Data.Text                          as Text
+import qualified Data.Text.Encoding                 as Text
+import           Data.Map                           (Map)
+import qualified Data.Map                           as Map
+import           Data.Set                           (Set)
 import           Data.String
+import           System.FilePath
 
 import           P
 
@@ -99,6 +104,10 @@ builtinFunctions
   $ Fresh.runFresh
     (SQ.builtinDefinitions (Position "builtin" 1 1))
     (Fresh.counterPrefixNameState (fromString . show) "builtin")
+
+prelude :: (FilePath, Text)
+prelude
+ = ("prelude.icicle", Text.decodeUtf8 $(embedFile "data/libs/prelude.icicle"))
 
 
 mapOfInputs :: [DictionaryInput] -> Map InputId DictionaryInput

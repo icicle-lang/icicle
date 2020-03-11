@@ -321,15 +321,15 @@ readIcicleLibrary rootDir source input
         imports =
           Query.moduleImports current
 
-      unchecked <- gatherModules rootDir imports []
-      checked   <- checkModules (unchecked <> [current])
+      unchecked <- gatherModules rootDir imports [current]
+      checked   <- checkModules unchecked
       return $
-        Query.ResolvedModule (Query.moduleName current) (Query.moduleImports current) (snd checked)
+        Query.ResolvedModule (Query.moduleName current) imports (snd checked)
 
 
 readIcicleModule :: FilePath -> Query.ModuleName -> EitherT Error IO ([Query.ResolvedModule Sorbet.Position Var], [Dict.DictionaryFunction])
 readIcicleModule rootDir moduleName = do
-  unchecked <- gatherModules rootDir [Query.ModuleImport (Sorbet.Position "" 1 1) moduleName] []
+  unchecked <- gatherModules rootDir [Query.ModuleImport (Sorbet.Position "<implicit>" 1 1) moduleName] []
   checkModules unchecked
 
 
@@ -359,7 +359,7 @@ openIcicleModule rootDir mi = do
 gatherModules
   :: FilePath
   -> [Query.ModuleImport Sorbet.Position]
-  -> [Query.ModuleInfo Sorbet.Position Var]
+  -> [Query.Module Sorbet.Position Var]
   -> EitherT Error IO [Query.Module Sorbet.Position Var]
 
 gatherModules _ [] accum = return $ Query.topSort accum
@@ -369,7 +369,7 @@ gatherModules rootDir (m:ms') accum = do
     imports =
       Query.moduleImports current
     accum' =
-      Query.ModuleInfo current imports : accum
+      current : accum
     remaining =
       List.filter (\imp -> Query.importName imp /= Query.importName m) $
         List.nub (ms' <> imports)
