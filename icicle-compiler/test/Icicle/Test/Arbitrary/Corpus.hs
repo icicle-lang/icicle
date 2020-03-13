@@ -214,7 +214,7 @@ testAllCorpus prop =
 prelude :: Either Savage.String [DictionaryFunction]
 prelude =
   mconcat . fmap Query.resolvedEntries <$>
-    nobodyCares (mapM (uncurry $ Source.readIcicleLibrary "check") [DictionaryLoad.prelude])
+    nobodyCares (mapM (uncurry $ Source.readIcicleLibraryPure "check") [DictionaryLoad.prelude])
 
 inputDictionary :: Either Savage.String Dictionary
 inputDictionary =

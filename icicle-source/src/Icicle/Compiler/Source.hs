@@ -34,6 +34,7 @@ module Icicle.Compiler.Source
   , queryOfSource
   , entryOfQuery
   , readIcicleLibrary
+  , readIcicleLibraryPure
   , readIcicleModule
   , gatherModules
   , checkModules
@@ -142,7 +143,7 @@ data ErrorSource var
  = ErrorSourceParse       !Parse.ParseError
  | ErrorSourceDesugar     !(Desugar.DesugarError Sorbet.Position var)
  | ErrorSourceCheck       !(Check.CheckError     Sorbet.Position var)
- | ErrorSourceModuleError !(Query.ModuleError    Sorbet.Position)
+ | ErrorSourceModuleError !(Query.ModuleError    Sorbet.Position var)
  | ErrorImpossible
  deriving (Show, Generic)
 
@@ -159,8 +160,8 @@ annotOfError e
      -> Just (Desugar.annotOfError e')
     ErrorSourceCheck       e'
      -> Just (Check.annotOfError e')
-    ErrorSourceModuleError (Query.ModuleNotFound a _)
-     -> Just a
+    ErrorSourceModuleError me
+     -> Query.annotOfModuleError me
     ErrorImpossible
      -> Nothing
 
@@ -188,11 +189,11 @@ instance (Hashable a, Eq a, IsString a, Pretty a) => Pretty (ErrorSource a) wher
         , indent 2 $ pretty ce
         ]
 
-    ErrorSourceModuleError (Query.ModuleNotFound _ fp) ->
+    ErrorSourceModuleError me ->
       vsep [
           reannotate AnnErrorHeading $ prettyH2 "Module error"
         , mempty
-        , indent 2 $ "Can't find module:" <+> pretty fp
+        , indent 2 $ pretty me
         ]
     ErrorImpossible ->
       "Impossible"
@@ -318,9 +319,28 @@ sourceInline opt d q
                 (freshNamer "inline")
 
 
-loadedPrelude :: EitherT Error IO (Query.Module Sorbet.Position Var)
+loadedPrelude :: Either Error (Query.Module Sorbet.Position Var)
 loadedPrelude =
-  hoistWith ErrorSourceParse $ uncurry (Parse.parseModule) Dict.prelude
+  first ErrorSourceParse $ uncurry (Parse.parseModule) Dict.prelude
+
+
+readIcicleLibraryPure :: FilePath -> Parsec.SourceName -> Text -> Either Error (Query.ResolvedModule Sorbet.Position Var)
+readIcicleLibraryPure _ source input
+ = do current <- first ErrorSourceParse $ Parse.parseModule source input
+      let
+        imports =
+          Query.moduleImports current
+
+      for_ imports $ \(Query.ModuleImport a n) ->
+        Left $ ErrorSourceModuleError (Query.ModuleNotFound a (show n))
+
+      checked <- checkModules [current]
+      let
+        smooshed =
+          join $ fmap Query.resolvedEntries $ Map.elems checked
+
+      return $
+        Query.ResolvedModule (Query.moduleName current) [] smooshed
 
 
 readIcicleLibrary :: FilePath -> Parsec.SourceName -> Text -> EitherT Error IO (Query.ResolvedModule Sorbet.Position Var)
@@ -331,7 +351,7 @@ readIcicleLibrary rootDir source input
           Query.moduleImports current
 
       unchecked <- gatherModules rootDir imports [current]
-      checked   <- checkModules unchecked
+      checked   <- hoistEither $ checkModules unchecked
       let
         smooshed =
           join $ fmap Query.resolvedEntries $ Map.elems checked
@@ -342,11 +362,11 @@ readIcicleLibrary rootDir source input
 
 readIcicleModule :: Sorbet.Position -> FilePath -> Query.ModuleName -> EitherT Error IO (Map Query.ModuleName (Query.ResolvedModule Sorbet.Position Var))
 readIcicleModule pos rootDir moduleName = do
-  unchecked <- gatherModules rootDir [Query.ModuleImport pos  moduleName] []
-  checkModules unchecked
+  unchecked  <- gatherModules rootDir [Query.ModuleImport pos moduleName] []
+  hoistEither $ checkModules unchecked
 
 
-checkModules :: [Query.Module Sorbet.Position Var] -> EitherT Error IO (Map Query.ModuleName (Query.ResolvedModule Sorbet.Position Var))
+checkModules :: [Query.Module Sorbet.Position Var] -> Either Error (Map Query.ModuleName (Query.ResolvedModule Sorbet.Position Var))
 checkModules unchecked =
   let
     checkModule envs m = do
@@ -368,8 +388,7 @@ checkModules unchecked =
         Map.insert (Query.moduleName m) checked envs
 
   in
-    hoistEither $
-      foldM checkModule Map.empty unchecked
+    foldM checkModule Map.empty unchecked
 
 
 openIcicleModule :: FilePath -> Query.ModuleImport Sorbet.Position -> EitherT Error IO (Query.Module Sorbet.Position Var)
@@ -380,23 +399,6 @@ openIcicleModule rootDir mi = do
   return modul
 
 
-
-      -- prelude' <- loadedPrelude
-      -- let
-      --   implicit = Query.moduleName current == Query.moduleName prelude'
-
-      --   preludeModule =
-      --     if implicit then
-      --       []
-      --     else
-      --       [prelude']
-
-      --   preludeImport =
-      --     if implicit then
-      --       []
-      --     else
-      --       [Query.ModuleImport (Query.ModuleName (Sorbet.Position "<implicit>" 1 1) "Prelude")]
-
 -- | Build the module dependency graph.
 gatherModules
   :: FilePath
@@ -404,7 +406,9 @@ gatherModules
   -> [Query.Module Sorbet.Position Var]
   -> EitherT Error IO [Query.Module Sorbet.Position Var]
 
-gatherModules _ [] accum = return $ Query.topSort accum
+gatherModules _ [] accum =
+  hoistWith ErrorSourceModuleError (Query.topSort accum)
+
 gatherModules rootDir (m:ms') accum = do
   current <- openIcicleModule rootDir m
   let
@@ -413,8 +417,8 @@ gatherModules rootDir (m:ms') accum = do
     accum' =
       current : accum
     remaining =
-      List.filter (\imp -> Query.importName imp /= Query.importName m) $
-        List.nub (ms' <> imports)
+      List.filter (\imp -> all (\a -> Query.importName imp /= Query.moduleName a) accum')
+        (ms' <> imports)
 
   gatherModules rootDir remaining accum'
 

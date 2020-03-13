@@ -5,6 +5,7 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
 module Icicle.Source.Query.Module (
     Module         (..)
   , ModuleName     (..)
@@ -14,15 +15,21 @@ module Icicle.Source.Query.Module (
 
   , getModuleFileName
   , topSort
+  , annotOfModuleError
   ) where
 
 
 import           Control.Monad.IO.Class (MonadIO (..))
 import           Control.Monad.Trans.Either (EitherT, right, left)
+import           Data.Array as Array
 import qualified Data.Graph as Graph
+import           Data.List.NonEmpty (NonEmpty (..))
+import           Data.Tree (Tree(..))
 import qualified Data.Text as Text
 
 import           GHC.Generics (Generic)
+
+import           Icicle.Internal.Pretty (Pretty (..), (<+>), encloseSep, prettyPunctuation)
 
 import           Icicle.Source.Query.Query
 import           Icicle.Source.Query.Function
@@ -63,31 +70,66 @@ data ModuleImport a =
     } deriving (Show, Eq, Ord, Generic)
 
 
-data ModuleError a =
-  ModuleNotFound a FilePath
+data ModuleError a n
+  = ModuleNotFound a FilePath
+  | ModuleCycles (NonEmpty [Module a n])
   deriving (Show, Eq, Ord, Generic)
 
+instance Pretty n => Pretty (ModuleError a n) where
+  pretty = \case
+    ModuleNotFound _ fp ->
+      "Can't find module:" <+> pretty fp
+    ModuleCycles (x :| _) ->
+      "Cyclical dependencies discovered" <+>
+        encloseSep mempty mempty (prettyPunctuation "->") (fmap (pretty . getModuleName . moduleName) x)
 
+annotOfModuleError :: ModuleError a n -> Maybe a
+annotOfModuleError e
+ = case e of
+    ModuleNotFound a _
+     -> Just a
+    ModuleCycles _
+     -> Nothing
+
+pathsToNode :: Eq a => a -> Tree a -> [[a]]
+pathsToNode x (Node y ns) =
+  [[x] | x == y] <> fmap (y:) (pathsToNode x =<< ns)
 
 -- | Generate a sorted list of modules, based on their inputs.
 --
 --   We should be able to type check and inline in order once done.
-topSort :: Ord n => [Module a n] -> [Module a n]
+topSort :: Ord n => [Module a n] -> Either (ModuleError a n) [Module a n]
 topSort ms =
   let
     (gr,lu,_) =
       Graph.graphFromEdges
         [(m, moduleName m, importName <$> moduleImports m) | m <- ms]
+
     lu' v =
       let
         (m,_,_) = lu v
       in
         m
+
+    vertexOutEdges =
+      Array.assocs gr
+
+    forests =
+      fmap (\(m,is) -> (m, Graph.dfs gr is)) vertexOutEdges
+
+    pathsToSelves = do
+      (a, fs) <- forests
+      ts      <- fs
+      fmap (\path -> lu' <$> (a : path)) $ pathsToNode a ts
+
     sorted =
       lu' <$> Graph.topSort gr
   in
-    reverse sorted
-
+    case pathsToSelves of
+      [] ->
+        Right (reverse sorted)
+      (x:xs) ->
+        Left (ModuleCycles (x :| xs))
 
 
 -- | Find the file associated with a module
@@ -98,7 +140,7 @@ getModuleFileName
   :: MonadIO m
   => FilePath
   -> ModuleImport a
-  -> EitherT (ModuleError a) m FilePath
+  -> EitherT (ModuleError a n) m FilePath
 getModuleFileName parent m = do
   let
     shown =

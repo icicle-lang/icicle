@@ -117,8 +117,8 @@ errorVector err =
       Vector.singleton (packError ("Desugar", show (pretty err), Desugar.annotOfError de))
     Compiler.ErrorSourceCheck ce ->
       Vector.singleton (packError ("Check", show (pretty err), Check.annotOfError ce))
-    Compiler.ErrorSourceModuleError (Query.ModuleNotFound a fp) ->
-      Vector.singleton (packError ("Module", "Couldn't find " <> fp, a))
+    Compiler.ErrorSourceModuleError _ ->
+      Vector.singleton (packError ("Module", show (pretty err), Position "<>" 1 1))
     Compiler.ErrorImpossible ->
       Vector.empty
 
