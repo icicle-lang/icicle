@@ -327,6 +327,7 @@ loadedPrelude =
 readIcicleLibraryPure :: FilePath -> Parsec.SourceName -> Text -> Either Error (Query.ResolvedModule Sorbet.Position Var)
 readIcicleLibraryPure _ source input
  = do current <- first ErrorSourceParse $ Parse.parseModule source input
+      prelude <- loadedPrelude
       let
         imports =
           Query.moduleImports current
@@ -334,7 +335,7 @@ readIcicleLibraryPure _ source input
       for_ imports $ \(Query.ModuleImport a n) ->
         Left $ ErrorSourceModuleError (Query.ModuleNotFound a (show n))
 
-      checked <- checkModules [current]
+      checked <- checkModules [current, prelude]
       let
         smooshed =
           join $ fmap Query.resolvedEntries $ Map.elems checked
@@ -346,11 +347,12 @@ readIcicleLibraryPure _ source input
 readIcicleLibrary :: FilePath -> Parsec.SourceName -> Text -> EitherT Error IO (Query.ResolvedModule Sorbet.Position Var)
 readIcicleLibrary rootDir source input
  = do current <- hoistWith ErrorSourceParse $ Parse.parseModule source input
+      prelude <- hoistEither loadedPrelude
       let
         imports =
           Query.moduleImports current
 
-      unchecked <- gatherModules rootDir imports [current]
+      unchecked <- gatherModules rootDir imports [current, prelude]
       checked   <- hoistEither $ checkModules unchecked
       let
         smooshed =
@@ -362,7 +364,8 @@ readIcicleLibrary rootDir source input
 
 readIcicleModule :: Sorbet.Position -> FilePath -> Query.ModuleName -> EitherT Error IO (Map Query.ModuleName (Query.ResolvedModule Sorbet.Position Var))
 readIcicleModule pos rootDir moduleName = do
-  unchecked  <- gatherModules rootDir [Query.ModuleImport pos moduleName] []
+  prelude    <- hoistEither loadedPrelude
+  unchecked  <- gatherModules rootDir [Query.ModuleImport pos moduleName] [prelude]
   hoistEither $ checkModules unchecked
 
 
@@ -406,21 +409,25 @@ gatherModules
   -> [Query.Module Sorbet.Position Var]
   -> EitherT Error IO [Query.Module Sorbet.Position Var]
 
-gatherModules _ [] accum =
-  hoistWith ErrorSourceModuleError (Query.topSort accum)
-
-gatherModules rootDir (m:ms') accum = do
-  current <- openIcicleModule rootDir m
+gatherModules rootDir imports accum =
   let
-    imports =
-      Query.moduleImports current
-    accum' =
-      current : accum
-    remaining =
-      List.filter (\imp -> all (\a -> Query.importName imp /= Query.moduleName a) accum')
-        (ms' <> imports)
+    outstanding =
+      List.filter (\imp -> all (\a -> Query.importName imp /= Query.moduleName a) accum) imports
+  in
+    case outstanding of
+      [] ->
+        hoistWith ErrorSourceModuleError (Query.topSort accum)
+      m:ms -> do
+        current <- openIcicleModule rootDir m
+        let
+          currentImports =
+            Query.moduleImports current
+          accum' =
+            current : accum
+          remaining =
+            ms <> currentImports
 
-  gatherModules rootDir remaining accum'
+        gatherModules rootDir remaining accum'
 
 
 hoistWith :: Monad m => (a -> c) -> Either a b -> EitherT c m b
