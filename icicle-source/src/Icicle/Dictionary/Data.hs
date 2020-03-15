@@ -107,7 +107,6 @@ prelude :: (FilePath, Text)
 prelude
  = ("prelude.icicle", Text.decodeUtf8 $(embedFile "data/libs/prelude.icicle"))
 
-
 mapOfInputs :: [DictionaryInput] -> Map InputId DictionaryInput
 mapOfInputs =
   Map.fromList . fmap (\x -> (inputId x, x))

@@ -140,14 +140,18 @@ count v =
 mean : Num a => Element a -> Aggregate (Possibly Double)
 mean v =
   let
-    v =
-      double v
+    v = double v
   in
-    fold1 (m, n) =
-      (v, 1) then
-        (m + (v - m) / (n + 1), n + 1)
-    in m
-
+    fold1 (n, m) =
+      (1, v) then
+        let
+          n = n + 1
+          d = v - m
+          m = m + d / n
+        in
+          (n, m)
+    in
+      m
 
 max : Element a -> Aggregate (Possibly a)
 max v =
@@ -221,14 +225,14 @@ covariance a b =
     fold (n, m1, m2, m12) =
       (0, 0, 0, 0) then
         let
-          n   = n + 1
-          d1  = (a - m1) / n
+          n'  = n + 1
+          d1  = (a - m1) / n'
           m1  = m1 + d1
-          d2  = (b - m2) / n
+          d2  = (b - m2) / n'
           m2  = m2 + d2
-          m12 = m12 + n * d1 * d2 - m12 / n
+          m12 = m12 + n * d1 * d2 - m12 / n'
         in
-          (n, m1, m2, m12)
+          (n', m1, m2, m12)
     in
       m12 * n / (n - 1)
 
