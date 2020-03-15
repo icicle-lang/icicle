@@ -23,7 +23,6 @@ import qualified Icicle.Sorbet.Parse                           as Sorbet
 import qualified Icicle.Sorbet.Position                        as Sorbet
 
 import           Icicle.Source.Checker                         (CheckOptions (..))
-import qualified Icicle.Source.Parser                          as SP
 import           Icicle.Source.Query                           (QueryTop (..), Query (..), Exp)
 import qualified Icicle.Source.Query                           as SQ
 
@@ -56,9 +55,6 @@ data DictionaryImportError
   | DictionaryErrorImpossible
   deriving (Show)
 
-type Module  = SQ.Module Sorbet.Position SP.Variable
-type FunEnvT = [ ResolvedFunction Sorbet.Position SP.Variable ]
-
 
 loadDictionary'
   :: CheckOptions
@@ -76,8 +72,9 @@ loadDictionary' checkOpts impPrelude parentFuncs parentConf grabber parentInputs
 
   rawImports           <- traverse (readImport repoPath) (fmap T.unpack (configImports conf))
   let prelude'          = if impPrelude == ImplicitPrelude then [prelude] else []
-  parsedImports        <- hoistEither $ traverse (uncurry parseImport) (prelude' <> rawImports)
-  importedFunctions    <- loadImports parentFuncs parsedImports
+  parsedImports        <- firstEitherT DictionaryErrorCompilation $
+                          traverse (uncurry (P.readIcicleLibrary repoPath)) (prelude' <> rawImports)
+  let importedFunctions = bind SQ.resolvedEntries parsedImports
 
   -- Functions available for virtual features, and visible in sub-dictionaries.
   let availableFunctions = parentFuncs <> importedFunctions
@@ -128,22 +125,6 @@ readImport repoPath fileRel
      src <- T.readFile fileAbs
      return (fileRel, src)
 
-parseImport :: FilePath -> Text -> Either DictionaryImportError Module
-parseImport path src
- = first DictionaryErrorCompilation (P.sourceParseF path src)
-
-loadImports :: FunEnvT -> [Module] -> EitherT DictionaryImportError IO FunEnvT
-loadImports parentFuncs parsedImports
- = hoistEither . first DictionaryErrorCompilation
- $ foldlM (go parentFuncs) [] parsedImports
- where
-  go env acc f
-   = do -- Run desugar to ensure pattern matches are complete.
-        _  <- P.sourceDesugarF f
-        -- Type check the function (allowing it to use parents and previous).
-        f' <- P.sourceCheckF (env <> acc) f
-        -- Return these functions at the end of the accumulator.
-        return $ acc <> (SQ.resolvedEntries f')
 
 checkDefs :: CheckOptions
           -> Dictionary
