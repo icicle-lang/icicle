@@ -197,8 +197,8 @@ variance v =
   let
     v = double v
   in
-    fold (n, m, m2) =
-      (0, 0, 0) then
+    fold1 (n, m, m2) =
+      (1, v, 0) then
         let
           n = n + 1
           d = v - m
@@ -222,8 +222,8 @@ covariance a b =
     a = double a
     b = double b
   in
-    fold (n, m1, m2, m12) =
-      (0, 0, 0, 0) then
+    fold1 (n, m1, m2, m12) =
+      (1, a, b, 0) then
         let
           n'  = n + 1
           d1  = (a - m1) / n'
