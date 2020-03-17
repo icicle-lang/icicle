@@ -38,6 +38,8 @@ module Icicle.Compiler.Source
   , readIcicleModule
   , gatherModules
   , checkModules
+  , implicitModuleImports
+  , loadedPrelude
 
     -- * Works on Source programs
   , sourceParseQT
@@ -330,12 +332,12 @@ readIcicleLibraryPure _ source input
       prelude <- loadedPrelude
       let
         imports =
-          Query.moduleImports current
+          implicitModuleImports current
 
       for_ imports $ \(Query.ModuleImport a n) ->
         Left $ ErrorSourceModuleError (Query.ModuleNotFound a (show n))
 
-      checked <- checkModules [current, prelude]
+      checked <- checkModules [current { Query.moduleImports = imports }, prelude]
       let
         smooshed =
           join $ fmap Query.resolvedEntries $ Map.elems checked
@@ -350,9 +352,9 @@ readIcicleLibrary rootDir source input
       prelude <- hoistEither loadedPrelude
       let
         imports =
-          Query.moduleImports current
+          implicitModuleImports current
 
-      unchecked <- gatherModules rootDir imports [current, prelude]
+      unchecked <- gatherModules rootDir imports [current { Query.moduleImports = imports }, prelude]
       checked   <- hoistEither $ checkModules unchecked
       let
         smooshed =
@@ -421,13 +423,29 @@ gatherModules rootDir imports accum =
         current <- openIcicleModule rootDir m
         let
           currentImports =
-            Query.moduleImports current
+            implicitModuleImports current
           accum' =
-            current : accum
+            current { Query.moduleImports = currentImports } : accum
           remaining =
             ms <> currentImports
 
         gatherModules rootDir remaining accum'
+
+
+implicitModuleImports :: Query.Module Sorbet.Position Var -> [Query.ModuleImport Sorbet.Position]
+implicitModuleImports m =
+  let
+    explicit =
+      Query.moduleImports m
+    preludeName =
+      Query.ModuleName "Prelude"
+    preludePos =
+      Sorbet.Position "<implicit>" 1 1
+  in
+    if Query.moduleName m == preludeName then
+      explicit
+    else
+      Query.ModuleImport preludePos preludeName : explicit
 
 
 hoistWith :: Monad m => (a -> c) -> Either a b -> EitherT c m b

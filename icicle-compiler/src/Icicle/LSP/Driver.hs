@@ -214,6 +214,8 @@ lspInitialized state req
         lspLoop state
 
   -- A file was saved.
+  -- Update the cached version so different modules can pick up
+  -- the new definitions.
   | "textDocument/didSave"  <- reqMethod req
   , Just (Object jParams)   <- reqParams req
   , Just (Object jDoc)      <- HashMap.lookup "textDocument" jParams
@@ -222,6 +224,7 @@ lspInitialized state req
   = do  lspLog state "* DidSave"
         lspLog state $ "  sUri:         " <> show sUri
         lspLog state $ "  iVersion:     " <> show iVersion
+        Task.saveDiagnostics state sUri
         lspLoop state
 
 

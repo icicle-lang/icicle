@@ -1,6 +1,11 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Icicle.LSP.Task.Diagnostics where
+{-# LANGUAGE DoAndIfThenElse   #-}
+module Icicle.LSP.Task.Diagnostics (
+    updateDiagnostics
+  , saveDiagnostics
+  , sendClearDiagnostics
+  ) where
 
 import           Icicle.Internal.Pretty hiding ((</>))
 import           Icicle.LSP.State
@@ -19,8 +24,10 @@ import           Control.Monad.Trans.Either
 
 import           Data.IORef
 import           Data.Aeson
+import qualified Data.ByteString as ByteString
 import qualified Data.List as List
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text
 import qualified Data.Map as Map
 import           Data.String (String)
 import qualified Data.Vector as Vector
@@ -33,6 +40,9 @@ import           P
 
 
 -- | Compute diagnostics for a source file, and push them to the client.
+--
+--   This is called when the document is unsaved and under test. So we're
+--   not looking at the original file at this point.
 updateDiagnostics :: State -> Text -> Text -> IO ()
 updateDiagnostics state sUri sSource = do
   diagnostics <- runEitherT $
@@ -46,10 +56,10 @@ updateDiagnostics state sUri sSource = do
       sendDiagnostics state sUri (errorVector fu)
 
 
--- | Compute diagnostics for a source file
+-- | Compute diagnostics for an in memory module
 updateDiagnostics' :: State -> Text -> Text -> EitherT (Compiler.ErrorSource Variable) IO ()
 updateDiagnostics' state sUri sSource = do
-  funs  <- hoistEither $ Compiler.sourceParseF (takeFileName (Text.unpack sUri)) sSource
+  funs    <- hoistEither $ Compiler.sourceParseF (takeFileName (Text.unpack sUri)) sSource
   let
     imports =
       Query.moduleImports funs
@@ -69,24 +79,77 @@ updateDiagnostics' state sUri sSource = do
   return ()
 
 
+-- | Compute diagnostics for a source file, and push them to the client.
+--
+--   This is called when the document is being saved. So we want to look
+--   at the file on disk, and make sure our in-memory cache of resolved
+--   modules is updated with the results.
+saveDiagnostics :: State -> Text -> IO ()
+saveDiagnostics state sUri = do
+  diagnostics <- runEitherT $
+    saveDiagnostics' state sUri
+
+  case diagnostics of
+    Right _ -> do
+      sendClearDiagnostics state sUri
+    Left fu -> do
+      lspLog  state ("* Sending Parse Errors")
+      sendDiagnostics state sUri (errorVector fu)
+
+
+-- | Compute diagnostics for an on disk module
+saveDiagnostics' :: State -> Text -> EitherT (Compiler.ErrorSource Variable) IO ()
+saveDiagnostics' state sUri = do
+  let
+    localPath =
+      fromMaybe (Text.unpack sUri) $
+        List.stripPrefix "file://" $
+          Text.unpack sUri
+
+    rootDir =
+      takeDirectory localPath
+
+    sourceName =
+      takeFileName localPath
+
+  input <- Text.decodeUtf8 <$> liftIO (ByteString.readFile localPath)
+  modul <- Compiler.readIcicleLibrary rootDir sourceName input
+
+  liftIO (lspLog  state ("* Cache rewrite for " <> localPath))
+  liftIO $ modifyIORef (stateCoreChecked state) (Map.insert localPath (Query.resolvedEntries modul))
+
+
+-- Check our in memory cache of checked modules
+-- If the module hasn't been loaded yet, then
+-- add it to our cache.
 collectOrAdd :: FilePath -> State -> Query.ModuleImport Position -> EitherT (Compiler.ErrorSource Variable) IO [Dictionary.DictionaryFunction]
 collectOrAdd rootDir state mi = do
   let
     name =
       Query.importName mi
 
-  known <- liftIO (readIORef (stateCoreChecked state))
+  if name == Query.ModuleName "Prelude" then do
+    prelude <- hoistEither $ Compiler.loadedPrelude >>= Compiler.sourceCheckF Dictionary.builtinFunctions
+    return $ Query.resolvedEntries prelude
+  else do
+    expected_location <-
+      firstEitherT Compiler.ErrorSourceModuleError $ Query.getModuleFileName rootDir mi
 
-  case Map.lookup name known of
-    Just x  -> return x
-    Nothing -> do
-      checked <- Compiler.readIcicleModule (Query.importAnn mi) rootDir name
-      let
-        loaded =
-          fromMaybe [] $ fmap Query.resolvedEntries $ Map.lookup name checked
+    known <- liftIO (readIORef (stateCoreChecked state))
+    case Map.lookup expected_location known of
+      Just x  -> do
+        liftIO (lspLog  state ("* Cache hit for " <> expected_location))
+        return x
+      Nothing -> do
+        liftIO (lspLog  state ("* Cache miss for " <> expected_location))
+        checked <- Compiler.readIcicleModule (Query.importAnn mi) rootDir name
+        let
+          loaded =
+            fromMaybe [] $ fmap Query.resolvedEntries $ Map.lookup name checked
 
-      liftIO $ modifyIORef (stateCoreChecked state) (Map.insert name loaded)
-      return loaded
+        liftIO (lspLog  state ("* Cache write for " <> expected_location))
+        liftIO $ modifyIORef (stateCoreChecked state) (Map.insert expected_location loaded)
+        return loaded
 
 
 
@@ -164,5 +227,3 @@ i :: Int -> Int
 i = id
 
 
-hoistWith :: Monad m => (a -> c) -> Either a b -> EitherT c m b
-hoistWith f = hoistEither . first f

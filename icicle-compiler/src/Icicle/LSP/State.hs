@@ -11,7 +11,6 @@ import qualified System.IO      as System
 import           System.IO      (IO, FilePath)
 
 import qualified Icicle.Dictionary as Dictionary
-import qualified Icicle.Source.Query as Query
 
 import P
 
@@ -22,7 +21,7 @@ data State
         , stateLogDebug         :: Maybe (FilePath, System.Handle)
 
           -- | Checked core files.
-        , stateCoreChecked      :: IORef (Map Query.ModuleName [Dictionary.DictionaryFunction]) }
+        , stateCoreChecked      :: IORef (Map FilePath [Dictionary.DictionaryFunction]) }
 
 
 -- | Phase of the LSP server protocol.

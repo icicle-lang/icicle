@@ -134,8 +134,8 @@ topSort ms =
 
 -- | Find the file associated with a module
 --
---   Both Extras and Extras.icicle are supported
---   as the Module import name.
+--   Module Extras will look for extras.icicle
+--   relative to the parent.
 getModuleFileName
   :: MonadIO m
   => FilePath
@@ -144,7 +144,7 @@ getModuleFileName
 getModuleFileName parent m = do
   let
     shown =
-       Text.unpack . getModuleName $
+       Text.unpack . Text.toLower . getModuleName $
         importName m
 
     extended =
