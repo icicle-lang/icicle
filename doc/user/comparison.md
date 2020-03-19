@@ -21,7 +21,7 @@ Sum
 
 Icicle:
 ```
-feature feat
+from feat
 ~> sum value
 ```
 
@@ -36,8 +36,8 @@ Count
 
 Icicle:
 ```
-feature feat
-~> count
+from feat
+~> count value
 ```
 
 SQL:
@@ -51,9 +51,9 @@ Windowed count
 
 Icicle:
 ```
-feature feat
+from feat
 ~> windowed 30 days
-~> count
+~> count value
 ```
 
 SQL:
@@ -68,9 +68,9 @@ Filtered count
 
 Icicle:
 ```
-feature feat
+from feat
 ~> filter value > 50
-~> count
+~> count value
 ```
 
 SQL:
@@ -85,9 +85,9 @@ CountBy
 
 Icicle:
 ```
-feature feat
+from feat
 ~> group value
-~> count
+~> count value
 ```
 
 SQL
@@ -102,9 +102,9 @@ CountDays
 
 Icicle:
 ```
-feature feat
+from feat
 ~> distinct date
-~> count
+~> count value
 ```
 
 
@@ -122,8 +122,8 @@ Neither is the "group of monotonic key" optimisation which would allow this to n
 
 Icicle:
 ```
-feature feat
-~> group fold (day|day_count) = (group date ~> count)
+from feat
+~> group fold (day|day_count) = (group date ~> count value)
 ~> maximum day_count
 ```
 
@@ -143,7 +143,7 @@ TODO: Sadly, "now" is not actually implemented yet either.
 
 Icicle:
 ```
-feature feat
+from feat
 ~> now - oldest date
 ```
 
@@ -160,9 +160,9 @@ FilteredOverTotal
 ----------------
 Icicle
 ```
-feature feat
-~> let v = (filter value > 0 ~> count)
-~> let y = count
+from feat
+~> let v = (filter value > 0 ~> count value)
+~> let y = count value
 ~> v / y
 ```
 
@@ -180,7 +180,7 @@ Standard deviation
 -------
 Icicle
 ```
-feature feat
+from feat
 ~> let sqr = mean (value * value)
 ~> let mnn = mean  value
 ~> sqrt (sqr - mnn * mnn)
@@ -199,7 +199,7 @@ Most recent value from 30-60 days ago
 ----------------------
 Icicle:
 ```
-feature feat
+from feat
 ~> windowed between 30 and 60 days
 ~> newest value
 ```
@@ -217,7 +217,7 @@ Average of last three months
 ------------------------
 Icicle:
 ```
-feature feat
+from feat
 ~> windowed 3 months
 ~> average value
 ```
@@ -234,10 +234,10 @@ Number of zeroes in last 3 entries
 
 Icicle
 ```
-feature feat
+from feat
 ~> latest 3
 ~> filter value == 0
-~> count
+~> count value
 ```
 
 SQL
@@ -255,7 +255,7 @@ TODO (&&) needs to be implemented (trivial)
 
 Icicle
 ```
-feature feat
+from feat
 ~> latest 2
 ~> let a = newest value
 ~> let b = oldest value
@@ -280,14 +280,14 @@ Exponentially smoothed value
 ----------------------------
 Icicle
 ```
-feature feat
-~> let fold1 smooth = value : value * 0.5 + smooth * 0.5
+from feat
+~> let fold1 smooth = value then value * 0.5 + smooth * 0.5
 ~> smooth
 ```
 
 SQL
 ```
-select      sum(value / pow(2,rownum))
+select      sum(value / pow(2, rownum))
 from        feat
 order by    date desc
 ```

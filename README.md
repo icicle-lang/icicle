@@ -49,7 +49,7 @@ mean : Element Double -> Aggregate Double
 mean v = sum v / count v
 ```
 
-This is fine<sup>[1](#stabilty)</sup>, and one can be sure that Icicle will
+This is fine<sup>[1](#stability)</sup>, and one can be sure that Icicle will
 fuse the sum and count queries such that the data will only be visited once.
 For calculating the variance and standard deviation, one might naïvely try
 this:
@@ -76,7 +76,7 @@ Context
 
 Icicle is designed for, but not dependent on, the
 [ivory](https://speakerdeck.com/ambiata/ivory-concepts)
-data-store. While parts of this docuement uses the terms of ivory,
+data-store. While parts of this document uses the terms of ivory,
 the problems being addressed are not unique to ivory, and one can adapt
 these ideas to different contexts. For an idea of what ivory does, see
 
