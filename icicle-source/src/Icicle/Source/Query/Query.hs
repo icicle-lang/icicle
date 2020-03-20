@@ -9,7 +9,6 @@ module Icicle.Source.Query.Query (
     QueryTop  (..)
   , Query     (..)
   , Exp
-  , Decl
   , Context
 
   , simplifyNestedQT
@@ -68,7 +67,6 @@ instance (NFData a, NFData n) => NFData (Query a n)
 -- | "Tie the knot" so expressions can have nested queries.
 -- See Exp.
 type Exp     a n = Exp'     Query a n
-type Decl    a n = Decl'    Query a n
 type Context a n = Context' Query a n
 
 instance Pretty n => Pretty (QueryTop a n) where

@@ -60,19 +60,30 @@ updateDiagnostics state sUri sSource = do
 updateDiagnostics' :: State -> Text -> Text -> EitherT (Compiler.ErrorSource Variable) IO ()
 updateDiagnostics' state sUri sSource = do
   funs    <- hoistEither $ Compiler.sourceParseF (takeFileName (Text.unpack sUri)) sSource
+  prelude <- hoistEither $ Compiler.loadedPrelude >>= Compiler.sourceCheckF Dictionary.builtinFunctions
+
   let
     imports =
       Query.moduleImports funs
+
+    modName =
+      Query.moduleName funs
 
     rootDir =
       fromMaybe (Text.unpack sUri) $
         List.stripPrefix "file://" $
           takeDirectory (Text.unpack sUri)
 
+    implicitPrelude =
+      if modName == Query.ModuleName "Prelude" then
+        []
+      else
+        Query.resolvedEntries prelude
+
   rsvd <- traverse (collectOrAdd rootDir state) imports
   let
     env0 =
-      join rsvd <> Dictionary.builtinFunctions
+      join rsvd <> Dictionary.builtinFunctions <> implicitPrelude
 
   _    <- hoistEither $ Compiler.sourceDesugarF funs
   _    <- hoistEither $ Compiler.sourceCheckF env0 funs

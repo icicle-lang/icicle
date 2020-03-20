@@ -12,6 +12,7 @@ module Icicle.Source.Query.Module (
   , ModuleImport   (..)
   , ResolvedModule (..)
   , ModuleError    (..)
+  , Decl           (..)
 
   , getModuleFileName
   , topSort
@@ -29,15 +30,31 @@ import qualified Data.Text as Text
 
 import           GHC.Generics (Generic)
 
+import           Icicle.Common.Base (Name)
 import           Icicle.Internal.Pretty (Pretty (..), (<+>), encloseSep, prettyPunctuation)
 
+import           Icicle.Source.Type
+import           Icicle.Source.Query.Exp
 import           Icicle.Source.Query.Query
 import           Icicle.Source.Query.Function
+
 
 import           P
 
 import           System.FilePath
 import           System.Directory
+
+
+data Decl a n
+  = DeclFun a (Name n) (Maybe (Scheme n)) (Exp a n)
+  deriving (Eq, Ord, Show, Generic)
+
+
+instance TraverseAnnot Decl where
+  traverseAnnot f decl =
+    case decl of
+      DeclFun a n t x ->
+        DeclFun <$> f a <*> pure n <*> pure t <*> traverseAnnot f x
 
 
 newtype ModuleName =

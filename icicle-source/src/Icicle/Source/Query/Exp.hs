@@ -11,7 +11,6 @@
 {-# LANGUAGE TupleSections #-}
 module Icicle.Source.Query.Exp (
     Exp'      (..)
-  , Decl'     (..)
   , Prim      (..)
   , Lit       (..)
   , Op        (..)
@@ -46,7 +45,7 @@ import           GHC.Generics (Generic)
 import           Icicle.Source.Query.Builtin
 import           Icicle.Source.Query.Constructor
 import           Icicle.Source.Query.Operators
-import           Icicle.Source.Type (Scheme, Annot (..))
+import           Icicle.Source.Type (Annot (..))
 import           Icicle.Internal.Pretty
 import           Icicle.Common.Base
 
@@ -106,11 +105,6 @@ instance NFData Prim
 type Fun = BuiltinFun
 
 
-data Decl' q a n
-  = DeclFun a (Name n) (Maybe (Scheme n)) (Exp' q a n)
-  deriving (Eq, Ord, Show, Generic)
-
-
 class TraverseAnnot q where
   traverseAnnot :: Applicative f => (a -> f a') -> q a n -> f (q a' n)
 
@@ -152,12 +146,6 @@ instance TraverseAnnot q => TraverseAnnot (Exp' q) where
           <*> traverse (\(p, x) -> (p,) <$> traverseAnnot f x) pats
       Access a x n ->
         Access <$> f a <*> traverseAnnot f x <*> pure n
-
-instance TraverseAnnot q => TraverseAnnot (Decl' q) where
-  traverseAnnot f decl =
-    case decl of
-      DeclFun a n t x ->
-        DeclFun <$> f a <*> pure n <*> pure t <*> traverseAnnot f x
 
 takeLams :: Exp' q a n -> ([(a, Name n)], Exp' q a n)
 takeLams (Lam a n x) =

@@ -31,3 +31,5 @@ constraints:
 package icicle
   tests: True
 
+package *
+  ghc-options: -fwrite-ide-info

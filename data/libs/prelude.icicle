@@ -275,31 +275,14 @@ numflips' : Num n
          -> Aggregate (Possibly n)
 numflips' v t =
   let
-    zero =
+    lifted =
       if t then
-        (None, 0)
+        None
       else
-        (Some v, 0)
-
-    kons s i =
-      if t then
-        case s of
-          Some _ then
-            (None, i + 1)
-          None then
-            (None, i)
-      else
-        if (s == Some v) then
-          (Some v, i)
-        else
-          (Some v, i + 1)
-
+        Some v
   in
-    fold1 (s, i) =
-      zero then kons s i
-    in
-      from_integer i
-
+    numflips
+      lifted
 
 
 --------------------------------------------------------------------------------
