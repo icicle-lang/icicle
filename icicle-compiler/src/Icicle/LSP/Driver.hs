@@ -126,6 +126,8 @@ lspStartup state req
                               "change" .= (1 :: Int), -- send us full file changes.
                               "save" .= True -- send us save notif.
                             ]
+                      , "hoverProvider"
+                          .= True
                       ]
                 ]
           ]
@@ -209,8 +211,8 @@ lspInitialized state req
         lspLog state $ "  sUri:         " <> show sUri
 
         -- Once the file is closed, clear any errors that it might still have
-        -- from the IDE.
-        Task.sendClearDiagnostics state sUri
+        -- from the IDE and remove it from the cache.
+        Task.closeDiagnostics state sUri
         lspLoop state
 
   -- A file was saved.
@@ -227,6 +229,15 @@ lspInitialized state req
         Task.saveDiagnostics state sUri
         lspLoop state
 
+
+  | "textDocument/hover"    <- reqMethod req
+  , Just (Object jParams)   <- reqParams req
+  , Just (Object jDoc)      <- HashMap.lookup "textDocument" jParams
+  , Just (String sUri)      <- HashMap.lookup "uri" jDoc
+  , Just (Object jPos)      <- HashMap.lookup "position" jParams
+  , Just (Number pLine)     <- HashMap.lookup "line" jPos
+  , Just (Number pChar)     <- HashMap.lookup "character" jPos
+  = lspLog state "Getting there Huw"
 
   -- Some other request that we don't handle.
   | otherwise

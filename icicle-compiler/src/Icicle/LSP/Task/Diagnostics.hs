@@ -4,6 +4,7 @@
 module Icicle.LSP.Task.Diagnostics (
     updateDiagnostics
   , saveDiagnostics
+  , closeDiagnostics
   , sendClearDiagnostics
   ) where
 
@@ -107,6 +108,21 @@ saveDiagnostics state sUri = do
       lspLog  state ("* Sending Parse Errors")
       sendDiagnostics state sUri (errorVector fu)
 
+-- | Compute diagnostics for a source file, and push them to the client.
+--
+--   This is called when the document is being saved. So we want to look
+--   at the file on disk, and make sure our in-memory cache of resolved
+--   modules is updated with the results.
+closeDiagnostics :: State -> Text -> IO ()
+closeDiagnostics state sUri = do
+  let
+    localPath =
+      fromMaybe (Text.unpack sUri) $
+        List.stripPrefix "file://" $
+          Text.unpack sUri
+
+  liftIO $ modifyIORef (stateCoreChecked state) (Map.delete localPath)
+  sendClearDiagnostics state sUri
 
 -- | Compute diagnostics for an on disk module
 saveDiagnostics' :: State -> Text -> EitherT (Compiler.ErrorSource Variable) IO ()
