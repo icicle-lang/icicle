@@ -1,0 +1,79 @@
+dictionary Demographics where
+
+import "missing.icicle"
+import "requiring.icicle"
+
+input age : Int
+
+input salary : Int
+
+input gender : String
+
+input injury : {
+    location : String
+  , severity : Int
+  , action   : Option String
+  , admitted : Option Time
+  , blah     : Sum String Int
+  , tups     : (String, Int)
+  , nested   : { this : Int }
+  }
+
+input sumtype : Sum { location : String} { fireside : Int }
+
+
+feature gender =
+  from gender
+  in newest value
+
+
+feature is_head =
+  from injury in
+  newest (location == "head")
+
+
+feature max_thing =
+  from injury
+  in
+    sum severity
+
+
+feature fun =
+  from sumtype in
+  let
+    is_left =
+      case value of
+        Left _ then
+          True
+        Right _ then
+          False
+
+    get_left e =
+      case e of
+        Left a then
+          a
+        Right _ then
+          get None
+
+    get_right e =
+      case e of
+        Left _ then
+          get None
+        Right a then
+          a
+
+    lefts =
+      filter is_left
+      in let
+           l = get_left value
+         in
+           count l
+
+    rights =
+      filter not is_left
+      in let
+           r = get_right value
+         in sum r.fireside
+
+  in
+    lefts > rights

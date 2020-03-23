@@ -1,0 +1,14 @@
+module Requiring where
+
+import Missing
+
+-- Only return the result computation
+-- if there was at least `i` facts in
+-- the stream.
+requiring : Aggregate (Definitely Int) -> Aggregate a -> Aggregate (Possibly a)
+requiring i x =
+  case (fold x = 0 then x + 1 ~> x) < i of
+    True then
+      missing
+    False then
+      x

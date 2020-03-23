@@ -1,0 +1,6 @@
+module Missing where
+
+-- Force a missing value
+missing : Possibly a
+missing = get None
+
