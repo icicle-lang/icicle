@@ -143,18 +143,18 @@ putPrettyWith use width x =
     Pretty.renderPretty 0.4 width $
     Pretty.pretty x
 
-putErrorPosition :: (MonadState State m, MonadIO m) => Maybe Sorbet.Position -> m ()
+putErrorPosition :: (MonadState State m, MonadIO m) => Maybe Sorbet.Range -> m ()
 putErrorPosition = \case
   Nothing ->
     pure ()
 
-  Just x -> do
+  Just (Sorbet.Range x _) -> do
     use <- getUseColor
     liftIO . IO.putStrLn $
       List.replicate (Sorbet.posColumn x + 1) ' ' <>
       setColor use Pretty.AnnError <> "^" <> sgrReset use
 
-putError :: (MonadState State m, MonadIO m) => Pretty.Doc -> Maybe Sorbet.Position -> m ()
+putError :: (MonadState State m, MonadIO m) => Pretty.Doc -> Maybe Sorbet.Range -> m ()
 putError x mpos = do
   putErrorPosition mpos
   putPretty . Pretty.reannotate Pretty.AnnErrorHeading $ Pretty.prettyH1 "Error"

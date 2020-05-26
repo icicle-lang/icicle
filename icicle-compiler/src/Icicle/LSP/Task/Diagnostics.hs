@@ -13,7 +13,7 @@ import           Icicle.LSP.State
 import           Icicle.LSP.Interface
 import qualified Icicle.Source.Checker                    as Check
 import qualified Icicle.Sorbet.Parse as Sorbet
-import           Icicle.Sorbet.Position (Position (..))
+import           Icicle.Sorbet.Position (Range (..), Position (..))
 import qualified Icicle.Source.Transform.Desugar          as Desugar
 import           Icicle.Source.Lexer.Token (Variable)
 import           Icicle.Source.Query                      as Query
@@ -149,7 +149,7 @@ saveDiagnostics' state sUri = do
 -- Check our in memory cache of checked modules
 -- If the module hasn't been loaded yet, then
 -- add it to our cache.
-collectOrAdd :: FilePath -> State -> Query.ModuleImport Position -> EitherT (Compiler.ErrorSource Variable) IO [Dictionary.DictionaryFunction]
+collectOrAdd :: FilePath -> State -> Query.ModuleImport Range -> EitherT (Compiler.ErrorSource Variable) IO [Dictionary.DictionaryFunction]
 collectOrAdd rootDir state mi = do
   let
     name =
@@ -196,19 +196,21 @@ sendDiagnostics state sUri diags = do
     , "params" .= object [ "uri" .= sUri, "diagnostics" .= diags ]]
 
 
+pointRange :: Position -> Range
+pointRange p = Range p p
 
 -- | Expand and pack compiler error into JSON.
 errorVector :: Compiler.ErrorSource Variable -> Vector.Vector Value
 errorVector err =
   case err of
     Compiler.ErrorSourceParse pe ->
-      Vector.fromList (NonEmpty.toList (fmap packError (Sorbet.positionedParseError pe)))
+      Vector.fromList (NonEmpty.toList (fmap (packError . fmap pointRange) (Sorbet.positionedParseError pe)))
     Compiler.ErrorSourceDesugar de ->
       Vector.singleton (packError ("Desugar", show (pretty err), Desugar.annotOfError de))
     Compiler.ErrorSourceCheck ce ->
       Vector.singleton (packError ("Check", show (pretty err), Check.annotOfError ce))
     Compiler.ErrorSourceModuleError _ ->
-      Vector.singleton (packError ("Module", show (pretty err), Position "<>" 1 1))
+      Vector.singleton (packError ("Module", show (pretty err), pointRange (Position "<>" 1 1)))
     Compiler.ErrorImpossible ->
       Vector.empty
 
@@ -220,18 +222,18 @@ errorVector err =
 --   report the error location from that point until the next space character
 --   or end of line, so they're easier to read.
 --
-packError :: (String, String, Position) -> Value
+packError :: (String, String, Range) -> Value
 packError (component, sorbetError, pos)
    = object
-     [ "range"       .= join packRange pos
+     [ "range"       .= packRange pos
      , "severity"    .= i 1
      , "source"      .= component
      , "message"     .= sorbetError
      ]
 
 
-packRange :: Position -> Position -> Value
-packRange start end
+packRange :: Range -> Value
+packRange (Range start end)
   = object
      [ "start"       .= packLocation start
      , "end"         .= packLocation end

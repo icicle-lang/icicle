@@ -31,7 +31,7 @@ import qualified Icicle.Common.Fresh                as Fresh
 import           Icicle.Common.Base
 import           Icicle.Common.Type                 (ValType(..))
 
-import           Icicle.Sorbet.Position             (Position (..))
+import           Icicle.Sorbet.Position             (Range (..), Position (..))
 import           Icicle.Source.Query                (QueryTop (..), ResolvedFunction (..))
 import qualified Icicle.Source.Query                as SQ
 import           Icicle.Source.Lexer.Token
@@ -54,7 +54,7 @@ import           System.FilePath
 import           P
 
 type DictionaryFunction
-  = ResolvedFunction Position Variable
+  = ResolvedFunction Range Variable
 
 data Dictionary =
   Dictionary {
@@ -74,7 +74,7 @@ data DictionaryInput =
 data DictionaryOutput =
   DictionaryOutput {
       outputId :: OutputId
-    , outputQuery :: QueryTop (ST.Annot Position Variable) Variable
+    , outputQuery :: QueryTop (ST.Annot Range Variable) Variable
     } deriving (Eq, Show)
 
 -- | The query is keyed by this "virtual key". Facts (for one entity) are nubbed by this key.
@@ -83,7 +83,7 @@ newtype InputKey a n =
       unInputKey :: Maybe (SQ.Exp a n)
     } deriving (Eq, Show)
 
-type AnnotSource = ST.Annot Position Variable
+type AnnotSource = ST.Annot Range Variable
 
 unkeyed :: InputKey AnnotSource Variable
 unkeyed = InputKey Nothing
@@ -96,11 +96,17 @@ emptyDictionary :: Dictionary
 emptyDictionary =
   Dictionary Map.empty Map.empty builtinFunctions
 
+dummyRange :: Range
+dummyRange =
+  Range
+    (Position "builtin" 1 1)
+    (Position "builtin" 1 1)
+
 builtinFunctions :: [DictionaryFunction]
 builtinFunctions
   = snd
   $ Fresh.runFresh
-    (SQ.builtinDefinitions (Position "builtin" 1 1))
+    (SQ.builtinDefinitions dummyRange)
     (Fresh.counterPrefixNameState (fromString . show) "builtin")
 
 prelude :: (FilePath, Text)

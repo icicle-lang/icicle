@@ -126,8 +126,8 @@ lspStartup state req
                               "change" .= (1 :: Int), -- send us full file changes.
                               "save" .= True -- send us save notif.
                             ]
-                      , "hoverProvider"
-                          .= True
+                      -- , "hoverProvider"
+                      --     .= True
                       ]
                 ]
           ]
@@ -238,6 +238,7 @@ lspInitialized state req
   , Just (Number pLine)     <- HashMap.lookup "line" jPos
   , Just (Number pChar)     <- HashMap.lookup "character" jPos
   = lspLog state "Getting there Huw"
+
 
   -- Some other request that we don't handle.
   | otherwise

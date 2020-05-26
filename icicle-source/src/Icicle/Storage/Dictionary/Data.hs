@@ -60,12 +60,12 @@ data DictionaryInput' =
 data DictionaryOutput' =
   DictionaryOutput' {
       outputId' :: OutputId
-    , outputQuery' :: QueryTop Sorbet.Position Variable
+    , outputQuery' :: QueryTop Sorbet.Range Variable
     } deriving (Eq, Show)
 
 
 newtype ConcreteKey' = ConcreteKey' {
-    concreteKey :: Maybe (Exp Sorbet.Position Variable)
+    concreteKey :: Maybe (Exp Sorbet.Range Variable)
   } deriving (Eq, Show)
 
 

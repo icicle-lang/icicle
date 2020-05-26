@@ -196,7 +196,7 @@ validateFact conf name x =
 
 validateExpression :: Text
                    -> (Node, SourcePos)
-                   -> Validation [DictionaryValidationError] (Exp Sorbet.Position Variable)
+                   -> Validation [DictionaryValidationError] (Exp Sorbet.Range Variable)
 validateExpression fname expression = fromEither $ do
    expression' <- maybeToRight [BadType fname "string" (expression ^. _2)]
                 $ expression ^? _1 . _NTValue . _VString
@@ -205,7 +205,7 @@ validateExpression fname expression = fromEither $ do
    e           <- first (pure . ParseError)
                 $ runParser Source.exp () "" toks
 
-   pure (reannot Sorbet.fromParsec e)
+   pure (reannotRange e)
 
 
 -- | Validate a TOML node is a feature.
@@ -245,7 +245,7 @@ validateFeature conf name x = fromEither $ do
                $ runParser (top oid) () "" toks
 
   -- Todo: ensure that there's no extra data lying around. All valid TOML should be used.
-  pure $ DictionaryOutput' oid (reannot Sorbet.fromParsec q)
+  pure $ DictionaryOutput' oid (reannotRange q)
 
 -- | Validate a TOML node is a fact encoding.
 --
@@ -380,3 +380,6 @@ andThen f e v =
       Failure t
     Right x ->
       maybe (Failure e) Success (f x)
+
+reannotRange :: TraverseAnnot e => e SourcePos n -> e Sorbet.Range n
+reannotRange = reannot (Sorbet.Range <$> Sorbet.fromParsec <*> Sorbet.fromParsec)

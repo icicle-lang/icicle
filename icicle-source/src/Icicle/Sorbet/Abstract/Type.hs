@@ -48,22 +48,23 @@ pTypeScheme = do
   return ret
 
 
-pConstraint :: Parser s m => m (Position, Constraint Var)
+pConstraint :: Parser s m => m (Range, Constraint Var)
 pConstraint =
   label "constraint" $
   pConstraintSingle <* pToken Tok_RArrowEquals
 
 
-pType :: Parser s m => m (Position, Type Var)
+pType :: Parser s m => m (Range, Type Var)
 pType =
   label "type" $ do
-    o  <- Mega.getOffset
-    p  <- position
-    xs <- some ((Left <$> pTypeSimple) <|> (Right <$> pTypeOperator)) <?> "expression"
-    either (failAtOffset o) (\t -> return (p, t)) (defixType xs)
+    offset <- Mega.getOffset
+    start  <- position
+    xs     <- some ((Left <$> pTypeSimple) <|> (Right <$> pTypeOperator)) <?> "expression"
+    end    <- position
+    either (failAtOffset offset) (\t -> return (Range start end, t)) (defixType xs)
 
 
-pTypeSimple :: Parser s m => m (Position, Type Var)
+pTypeSimple :: Parser s m => m (Range, Type Var)
 pTypeSimple =
   choice [
       pTypeSingle
@@ -90,7 +91,7 @@ pTypeOperator =
   <|> OpFunctionArrow <$ pToken Tok_RArrowDash
 
 
-pTypeSingle :: Parser s m => m (Position, Type Var)
+pTypeSingle :: Parser s m => m (Range, Type Var)
 pTypeSingle =
   label "type constructor" $ do
     o                <- Mega.getOffset
@@ -100,20 +101,20 @@ pTypeSingle =
       Nothing -> failAtOffset o ("Not a type constructor: " <> show n)
 
 
-pTypeVar :: Parser s m => m (Position, Type Var)
+pTypeVar :: Parser s m => m (Range, Type Var)
 pTypeVar =
   label "type variable" $
   second TypeVar
     <$> pVariable
 
 
-pTypeNested :: Parser s m => m (Position, Type Var)
+pTypeNested :: Parser s m => m (Range, Type Var)
 pTypeNested =
   label "nested type" $
     pToken Tok_LParen *> pType <* pToken Tok_RParen
 
 
-pTypeRecord :: Parser s m => m (Position, Type Var)
+pTypeRecord :: Parser s m => m (Range, Type Var)
 pTypeRecord =
   label "record type" $ do
     p <- pToken Tok_LBrace
@@ -156,12 +157,12 @@ simpleTypes
      ]
 
 
-pConstraintSingle :: Parser s m => m (Position, Constraint Var)
+pConstraintSingle :: Parser s m => m (Range, Constraint Var)
 pConstraintSingle =
   pConstraintSimple <|> pEqualityConstraint
 
 
-pConstraintSimple :: Parser s m => m (Position, Constraint Var)
+pConstraintSimple :: Parser s m => m (Range, Constraint Var)
 pConstraintSimple =
   label "type constraint" $ do
     o <- Mega.getOffset
@@ -179,7 +180,7 @@ simpleConstraints
    = [("Num", one CIsNum)]
 
 
-pEqualityConstraint :: Parser s m => m (Position, Constraint Var)
+pEqualityConstraint :: Parser s m => m (Range, Constraint Var)
 pEqualityConstraint =
   label "equality constraint" $ do
     (p, ret) <- try $ do
@@ -213,6 +214,7 @@ simpleEqualityConstraints
           Just (StructField fieldId)
         _ ->
           Nothing
+
 
 -- | Shunt infix type operators to a type.
 --

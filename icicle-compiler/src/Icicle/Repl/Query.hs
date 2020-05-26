@@ -87,7 +87,7 @@ import           Zebra.X.Either (firstJoin)
 data CompiledQuery =
   CompiledQuery {
       compiledOutputId :: OutputId
-    , compiledSource :: Source.QueryTop (Source.TypeAnnot Sorbet.Position) Source.Var
+    , compiledSource :: Source.QueryTop (Source.TypeAnnot Sorbet.Range) Source.Var
     , compiledCore :: Source.CoreProgramUntyped Source.Var
     , compiledAvalanche :: Maybe (Compiler.AvalProgramTyped Source.Var Flat.Prim)
     }
@@ -109,7 +109,7 @@ data QueryError =
  | QueryUnexpectedInputType !ValType
  | QueryOutputMissing !OutputId
 
-posOfError :: QueryError -> Maybe Sorbet.Position
+posOfError :: QueryError -> Maybe Sorbet.Range
 posOfError = \case
   QuerySourceError x ->
     Source.annotOfError x

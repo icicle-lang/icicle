@@ -56,7 +56,7 @@ import qualified Text.Megaparsec as Mega
 type Var = Variable
 
 
-pModule :: Parser s m => m (Module Position Var)
+pModule :: Parser s m => m (Module Range Var)
 pModule = do
   name    <- pModuleName <|> pure (ModuleName "Default")
   _       <- pToken Tok_LBrace
@@ -67,7 +67,7 @@ pModule = do
     Module name imports decls
 
 
-pImport :: Parser s m => m (ModuleImport Position)
+pImport :: Parser s m => m (ModuleImport Range)
 pImport = do
   _      <- pToken Tok_Import
   (p, s) <- pConstructorText
@@ -82,13 +82,13 @@ pModuleName = do
   return (ModuleName (snd n))
 
 
-pConstructorText :: Parser s m => m (Position, Text)
+pConstructorText :: Parser s m => m (Range, Text)
 pConstructorText = do
   (p, Construct x) <- pConId
   return (p, x)
 
 
-pTop :: Parser s m => OutputId -> m (QueryTop Position Var)
+pTop :: Parser s m => OutputId -> m (QueryTop Range Var)
 pTop name = do
   _ <- pToken Tok_From                                    <?> "feature start"
   v <- pUnresolvedInputId                                 <?> "input source"
@@ -97,7 +97,7 @@ pTop name = do
   return $ QueryTop v name q
 
 
-pQuery :: Parser s m => m (Query Position Var)
+pQuery :: Parser s m => m (Query Range Var)
 pQuery = do
   cs <- pContexts                                         <?> "contexts"
   x  <- pExp                                              <?> "expression"
@@ -105,7 +105,7 @@ pQuery = do
 
 
 
-pDecl :: Parser s m => m (Decl Position Var)
+pDecl :: Parser s m => m (Decl Range Var)
 pDecl = do
   -- Read a variable first, this is the function name
   -- in either its definition or type.
@@ -115,7 +115,7 @@ pDecl = do
   DeclFun pos var Nothing <$> pFunction <|> pDeclTyped pos var
 
 
-pDeclTyped :: Parser s m => Position -> Name Var -> m (Decl Position Var)
+pDeclTyped :: Parser s m => Range -> Name Var -> m (Decl Range Var)
 pDeclTyped pos typName = do
   _        <- pToken Tok_Colon
   s        <- pTypeScheme
@@ -136,7 +136,7 @@ pDeclTyped pos typName = do
     DeclFun pos var (Just s) fun
 
 
-pFunction :: Parser s m => m (Exp Position Var)
+pFunction :: Parser s m => m (Exp Range Var)
 pFunction = do
   vs  <- many pVariable                     <?> "function variables"
   _   <- pToken Tok_Equals                  <?> "equals"
@@ -145,7 +145,7 @@ pFunction = do
 
 
 -- | Parse a potentially empty list of contexts.
-pContexts :: Parser s m => m [Context Position Var]
+pContexts :: Parser s m => m [Context Range Var]
 pContexts = do
   pSomeContexts <|> pure []
 
@@ -156,7 +156,7 @@ pContexts = do
 --   in the AST, let bindings are a single item, where as
 --   in the Concrete syntax, we can take multiple. So we have
 --   here a more custom "many" and "some" to operate on these.
-pSomeContexts :: Parser s m => m [Context Position Var]
+pSomeContexts :: Parser s m => m [Context Range Var]
 pSomeContexts = do
   cs   <- pContextLet <|> some pSingleContext
   _    <- pContextEnd
@@ -169,7 +169,7 @@ pSomeContexts = do
 --   Both `in` and `~>` are available. For programs `in` is
 --   nicer, but on the repl, `~>` seems to divide things more
 --   nicely.
-pContextEnd :: Parser s m => m Position
+pContextEnd :: Parser s m => m Range
 pContextEnd = pToken Tok_In <|> pToken Tok_FlowsInto
 
 -- | Parse a let context.
@@ -178,7 +178,7 @@ pContextEnd = pToken Tok_In <|> pToken Tok_FlowsInto
 --   pDecls.
 --
 --   The AST needs to change a bit though for that to happen.
-pContextLet :: Parser s m => m [Context Position Var]
+pContextLet :: Parser s m => m [Context Range Var]
 pContextLet = do
   _ <- pToken Tok_Let
   _ <- pToken Tok_LBrace
@@ -206,7 +206,7 @@ pContextLet = do
 -- expand into multiple.
 -- This will be the whole thing when lets are changed
 -- to take a list of Decls.
-pSingleContext :: Parser s m => m (Context Position Var)
+pSingleContext :: Parser s m => m (Context Range Var)
 pSingleContext =
   choice [
       pContextWindowed
@@ -218,19 +218,19 @@ pSingleContext =
     ]
 
 
-pContextGroup :: Parser s m => m (Context Position Var)
+pContextGroup :: Parser s m => m (Context Range Var)
 pContextGroup = do
   pos <- pToken Tok_Group
   pContextGroupBy pos <|> pContextGroupFold pos
 
 
-pContextGroupBy :: Parser s m => Position -> m (Context Position Var)
+pContextGroupBy :: Parser s m => Range -> m (Context Range Var)
 pContextGroupBy pos =
   GroupBy pos
     <$> pExp
 
 
-pContextGroupFold :: Parser s m => Position -> m (Context Position Var)
+pContextGroupFold :: Parser s m => Range -> m (Context Range Var)
 pContextGroupFold pos = do
   _      <- pToken Tok_Fold
   (k, v) <- keyval
@@ -246,41 +246,41 @@ pContextGroupFold pos = do
            _ -> mzero
 
 
-pContextDistinct :: Parser s m => m (Context Position Var)
+pContextDistinct :: Parser s m => m (Context Range Var)
 pContextDistinct =
   Distinct
     <$> pToken Tok_Distinct
     <*> pExp
 
 
-pContextFilter :: Parser s m => m (Context Position Var)
+pContextFilter :: Parser s m => m (Context Range Var)
 pContextFilter =
   Filter
     <$> pToken Tok_Filter
     <*> pExp
 
 
-pContextLatest :: Parser s m => m (Context Position Var)
+pContextLatest :: Parser s m => m (Context Range Var)
 pContextLatest =
   Latest
     <$> pToken Tok_Latest
     <*> fmap (fromInteger . snd) pInteger
 
 
-pContextWindowed :: Parser s m => m (Context Position Var)
+pContextWindowed :: Parser s m => m (Context Range Var)
 pContextWindowed = do
   pos <- pToken Tok_Windowed
   pContextBetween pos <|> pContextAfter pos
 
 
-pContextAfter :: Parser s m => Position -> m (Context Position Var)
+pContextAfter :: Parser s m => Range -> m (Context Range Var)
 pContextAfter pos =
   Windowed pos
     <$> pWindowSizeUnit
     <*> pure Nothing
 
 
-pContextBetween :: Parser s m => Position -> m (Context Position Var)
+pContextBetween :: Parser s m => Range -> m (Context Range Var)
 pContextBetween pos = do
   _  <- pToken Tok_Between
   t1 <- pWindowSizeUnit
@@ -298,7 +298,7 @@ pContextBetween pos = do
 --
 --   For now, I've implemented these more like the original
 --   AST.
-pContextFold :: Parser s m => m (Context Position Var)
+pContextFold :: Parser s m => m (Context Range Var)
 pContextFold = do
   (p, ft) <- pFoldType
   n       <- pPattern
@@ -309,7 +309,7 @@ pContextFold = do
   return $ LetFold p (Fold n (simpNested z) (simpNested k) ft)
 
 
-pFoldType :: Parser s m => m (Position, FoldType)
+pFoldType :: Parser s m => m (Range, FoldType)
 pFoldType
     =   (pToken Tok_Fold1 `with` (, FoldTypeFoldl1))
     <|> (pToken Tok_Fold  `with` (, FoldTypeFoldl))
@@ -321,7 +321,7 @@ pPattern
       checkPat e
 
 
-pExp :: Parser s m => m (Exp Position Var)
+pExp :: Parser s m => m (Exp Range Var)
 pExp = do
   o  <- Mega.getOffset
   xs <- some ((Left <$> pExp1) <|> pOp) <?> "expression"
@@ -331,7 +331,7 @@ pExp = do
   pOp = do (p, o) <- pVarOp <|> (, Operator ",") <$> pToken Tok_Comma
            return (Right (o,p))
 
-pExp1 :: Parser s m => m (Exp Position Var)
+pExp1 :: Parser s m => m (Exp Range Var)
 pExp1
  =   ((uncurry Var       <$> var        ) >>= accessor)
  <|> (uncurry Prim       <$> primitives )
@@ -392,18 +392,18 @@ pUnresolvedInputId
   get _ _              = Nothing
 
 
-primitives :: Parser s m => m (Position, Prim)
+primitives :: Parser s m => m (Range, Prim)
 primitives
  =   (second (Lit . LitInt . fromInteger)      <$> pInteger)
  <|> (second (Lit . LitDouble . toRealFloat)   <$> pRational)
  <|> (second (Lit . LitString)                 <$> pString)
  <|> (second (Lit . LitTime . midnight . Date) <$> pDate)
  <|> second PrimCon                            <$> pConstructor
- <|> (flip (,) <$> timePrimitives <*> position)
+ <|> timePrimitives
  <?> "primitive"
 
 
-pConstructor :: Parser s m => m (Position, Constructor)
+pConstructor :: Parser s m => m (Range, Constructor)
 pConstructor
  = do o                <- Mega.getOffset
       (p, Construct n) <- pConId
@@ -413,10 +413,10 @@ pConstructor
 
 
 
-timePrimitives :: Parser s m => m Prim
+timePrimitives :: Parser s m => m (Range, Prim)
 timePrimitives
- =   Fun (BuiltinTime DaysJulianEpoch) <$ pToken Tok_Days
- <|> Fun (BuiltinTime SecondsJulianEpoch) <$ pToken Tok_Seconds
+ =   (, Fun (BuiltinTime DaysJulianEpoch)) <$> pToken Tok_Days
+ <|> (, Fun (BuiltinTime SecondsJulianEpoch)) <$> pToken Tok_Seconds
 
 
 pWindowSizeUnit :: Parser s m => m Common.WindowUnit

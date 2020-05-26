@@ -144,17 +144,21 @@ checkDefs checkOpts d defs
 checkKey :: CheckOptions
          -> Dictionary
          -> InputId
-         -> Exp Sorbet.Position P.Var
+         -> Exp Sorbet.Range P.Var
          -> Either DictionaryImportError (InputKey AnnotSource P.Var)
 checkKey checkOpts d iid xx = do
   let l = Sorbet.Position "dummy_pos_ctx"  1 1
+  let lr = Sorbet.Range l l
+
   let p = Sorbet.Position "dummy_pos_final"  1 1
+  let pr = Sorbet.Range p p
+
   let q = QueryTop (QualifiedInput iid) [outputid|dummy_namespace:dummy_output|]
           -- We know the key must be of Pure or Element temporality,
           -- so it's ok to wrap it in a Group.
-          (Query   [SQ.Distinct l xx]
+          (Query   [SQ.Distinct lr xx]
           -- The final expression just needs to be Aggregate.
-                   (SQ.Prim p (SQ.Lit (SQ.LitInt 0))))
+                   (SQ.Prim pr (SQ.Lit (SQ.LitInt 0))))
 
   (checked, _)  <- first DictionaryErrorCompilation $ do
     q'       <- P.sourceDesugarQT q

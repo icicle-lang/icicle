@@ -110,8 +110,8 @@ type TypeAnnot a = Type.Annot a Var
 type Funs a b = [ Query.Decl a b ]
 type FunEnvT a b = [ Query.ResolvedFunction a b ]
 
-type QueryUntyped v = Query.QueryTop            Sorbet.Position  v
-type QueryTyped   v = Query.QueryTop (TypeAnnot Sorbet.Position) v
+type QueryUntyped v = Query.QueryTop            Sorbet.Range  v
+type QueryTyped   v = Query.QueryTop (TypeAnnot Sorbet.Range) v
 
 type CoreProgramUntyped v = Core.Program AnnotUnit v
 
@@ -143,9 +143,9 @@ defaultFusionOptions = FusionOptions 100
 
 data ErrorSource var
  = ErrorSourceParse       !Parse.ParseError
- | ErrorSourceDesugar     !(Desugar.DesugarError Sorbet.Position var)
- | ErrorSourceCheck       !(Check.CheckError     Sorbet.Position var)
- | ErrorSourceModuleError !(Query.ModuleError    Sorbet.Position var)
+ | ErrorSourceDesugar     !(Desugar.DesugarError Sorbet.Range var)
+ | ErrorSourceCheck       !(Check.CheckError     Sorbet.Range var)
+ | ErrorSourceModuleError !(Query.ModuleError    Sorbet.Range var)
  | ErrorImpossible
  deriving (Show, Generic)
 
@@ -153,7 +153,7 @@ data ErrorSource var
 -- FIXME not NFData, we really should define our own type for source positions.
 instance NFData (ErrorSource a) where rnf x = seq x ()
 
-annotOfError :: ErrorSource a -> Maybe Sorbet.Position
+annotOfError :: ErrorSource a -> Maybe Sorbet.Range
 annotOfError e
  = case e of
     ErrorSourceParse _
@@ -233,7 +233,7 @@ sourceParseQT oid t
 
 sourceParseF :: Parsec.SourceName
              -> Text
-             -> Either Error (Query.Module Sorbet.Position Var)
+             -> Either Error (Query.Module Sorbet.Range Var)
 sourceParseF env t
  = first ErrorSourceParse
  $ Parse.parseModule env t
@@ -248,15 +248,15 @@ sourceDesugarQT q
 
 
 sourceDesugarDecl
- :: Query.Decl Sorbet.Position Var
- -> Fresh.FreshT Var (EitherT (Desugar.DesugarError Sorbet.Position Var) Identity)
-                     (Query.Decl Sorbet.Position Var)
+ :: Query.Decl Sorbet.Range Var
+ -> Fresh.FreshT Var (EitherT (Desugar.DesugarError Sorbet.Range Var) Identity)
+                     (Query.Decl Sorbet.Range Var)
 sourceDesugarDecl (Query.DeclFun a ns t x)
  = Query.DeclFun a ns t <$> Desugar.desugarX x
 
 
-sourceDesugarF :: Query.Module Sorbet.Position Var
-               -> Either (ErrorSource Var) (Query.Module Sorbet.Position Var)
+sourceDesugarF :: Query.Module Sorbet.Range Var
+               -> Either (ErrorSource Var) (Query.Module Sorbet.Range Var)
 sourceDesugarF module'
  = fmap (\ds -> module' { Query.moduleEntries = ds })
  $ runIdentity . runEitherT . bimapEitherT ErrorSourceDesugar snd
@@ -285,17 +285,17 @@ sourceCheckQT opts d q
      $ runEitherT
      $ Check.checkQT opts d' q
 
-sourceCheckF :: FunEnvT Sorbet.Position Var
-             -> Query.Module  Sorbet.Position Var
-             -> Either  Error (Query.ResolvedModule Sorbet.Position Var)
+sourceCheckF :: FunEnvT Sorbet.Range Var
+             -> Query.Module  Sorbet.Range Var
+             -> Either  Error (Query.ResolvedModule Sorbet.Range Var)
 sourceCheckF env parsedImport
  = first fst
  $ second fst
  $ sourceCheckFunLog env parsedImport
 
-sourceCheckFunLog :: FunEnvT Sorbet.Position Var
-                  -> Query.Module  Sorbet.Position Var
-                  -> Either  (Error, [Check.CheckLog Sorbet.Position Var]) (Query.ResolvedModule Sorbet.Position Var, [[Check.CheckLog Sorbet.Position Var]])
+sourceCheckFunLog :: FunEnvT Sorbet.Range Var
+                  -> Query.Module  Sorbet.Range Var
+                  -> Either  (Error, [Check.CheckLog Sorbet.Range Var]) (Query.ResolvedModule Sorbet.Range Var, [[Check.CheckLog Sorbet.Range Var]])
 sourceCheckFunLog env parsedImport
  = first (first ErrorSourceCheck)
  $ snd
@@ -321,12 +321,12 @@ sourceInline opt d q
                 (freshNamer "inline")
 
 
-loadedPrelude :: Either Error (Query.Module Sorbet.Position Var)
+loadedPrelude :: Either Error (Query.Module Sorbet.Range Var)
 loadedPrelude =
   first ErrorSourceParse $ uncurry (Parse.parseModule) Dict.prelude
 
 
-readIcicleLibraryPure :: FilePath -> Parsec.SourceName -> Text -> Either Error (Query.ResolvedModule Sorbet.Position Var)
+readIcicleLibraryPure :: FilePath -> Parsec.SourceName -> Text -> Either Error (Query.ResolvedModule Sorbet.Range Var)
 readIcicleLibraryPure _ source input
  = do current <- first ErrorSourceParse $ Parse.parseModule source input
       prelude <- loadedPrelude
@@ -346,7 +346,7 @@ readIcicleLibraryPure _ source input
         Query.ResolvedModule (Query.moduleName current) [] smooshed
 
 
-readIcicleLibrary :: FilePath -> Parsec.SourceName -> Text -> EitherT Error IO (Query.ResolvedModule Sorbet.Position Var)
+readIcicleLibrary :: FilePath -> Parsec.SourceName -> Text -> EitherT Error IO (Query.ResolvedModule Sorbet.Range Var)
 readIcicleLibrary rootDir source input
  = do current <- hoistWith ErrorSourceParse $ Parse.parseModule source input
       prelude <- hoistEither loadedPrelude
@@ -364,14 +364,14 @@ readIcicleLibrary rootDir source input
         Query.ResolvedModule (Query.moduleName current) imports smooshed
 
 
-readIcicleModule :: Sorbet.Position -> FilePath -> Query.ModuleName -> EitherT Error IO (Map Query.ModuleName (Query.ResolvedModule Sorbet.Position Var))
+readIcicleModule :: Sorbet.Range -> FilePath -> Query.ModuleName -> EitherT Error IO (Map Query.ModuleName (Query.ResolvedModule Sorbet.Range Var))
 readIcicleModule pos rootDir moduleName = do
   prelude    <- hoistEither loadedPrelude
   unchecked  <- gatherModules rootDir [Query.ModuleImport pos moduleName] [prelude]
   hoistEither $ checkModules unchecked
 
 
-checkModules :: [Query.Module Sorbet.Position Var] -> Either Error (Map Query.ModuleName (Query.ResolvedModule Sorbet.Position Var))
+checkModules :: [Query.Module Sorbet.Range Var] -> Either Error (Map Query.ModuleName (Query.ResolvedModule Sorbet.Range Var))
 checkModules unchecked =
   let
     checkModule envs m = do
@@ -396,7 +396,7 @@ checkModules unchecked =
     foldM checkModule Map.empty unchecked
 
 
-openIcicleModule :: FilePath -> Query.ModuleImport Sorbet.Position -> EitherT Error IO (Query.Module Sorbet.Position Var)
+openIcicleModule :: FilePath -> Query.ModuleImport Sorbet.Range -> EitherT Error IO (Query.Module Sorbet.Range Var)
 openIcicleModule rootDir mi = do
   fname <- firstEitherT ErrorSourceModuleError $ Query.getModuleFileName rootDir mi
   input <- Text.decodeUtf8 <$> liftIO (ByteString.readFile fname)
@@ -407,9 +407,9 @@ openIcicleModule rootDir mi = do
 -- | Build the module dependency graph.
 gatherModules
   :: FilePath
-  -> [Query.ModuleImport Sorbet.Position]
-  -> [Query.Module Sorbet.Position Var]
-  -> EitherT Error IO [Query.Module Sorbet.Position Var]
+  -> [Query.ModuleImport Sorbet.Range]
+  -> [Query.Module Sorbet.Range Var]
+  -> EitherT Error IO [Query.Module Sorbet.Range Var]
 
 gatherModules rootDir imports accum =
   let
@@ -432,7 +432,7 @@ gatherModules rootDir imports accum =
         gatherModules rootDir remaining accum'
 
 
-implicitModuleImports :: Query.Module Sorbet.Position Var -> [Query.ModuleImport Sorbet.Position]
+implicitModuleImports :: Query.Module Sorbet.Range Var -> [Query.ModuleImport Sorbet.Range]
 implicitModuleImports m =
   let
     explicit =
@@ -440,7 +440,9 @@ implicitModuleImports m =
     preludeName =
       Query.ModuleName "Prelude"
     preludePos =
-      Sorbet.Position "<implicit>" 1 1
+      Sorbet.Range
+        (Sorbet.Position "<implicit>" 1 1)
+        (Sorbet.Position "<implicit>" 1 1)
   in
     if Query.moduleName m == preludeName then
       explicit

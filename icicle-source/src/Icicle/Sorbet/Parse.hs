@@ -42,7 +42,7 @@ import           Text.Megaparsec (MonadParsec)
 
 
 
-sorbetModule :: String -> Text -> Either ParseError (Module Position Variable)
+sorbetModule :: String -> Text -> Either ParseError (Module Range Variable)
 sorbetModule source input = do
   lexed  <- first LexParseError $ Mega.runParser (consumeAll lexProgram) source input
   layed  <- first LayoutParseError $ layoutProgram lexed
@@ -50,7 +50,7 @@ sorbetModule source input = do
   return parsed
 
 
-sorbet :: OutputId -> Text -> Either ParseError (QueryTop Position Variable)
+sorbet :: OutputId -> Text -> Either ParseError (QueryTop Range Variable)
 sorbet oid input = do
   lexed  <- first LexParseError $ Mega.runParser (consumeAll lexProgram) "" input
   layed  <- first LayoutParseError $ layoutRepl lexed
@@ -66,7 +66,7 @@ sorbetType input = do
   return parsed
 
 
-sorbetQuery :: Text -> Either ParseError (Query Position Variable)
+sorbetQuery :: Text -> Either ParseError (Query Range Variable)
 sorbetQuery input = do
   lexed  <- first LexParseError $ Mega.runParser (consumeAll lexProgram) "" input
   layed  <- first LayoutParseError $ layoutProgram lexed

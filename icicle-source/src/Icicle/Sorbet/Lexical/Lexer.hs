@@ -383,9 +383,9 @@ lexBlockComment =
 positioned :: Lexer s m => m a -> m (Positioned a)
 positioned lex = do
   start <- position
-  x <- lex
-  Position efile eline ecol <- position
-  pure $ Positioned start (Position efile eline $ ecol - 1) x
+  x     <- lex
+  end   <- position
+  pure $ Positioned start end x
 
 position :: Lexer s m => m Position
 position = do
