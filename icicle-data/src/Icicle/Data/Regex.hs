@@ -25,7 +25,6 @@ module Icicle.Data.Regex (
 
 import           Data.Bits ((.|.), (.&.))
 import qualified Data.Bits as Bits
-import           Data.Word (Word64, Word8)
 
 import           Icicle.Internal.Pretty (Doc, vsep, indent, pretty)
 import qualified Icicle.Internal.Pretty as Pretty
@@ -34,16 +33,16 @@ import           P
 data Transition =
   Transition
     { transitionMatchByte :: Maybe (Char)
-    , transitionStart :: Int
-    , transitionEndState :: Word64
+    , transitionStart     :: Int
+    , transitionEndState  :: Integer
     } deriving (Eq, Show)
 
 data Regex =
   Regex
     { regexNumberOfStates         :: Int
-    , regexStartingStates         :: Word64
+    , regexStartingStates         :: Integer
     , regexTransitionFunction     :: [Transition]
-    , regexAcceptingStates        :: Word64
+    , regexAcceptingStates        :: Integer
     } deriving (Eq, Show)
 
 
@@ -146,21 +145,22 @@ match (Regex _ as f bs) cs =
 
 
 printC :: Doc -> Regex -> Doc
-printC name (Regex _ starting transitions acceptance) =
+printC name (Regex numStates starting transitions acceptance) =
   vsep [
       "ibool_t iregex_" <> name <> "(const istring_t str) {"
     , indent 2 $ vsep [
         "const char *s = (const istring_t) str;"
-      , "uint64_t current = " <> pretty starting <> ";"
+      , "uint64_t one = 1;"
+      , initialiseVars
       , "while ('\\0' != *s) {"
-      , indent 2 $ vsep $ join [
-          [ "uint64_t next = 0;" ]
-        , fmap goIf transitions
-        , [ "current = next;" ]
+      , indent 2 $ vsep [
+          initialiseNext
+        , vsep (fmap goIf transitions)
+        , realiseUpdates
         ]
       , "s++;"
       , "}"
-      , "if (current & " <> pretty acceptance <> ") {"
+      , "if (" <> accept <> ") {"
       , "  return itrue;"
       , " } else {"
       , "  return ifalse;"
@@ -170,18 +170,48 @@ printC name (Regex _ starting transitions acceptance) =
     ]
 
   where
+    clip v i =
+      (v `Bits.unsafeShiftR` (i * 64)) `mod` (2 ^ (64 :: Int))
+
+    requiredVars =
+      numStates `div` 64 + 1
+
+    sepX s = s . flip fmap [0..requiredVars - 1]
+
+    initialiseVars = sepX vsep $ \n ->
+      "uint64_t current" <> pretty n <> " = " <> pretty (clip starting n) <> ";"
+
+    initialiseNext = sepX vsep $ \n ->
+      "uint64_t next" <> pretty n <> " = 0;"
+
+    realiseUpdates = sepX vsep $ \n ->
+      "current" <> pretty n <> " = " <> "next" <> pretty n <> ";"
+
+    accept = sepX (Pretty.hcat . Pretty.punctuate " || ") $ \n ->
+      "current" <> pretty n <> " & " <> pretty (clip acceptance n) <> "U"
+
     goIf (Transition Nothing from to) =
-      vsep [
-        "if (current & (1 << " <> pretty from <> ")) {"
-      , indent 2 $ "next |= " <> pretty to <> ";"
-      , "}"
-      ]
+      let
+        (n, fromN) =
+          from `divMod` 64
+      in
+        vsep [
+          "if (current" <> pretty n <> " & (one << " <> pretty fromN <> ")) {"
+        , indent 2 $ sepX vsep $ \m ->
+            "next" <> pretty m <> " |= " <> pretty (clip to m) <> "U;"
+        , "}"
+        ]
     goIf (Transition (Just c) from to) =
-      vsep [
-        "if ((current & (1 << " <> pretty from <> ")) && *s == '" <> pretty c <> "') {"
-      , indent 2 $ "next |= " <> pretty to <> ";"
-      , "}"
-      ]
+      let
+        (n, fromN) =
+          from `divMod` 64
+      in
+        vsep [
+          "if ((current" <> pretty n <> " & (one << " <> pretty fromN <> ")) && *s == '" <> pretty c <> "') {"
+        , indent 2 $ sepX vsep $ \m ->
+            "next" <> pretty m <> " |= " <> pretty (clip to m) <> "U;"
+        , "}"
+        ]
 
 printCWithTestHeaders :: Doc -> Regex -> Doc
 printCWithTestHeaders name r =
