@@ -5,6 +5,7 @@ module Icicle.Source.Query.Builtin where
 
 import           GHC.Generics (Generic)
 
+import           Icicle.Data.Regex (Regex)
 import           Icicle.Internal.Pretty
 
 import           P
@@ -16,6 +17,7 @@ data BuiltinFun
  | BuiltinData   !BuiltinData
  | BuiltinArray  !BuiltinArray
  | BuiltinMap    !BuiltinMap
+ | BuiltinRegex  !BuiltinRegex
  deriving (Show, Eq, Ord, Generic)
 
 -- | Functions wired into the Parser.
@@ -101,6 +103,11 @@ data BuiltinArray
  | ArrayIndex
  deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 
+data BuiltinRegex
+ = Grepl Text Regex
+ deriving (Show, Eq, Ord, Generic)
+
+
 instance NFData BuiltinFun
 instance NFData BuiltinMath
 instance NFData BuiltinTime
@@ -108,6 +115,7 @@ instance NFData BuiltinData
 instance NFData BuiltinMap
 instance NFData BuiltinArray
 instance NFData BuiltinText
+instance NFData BuiltinRegex
 
 --------------------------------------------------------------------------------
 
@@ -118,6 +126,7 @@ instance Pretty BuiltinFun where
  pretty (BuiltinData  b) = pretty b
  pretty (BuiltinArray b) = pretty b
  pretty (BuiltinMap   b) = pretty b
+ pretty (BuiltinRegex b) = pretty b
 
 instance Pretty BuiltinMath where
  pretty Log         = "log"
@@ -171,3 +180,6 @@ instance Pretty BuiltinMap where
  pretty MapInsert = "map_insert"
  pretty MapDelete = "map_delete"
  pretty MapLookup = "map_lookup"
+
+instance Pretty BuiltinRegex where
+ pretty (Grepl m _) = "grepl" <+> pretty (show m)

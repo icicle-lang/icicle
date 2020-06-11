@@ -89,6 +89,11 @@ data Token =
   | Tok_Weeks
 
   --
+  -- Regex support
+  --
+  | Tok_Grepl
+
+  --
   -- Identifiers
   --
   | Tok_PrjId !Text -- ^ .<var-id>
@@ -160,6 +165,7 @@ renderToken = \case
   Tok_Days              -> "days"
   Tok_Months            -> "months"
   Tok_Weeks             -> "weeks"
+  Tok_Grepl             -> "grepl"
   Tok_PrjId    varId    -> "." <> varId
   Tok_VarId    varId    -> varId
   Tok_ConId    conId    -> conId

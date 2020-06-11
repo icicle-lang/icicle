@@ -25,7 +25,11 @@ module Icicle.Data.Regex (
 
 import           Data.Bits ((.|.), (.&.))
 import qualified Data.Bits as Bits
+import qualified Data.Text as Text
 
+import           GHC.Generics (Generic)
+
+import           Icicle.Common.NanEq
 import           Icicle.Internal.Pretty (Doc, vsep, indent, pretty)
 import qualified Icicle.Internal.Pretty as Pretty
 import           P
@@ -35,7 +39,7 @@ data Transition =
     { transitionMatchByte :: Maybe (Char)
     , transitionStart     :: Int
     , transitionEndState  :: Integer
-    } deriving (Eq, Show)
+    } deriving (Eq, Ord, Show, Generic, NanEq)
 
 data Regex =
   Regex
@@ -43,7 +47,11 @@ data Regex =
     , regexStartingStates         :: Integer
     , regexTransitionFunction     :: [Transition]
     , regexAcceptingStates        :: Integer
-    } deriving (Eq, Show)
+    } deriving (Eq, Ord, Show, Generic, NanEq)
+
+
+instance NFData Transition
+instance NFData Regex
 
 
 shiftTransition :: Int -> Transition -> Transition
@@ -132,9 +140,9 @@ dot = Regex 2 1 f 2
     f = [Transition Nothing 0 2]
 
 
-match :: Regex -> [Char] -> Bool
+match :: Regex -> Text -> Bool
 match (Regex _ as f bs) cs =
-    bs .&. foldl' step as cs /= 0
+    bs .&. Text.foldl' step as cs /= 0
   where
     step s0 c =
       let

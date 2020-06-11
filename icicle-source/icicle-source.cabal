@@ -34,6 +34,7 @@ library
                      , hashable
                      , lens                            >= 4.7        && < 4.19
                      , mmorph                          >= 1.0
+                     , parser-combinators
                      , scientific                      == 0.3.*
                      , semigroups                      >= 0.16       && < 0.20
                      , unordered-containers            == 0.2.*
@@ -65,6 +66,7 @@ library
   exposed-modules:
 
                        Icicle.Sorbet.Abstract.Parser
+                       Icicle.Sorbet.Abstract.Regex
                        Icicle.Sorbet.Abstract.Tokens
                        Icicle.Sorbet.Abstract.Type
                        Icicle.Sorbet.Concrete.Annotation

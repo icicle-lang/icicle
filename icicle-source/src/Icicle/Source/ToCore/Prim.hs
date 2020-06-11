@@ -119,6 +119,8 @@ convertPrim p ann resT xts = go p
    = gomap f
   go (Fun (BuiltinArray f))
    = goarray f
+  go (Fun (BuiltinRegex r))
+   = goregex r
 
   go (Op o)
    = goop o
@@ -425,6 +427,9 @@ convertPrim p ann resT xts = go p
    = return $ primbuiltin $ Min.PrimBuiltinArray $ prim t
    | otherwise
    = convertError $ ConvertErrorCannotConvertType ann tt
+
+  goregex (Grepl n r)
+   = return $ primbuiltin $ Min.PrimBuiltinRegex $ Min.PrimBuiltinRegexMatch n r
 
 primInsert
         :: (Hashable n)

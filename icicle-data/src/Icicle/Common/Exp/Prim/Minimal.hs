@@ -17,6 +17,7 @@ module Icicle.Common.Exp.Prim.Minimal (
     , PrimBuiltinMath (..)
     , PrimBuiltinMap  (..)
     , PrimBuiltinArray(..)
+    , PrimBuiltinRegex(..)
     , ArithType       (..)
     , typeOfPrim
     ) where
@@ -198,6 +199,9 @@ typeOfPrim p
      -> FunT [funOfVal (ArrayT t)] IntT
     PrimBuiltinFun    (PrimBuiltinArray (PrimBuiltinIndex t))
      -> FunT [funOfVal (ArrayT t), funOfVal IntT] (SumT ErrorT t)
+
+    PrimBuiltinFun    (PrimBuiltinRegex (PrimBuiltinRegexMatch _ _))
+     -> FunT [funOfVal StringT] BoolT
 
     -- All relations are binary to bool
     PrimRelation _ val

@@ -22,6 +22,7 @@ module Icicle.Source.Query.Exp (
   , BuiltinData  (..)
   , BuiltinArray (..)
   , BuiltinMap   (..)
+  , BuiltinRegex (..)
 
   , TraverseAnnot (..)
   , reannot

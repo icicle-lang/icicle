@@ -163,6 +163,7 @@ reservedIdentifiers =
     , ("days", Tok_Days)
     , ("months", Tok_Months)
     , ("weeks", Tok_Weeks)
+    , ("grepl", Tok_Grepl)
     ]
 
 lexVarOp :: Lexer s m => m (Positioned Token)

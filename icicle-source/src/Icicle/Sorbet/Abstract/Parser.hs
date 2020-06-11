@@ -38,6 +38,7 @@ import           Data.Scientific (toRealFloat)
 
 import           Icicle.Sorbet.Abstract.Tokens
 import           Icicle.Sorbet.Abstract.Type
+import qualified Icicle.Sorbet.Abstract.Regex as Regex
 
 import           Icicle.Sorbet.Lexical.Syntax
 import           Icicle.Sorbet.Position
@@ -455,8 +456,20 @@ primitives
  <|> (second (Lit . LitString)                 <$> pString)
  <|> (second (Lit . LitTime . midnight . Date) <$> pDate)
  <|> second PrimCon                            <$> pConstructor
+ <|> second Fun                                <$> parseRegex
  <|> timePrimitives
  <?> "primitive"
+  where
+
+
+parseRegex :: Parser s m => m (Position, BuiltinFun)
+parseRegex
+  = do p         <- pToken Tok_Grepl
+       o                <- Mega.getOffset
+       (_,s)     <- pString
+       let mRegex = Mega.parseMaybe Regex.parser s
+       regex     <- maybe (failAtOffset o "Not a valid regular expression") (return) mRegex
+       return $ (p, BuiltinRegex (Grepl s regex))
 
 
 pConstructor :: Parser s m => m (Range, Constructor)
