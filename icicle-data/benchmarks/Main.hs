@@ -33,8 +33,8 @@ main = orDie (Text.pack . show) $ do
       defaultMain [
           bgroup "complex" [
             bench "matching" $ whnfIO (r [argPtr matching'])
-          , bench "small" $ whnfIO (r [argPtr small'])
-          , bench "large" $ whnfIO (r [argPtr large'])
-          , bench "early" $ whnfIO (r [argPtr early'])
+          , bench "small"    $ whnfIO (r [argPtr small'])
+          , bench "large"    $ whnfIO (r [argPtr large'])
+          , bench "early"    $ whnfIO (r [argPtr early'])
           ]
         ]

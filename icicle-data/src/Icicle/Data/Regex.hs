@@ -16,6 +16,7 @@ module Icicle.Data.Regex (
   , star
   , once
   , dot
+  , range
 
   , match
   , printC
@@ -36,7 +37,7 @@ import           P
 
 data Transition =
   Transition
-    { transitionMatchByte :: Maybe (Char)
+    { transitionMatchByte :: Match
     , transitionStart     :: Int
     , transitionEndState  :: Integer
     } deriving (Eq, Ord, Show, Generic, NanEq)
@@ -50,8 +51,16 @@ data Regex =
     } deriving (Eq, Ord, Show, Generic, NanEq)
 
 
+data Match
+  = MatchChar Char
+  | MatchRange Char Char
+  | MatchAny
+  deriving (Eq, Ord, Show, Generic, NanEq)
+
+
 instance NFData Transition
 instance NFData Regex
+instance NFData Match
 
 
 shiftTransition :: Int -> Transition -> Transition
@@ -128,16 +137,22 @@ plus (Regex n as f bs) = Regex n as f' bs
           Transition b from (to .|. as)
 
 
+range :: Char -> Char -> Regex
+range st fe = Regex 2 1 f 2
+  where
+    f = [Transition (MatchRange st fe) 0 2]
+
+
 once :: Char -> Regex
 once c = Regex 2 1 f 2
   where
-    f = [Transition (Just c) 0 2]
+    f = [Transition (MatchChar c) 0 2]
 
 
 dot :: Regex
 dot = Regex 2 1 f 2
   where
-    f = [Transition Nothing 0 2]
+    f = [Transition MatchAny 0 2]
 
 
 match :: Regex -> Text -> Bool
@@ -146,8 +161,17 @@ match (Regex _ as f bs) cs =
   where
     step s0 c =
       let
+        check (Transition (MatchChar m) start _) =
+          Bits.testBit s0 start && c == m
+
+        check (Transition (MatchRange s fe) start _) =
+          Bits.testBit s0 start && c >= s && c <= fe
+
+        check (Transition MatchAny start _) =
+          Bits.testBit s0 start
+
         pertinent =
-          filter (\(Transition m start _) -> Bits.testBit s0 start && all (c ==) m) f
+          filter check f
       in
         foldl' (.|.) 0 (fmap transitionEndState pertinent)
 
@@ -198,7 +222,7 @@ printC name (Regex numStates starting transitions acceptance) =
     accept = sepX (Pretty.hcat . Pretty.punctuate " || ") $ \n ->
       "current" <> pretty n <> " & " <> pretty (clip acceptance n) <> "U"
 
-    goIf (Transition Nothing from to) =
+    goIf (Transition MatchAny from to) =
       let
         (n, fromN) =
           from `divMod` 64
@@ -209,7 +233,18 @@ printC name (Regex numStates starting transitions acceptance) =
             "next" <> pretty m <> " |= " <> pretty (clip to m) <> "U;"
         , "}"
         ]
-    goIf (Transition (Just c) from to) =
+    goIf (Transition (MatchRange s fe) from to) =
+      let
+        (n, fromN) =
+          from `divMod` 64
+      in
+        vsep [
+          "if ((current" <> pretty n <> " & (one << " <> pretty fromN <> ")) && *s >= '" <> pretty s <> "' && *s <= '" <> pretty fe <> "') {"
+        , indent 2 $ sepX vsep $ \m ->
+            "next" <> pretty m <> " |= " <> pretty (clip to m) <> "U;"
+        , "}"
+        ]
+    goIf (Transition (MatchChar c) from to) =
       let
         (n, fromN) =
           from `divMod` 64
