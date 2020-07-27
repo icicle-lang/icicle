@@ -1,8 +1,9 @@
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections     #-}
 module Icicle.Compiler.Source
   ( ErrorSource (..)
 
@@ -58,6 +59,7 @@ module Icicle.Compiler.Source
   ) where
 
 
+import           Icicle.Common.Base
 import qualified Icicle.Common.Fresh                      as Fresh
 
 import qualified Icicle.Core.Program.Program              as Core
@@ -108,7 +110,7 @@ type Var         = Parse.Variable
 type TypeAnnot a = Type.Annot a Var
 
 type Funs a b = [ Query.Decl a b ]
-type FunEnvT a b = [ Query.ResolvedFunction a b ]
+type FunEnvT a b = Query.Features () b (Query.InputKey (TypeAnnot a) b)
 
 type QueryUntyped v = Query.QueryTop            Sorbet.Range  v
 type QueryTyped   v = Query.QueryTop (TypeAnnot Sorbet.Range) v
@@ -253,6 +255,10 @@ sourceDesugarDecl
                      (Query.Decl Sorbet.Range Var)
 sourceDesugarDecl (Query.DeclFun a ns t x)
  = Query.DeclFun a ns t <$> Desugar.desugarX x
+sourceDesugarDecl (Query.DeclInput a iid typ k)
+ = pure $ Query.DeclInput a iid typ k
+sourceDesugarDecl (Query.DeclOutput a oid top)
+ = Query.DeclOutput a oid <$> Desugar.desugarQT top
 
 
 sourceDesugarF :: Query.Module Sorbet.Range Var
@@ -263,6 +269,7 @@ sourceDesugarF module'
  $ Fresh.runFreshT
      (mapM sourceDesugarDecl (Query.moduleEntries module'))
      (freshNamer "desugar_f")
+
 
 sourceReifyQT :: QueryTyped Var
               -> QueryTyped Var
@@ -285,23 +292,25 @@ sourceCheckQT opts d q
      $ runEitherT
      $ Check.checkQT opts d' q
 
-sourceCheckF :: FunEnvT Sorbet.Range Var
+sourceCheckF :: Check.CheckOptions
+             -> FunEnvT Sorbet.Range Var
              -> Query.Module  Sorbet.Range Var
              -> Either  Error (Query.ResolvedModule Sorbet.Range Var)
-sourceCheckF env parsedImport
+sourceCheckF opts env parsedImport
  = first fst
  $ second fst
- $ sourceCheckFunLog env parsedImport
+ $ sourceCheckFunLog opts env parsedImport
 
-sourceCheckFunLog :: FunEnvT Sorbet.Range Var
-                  -> Query.Module  Sorbet.Range Var
+sourceCheckFunLog :: Check.CheckOptions
+                  -> FunEnvT Sorbet.Range Var
+                  -> Query.Module Sorbet.Range Var
                   -> Either  (Error, [Check.CheckLog Sorbet.Range Var]) (Query.ResolvedModule Sorbet.Range Var, [[Check.CheckLog Sorbet.Range Var]])
-sourceCheckFunLog env parsedImport
+sourceCheckFunLog opts env parsedImport
  = first (first ErrorSourceCheck)
  $ snd
  $ flip Fresh.runFresh (freshNamer "check")
  $ runEitherT
- $ Check.checkModule env
+ $ Check.checkModule opts env
  $ parsedImport
 
 sourceInline :: Inline.InlineOption
@@ -326,8 +335,8 @@ loadedPrelude =
   first ErrorSourceParse $ uncurry (Parse.parseModule) Dict.prelude
 
 
-readIcicleLibraryPure :: FilePath -> Parsec.SourceName -> Text -> Either Error (Query.ResolvedModule Sorbet.Range Var)
-readIcicleLibraryPure _ source input
+readIcicleLibraryPure :: Check.CheckOptions -> FilePath -> Parsec.SourceName -> Text -> Either Error (Query.ResolvedModule Sorbet.Range Var)
+readIcicleLibraryPure opts _ source input
  = do current <- first ErrorSourceParse $ Parse.parseModule source input
       prelude <- loadedPrelude
       let
@@ -337,17 +346,23 @@ readIcicleLibraryPure _ source input
       for_ imports $ \(Query.ModuleImport a n) ->
         Left $ ErrorSourceModuleError (Query.ModuleNotFound a (show n))
 
-      checked <- checkModules [current { Query.moduleImports = imports }, prelude]
+      checked <- checkModules opts [current { Query.moduleImports = imports }, prelude]
       let
         smooshed =
-          join $ fmap Query.resolvedEntries $ Map.elems checked
+          join $ Query.resolvedEntries <$> Map.elems checked
+
+        inputs =
+          Map.unions $ Query.resolvedInputs <$> Map.elems checked
+
+        outputs =
+          Map.unions $ Query.resolvedOutputs <$> Map.elems checked
 
       return $
-        Query.ResolvedModule (Query.moduleName current) [] smooshed
+        Query.ResolvedModule (Query.moduleName current) [] inputs outputs smooshed
 
 
-readIcicleLibrary :: FilePath -> Parsec.SourceName -> Text -> EitherT Error IO (Query.ResolvedModule Sorbet.Range Var)
-readIcicleLibrary rootDir source input
+readIcicleLibrary :: Check.CheckOptions -> FilePath -> Parsec.SourceName -> Text -> EitherT Error IO (Query.ResolvedModule Sorbet.Range Var)
+readIcicleLibrary opts rootDir source input
  = do current <- hoistWith ErrorSourceParse $ Parse.parseModule source input
       prelude <- hoistEither loadedPrelude
       let
@@ -355,24 +370,30 @@ readIcicleLibrary rootDir source input
           implicitModuleImports current
 
       unchecked <- gatherModules rootDir imports [current { Query.moduleImports = imports }, prelude]
-      checked   <- hoistEither $ checkModules unchecked
+      checked   <- hoistEither $ checkModules opts unchecked
       let
         smooshed =
           join $ fmap Query.resolvedEntries $ Map.elems checked
 
+        inputs =
+          Map.unions $ Query.resolvedInputs <$> Map.elems checked
+
+        outputs =
+          Map.unions $ Query.resolvedOutputs <$> Map.elems checked
+
       return $
-        Query.ResolvedModule (Query.moduleName current) imports smooshed
+        Query.ResolvedModule (Query.moduleName current) imports inputs outputs smooshed
 
 
-readIcicleModule :: Sorbet.Range -> FilePath -> Query.ModuleName -> EitherT Error IO (Map Query.ModuleName (Query.ResolvedModule Sorbet.Range Var))
-readIcicleModule pos rootDir moduleName = do
+readIcicleModule :: Check.CheckOptions -> Sorbet.Range -> FilePath -> Query.ModuleName -> EitherT Error IO (Map Query.ModuleName (Query.ResolvedModule Sorbet.Range Var))
+readIcicleModule opts pos rootDir moduleName = do
   prelude    <- hoistEither loadedPrelude
   unchecked  <- gatherModules rootDir [Query.ModuleImport pos moduleName] [prelude]
-  hoistEither $ checkModules unchecked
+  hoistEither $ checkModules opts unchecked
 
 
-checkModules :: [Query.Module Sorbet.Range Var] -> Either Error (Map Query.ModuleName (Query.ResolvedModule Sorbet.Range Var))
-checkModules unchecked =
+checkModules :: Check.CheckOptions -> [Query.Module Sorbet.Range Var] -> Either Error (Map Query.ModuleName (Query.ResolvedModule Sorbet.Range Var))
+checkModules opts unchecked =
   let
     checkModule envs m = do
       let
@@ -380,14 +401,28 @@ checkModules unchecked =
           Query.moduleImports m
 
       env0 <-
-        traverse (fmap Query.resolvedEntries . note ErrorImpossible . flip Map.lookup envs . Query.importName) imports
+        traverse (note ErrorImpossible . flip Map.lookup envs . Query.importName) imports
 
       let
+        featureMapOfResolved ds functions =
+          Query.Features
+            (Map.fromList $ concatMap mkFeatureContext ds)
+            (Map.fromList $ fmap (\x -> (Query.functionName x, Query.functionType x)) functions)
+            (Just $ var "now")
+
+        mkFeatureContext (iid, enc, key) =
+          fmap (iid,) (Query.mkFeatureContext enc key)
+
+        var =
+          nameOf . NameBase . Parse.Variable
+
         env1 =
-          Dict.builtinFunctions <> join env0
+          featureMapOfResolved
+            (join (fmap (fmap (\(Query.ModuleInput _ n t _) -> (n, t, Query.unkeyed)) . Map.elems . Query.resolvedInputs) env0))
+            (Dict.builtinFunctions <> join (fmap Query.resolvedEntries env0))
 
       checked <-
-        sourceCheckF env1 m
+        sourceCheckF opts env1 m
 
       return $
         Map.insert (Query.moduleName m) checked envs

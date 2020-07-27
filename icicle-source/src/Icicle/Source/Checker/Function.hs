@@ -1,8 +1,10 @@
 -- | Typecheck and generalise functions
-{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE DoAndIfThenElse   #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
 module Icicle.Source.Checker.Function (
     checkF
   , checkModule
@@ -11,15 +13,18 @@ module Icicle.Source.Checker.Function (
   ) where
 
 import                  Icicle.Source.Checker.Base
+import                  Icicle.Source.Checker.Checker
 import                  Icicle.Source.Checker.Error
 import                  Icicle.Source.Checker.Constraint
 import                  Icicle.Source.Checker.Subsumption
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
+import                  Icicle.Source.Lexer.Token          (Variable (..))
 
 import                  Icicle.Common.Base
 import qualified        Icicle.Common.Fresh     as Fresh
+
 import                  Icicle.Internal.Pretty (Pretty, pretty)
 
 import                  P
@@ -29,53 +34,89 @@ import                  Control.Monad.Trans.Class (lift)
 
 import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
-import qualified        Data.List               as List
 import                  Data.Hashable           (Hashable)
 
 
-type FunEnvT a n = [ ResolvedFunction a n ]
+type FunEnvT a = Features () Variable (InputKey (Annot a Variable) Variable)
 
 
 checkModule
-  :: (Hashable n, Eq n, Pretty n)
-  => FunEnvT a n
-  -> Module a n
-  -> EitherT (CheckError a n, [CheckLog a n]) (Fresh.Fresh n)
-             (ResolvedModule a n, [[CheckLog a n]])
+  :: CheckOptions
+  -> FunEnvT a
+  -> Module a Variable
+  -> EitherT (CheckError a Variable, [CheckLog a Variable]) (Fresh.Fresh Variable)
+             (ResolvedModule a Variable, [[CheckLog a Variable]])
 
 
-checkModule env module'
- = do (entries, logs) <- foldlM go ([],[]) (moduleEntries module')
+checkModule checkOpts env module'
+ = do (entries, inputs, outputs, logs) <- foldlM go ([],Map.empty,Map.empty,[]) (moduleEntries module')
       return $
-        (ResolvedModule (moduleName module') (moduleImports module') entries, logs)
+        (ResolvedModule (moduleName module') (moduleImports module') inputs outputs entries, logs)
 
  where
-  go (env0,logs0) decl@(DeclFun ann name _ _) = do
+  go (env0,inputs0,output0,logs0) (DeclInput ann iid inputVT k) = do
+    pure (env0, Map.insert iid (ModuleInput ann iid inputVT k) inputs0, output0, logs0)
+
+  go (env0,inputs0,output0,logs0) (DeclOutput _ oid outputQT) = do
     let
-      env1 =
-        env <> env0
+      features =
+        featureMapOfAccumulator env env0 inputs0
+
+    (checked,_) <- firstEitherT (,[]) $ checkQT checkOpts features outputQT
+
+    pure (env0, inputs0, Map.insert oid checked output0, logs0)
+
+  go (env0,inputs0,output0,logs0) (DeclFun ann name t fun) = do
+    let
       envMap =
-        Map.fromList $ fmap ((,) <$> functionName <*> functionType) env1
+        Map.union
+          (Map.fromList $ fmap ((,) <$> functionName <*> functionType) env0)
+          (featuresFunctions env)
 
     (checkResult,logs') <-
-      lift $ checkF envMap decl
+      lift $ checkF envMap ann t fun
+
     (annotfun, funtype) <-
       hoistEither $ first (,logs') checkResult
 
-    if List.elem name (fmap functionName env1) then
+    if Map.member name envMap then
       hoistEither $ Left $ (CheckError (ErrorDuplicateFunctionNames ann name) [], [])
     else
-      pure (env0 <> [ResolvedFunction name funtype annotfun], logs0 <> [logs'])
+      pure (env0 <> [ResolvedFunction name funtype annotfun], inputs0, output0, logs0 <> [logs'])
+
 
 checkF
   :: (Hashable n, Eq n, Pretty n)
   => Map.Map (Name n) (Scheme n)
-  -> Decl a n
+  -> a
+  -> Maybe (Scheme n)
+  -> Exp a n
   -> (Fresh.Fresh n) (Either (CheckError a n) (Exp (Annot a n) n, Scheme n), [CheckLog a n])
 
-checkF env (DeclFun a _ t fun)
+checkF env a t fun
  = evalGen $ checkF' fun env >>= constrain a t
 
+
+-- | Get all the features and facts from a dictionary.
+--
+featureMapOfAccumulator
+  :: Foldable t
+  => FunEnvT a
+  -> [ResolvedFunction a Variable]
+  -> t (ModuleInput a Variable)
+  -> Features () Variable (InputKey (Annot a Variable) Variable)
+featureMapOfAccumulator features env0 inputs0
+ = features
+     { featuresFunctions = Map.union moreF (featuresFunctions features)
+     , featuresConcretes = Map.union moreC (featuresConcretes features)
+     }
+ where
+  mkFeatureContextX (ModuleInput _ iid enc k) =
+    fmap (iid,) (mkFeatureContext enc unkeyed)
+  moreC =
+    Map.fromList $ concatMap mkFeatureContextX inputs0
+  moreF =
+    Map.fromList $ fmap ((,) <$> functionName <*> functionType) env0
 
 constrain :: (Hashable n, Eq n, Pretty n)
           => a

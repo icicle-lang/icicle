@@ -139,8 +139,10 @@ loadFunctionsFrom path src = do
   let
     rootDir
       = FilePath.takeDirectory path
-  ret <- liftIO . runEitherT $
-    Source.readIcicleLibrary rootDir path src
+
+  opts <- getCheckOptions
+  ret  <- liftIO . runEitherT $
+    Source.readIcicleLibrary opts rootDir path src
 
   case ret of
    Left err ->

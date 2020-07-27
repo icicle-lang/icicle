@@ -31,7 +31,9 @@ module Icicle.Sorbet.Abstract.Parser (
   , pUnresolvedInputId
   ) where
 
+import qualified Data.Char as Char
 import qualified Data.List as List
+import qualified Data.Text as Text
 import           Data.Scientific (toRealFloat)
 
 import           Icicle.Sorbet.Abstract.Tokens
@@ -45,6 +47,7 @@ import           Icicle.Data.Name
 import           Icicle.Data.Time (Date (..), midnight)
 import           Icicle.Internal.Pretty (pretty)
 import           Icicle.Source.Query
+import           Icicle.Source.Type (valTypeOfType)
 import           Icicle.Source.Parser.Constructor (checkPat, constructors)
 import           Icicle.Source.Parser.Operators
 
@@ -59,9 +62,18 @@ type Var = Variable
 pModule :: Parser s m => m (Module Range Var)
 pModule = do
   name    <- pModuleName <|> pure (ModuleName "Default")
+
+
+  let
+    namespaceText = do
+      (c,cs) <- Text.uncons (getModuleName name)
+      parseNamespace $ Text.cons (Char.toLower c) cs
+
+  nspace  <- maybe (fail "Invalid namespace") pure namespaceText
+
   _       <- pToken Tok_LBrace
   imports <- pImport `Mega.sepEndBy` pToken Tok_Semi
-  decls   <- pDecl   `Mega.sepEndBy` pToken Tok_Semi
+  decls   <- pModuleDecl nspace `Mega.sepEndBy` pToken Tok_Semi
   _       <- pToken Tok_RBrace
   return $
     Module name imports decls
@@ -104,6 +116,9 @@ pQuery = do
   return $ Query cs x
 
 
+pModuleDecl :: Parser s m => Namespace -> m (Decl Range Var)
+pModuleDecl nspace = pOutput nspace <|> pInput nspace <|> pDecl
+
 
 pDecl :: Parser s m => m (Decl Range Var)
 pDecl = do
@@ -142,6 +157,47 @@ pFunction = do
   _   <- pToken Tok_Equals                  <?> "equals"
   q   <- pQuery
   pure $ foldr (uncurry Lam) (simpNested q) vs
+
+
+
+pInputName :: Parser s m => m InputName
+pInputName = do
+  (_, Variable x) <- pVarId
+  maybe (fail "Couldn't parse as InputName") pure (parseInputName x)
+
+
+
+pInput :: Parser s m => Namespace -> m (Decl Range n)
+pInput ns = do
+  a      <- pToken Tok_Input
+  n      <- pInputName
+  _      <- pToken Tok_Colon
+  vt     <- pPositionedFail pType (valTypeOfType . snd) $ List.unlines [
+              "Input streams must be serialisable types."
+            , empty
+            , "Function types, modalities, and type variables are not supported."
+            ]
+
+  pure $
+    DeclInput a (InputId ns n) vt unkeyed
+
+
+pOutputName :: Parser s m => m OutputName
+pOutputName = do
+  (_, Variable x) <- pVarId
+  maybe (fail "Couldn't parse as InputName") pure (parseOutputName x)
+
+
+pOutput :: Parser s m => Namespace -> m (Decl Range Var)
+pOutput ns = do
+  a      <- pToken Tok_Feature
+  n      <- pOutputName
+  _      <- pToken Tok_Equals
+  t      <- pTop (OutputId ns n)
+
+  pure $
+    DeclOutput a (OutputId ns n) t
+
 
 
 -- | Parse a potentially empty list of contexts.

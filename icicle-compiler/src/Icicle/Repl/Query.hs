@@ -198,6 +198,7 @@ defineFunction function =
         Source.sourceParseF "<interactive>" $ Text.pack function
 
     dictionary <- gets stateDictionary
+    options    <- lift getCheckOptions
 
     let
       decln = \case
@@ -207,11 +208,15 @@ defineFunction function =
         Set.fromList $ fmap decln (Source.moduleEntries parsed)
 
       funEnv =
-        List.filter (not . flip Set.member names . functionName) $
-        dictionaryFunctions dictionary
+        dictionary {
+          dictionaryFunctions =
+            List.filter (not . flip Set.member names . functionName) $
+              dictionaryFunctions dictionary
+        }
+
 
       funResolved =
-        Source.sourceCheckFunLog funEnv parsed
+        Source.sourceCheckFunLog options (featureMapOfDictionary funEnv) parsed
 
     whenSet FlagTypeCheckLog $
       for_ (funResolved ^. _Left . _2) putPretty

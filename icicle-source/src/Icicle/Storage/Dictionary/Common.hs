@@ -73,7 +73,7 @@ loadDictionary' checkOpts impPrelude parentFuncs parentConf grabber parentInputs
   rawImports           <- traverse (readImport repoPath) (fmap T.unpack (configImports conf))
   let prelude'          = if impPrelude == ImplicitPrelude then [prelude] else []
   parsedImports        <- firstEitherT DictionaryErrorCompilation $
-                          traverse (uncurry (P.readIcicleLibrary repoPath)) (prelude' <> rawImports)
+                          traverse (uncurry (P.readIcicleLibrary checkOpts repoPath)) (prelude' <> rawImports)
   let importedFunctions = bind SQ.resolvedEntries parsedImports
 
   -- Functions available for virtual features, and visible in sub-dictionaries.

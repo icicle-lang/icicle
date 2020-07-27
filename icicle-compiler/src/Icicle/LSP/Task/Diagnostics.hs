@@ -61,7 +61,7 @@ updateDiagnostics state sUri sSource = do
 updateDiagnostics' :: State -> Text -> Text -> EitherT (Compiler.ErrorSource Variable) IO ()
 updateDiagnostics' state sUri sSource = do
   funs    <- hoistEither $ Compiler.sourceParseF (takeFileName (Text.unpack sUri)) sSource
-  prelude <- hoistEither $ Compiler.loadedPrelude >>= Compiler.sourceCheckF Dictionary.builtinFunctions
+  prelude <- hoistEither $ Compiler.loadedPrelude >>= Compiler.sourceCheckF Check.defaultCheckOptions Dictionary.builtinFeatures
 
   let
     imports =
@@ -79,15 +79,15 @@ updateDiagnostics' state sUri sSource = do
       if modName == Query.ModuleName "Prelude" then
         []
       else
-        Query.resolvedEntries prelude
+        [prelude]
 
   rsvd <- traverse (collectOrAdd rootDir state) imports
   let
     env0 =
-      join rsvd <> Dictionary.builtinFunctions <> implicitPrelude
+      Dictionary.featureMapOfModules (rsvd <> implicitPrelude)
 
   _    <- hoistEither $ Compiler.sourceDesugarF funs
-  _    <- hoistEither $ Compiler.sourceCheckF env0 funs
+  _    <- hoistEither $ Compiler.sourceCheckF Check.defaultCheckOptions env0 funs
   return ()
 
 
@@ -140,24 +140,25 @@ saveDiagnostics' state sUri = do
       takeFileName localPath
 
   input <- Text.decodeUtf8 <$> liftIO (ByteString.readFile localPath)
-  modul <- Compiler.readIcicleLibrary rootDir sourceName input
+  modul <- Compiler.readIcicleLibrary Check.defaultCheckOptions rootDir sourceName input
 
   liftIO (lspLog  state ("* Cache rewrite for " <> localPath))
-  liftIO $ modifyIORef (stateCoreChecked state) (Map.insert localPath (Query.resolvedEntries modul))
+  liftIO $ modifyIORef (stateCoreChecked state) (Map.insert localPath modul)
 
 
 -- Check our in memory cache of checked modules
 -- If the module hasn't been loaded yet, then
 -- add it to our cache.
-collectOrAdd :: FilePath -> State -> Query.ModuleImport Range -> EitherT (Compiler.ErrorSource Variable) IO [Dictionary.DictionaryFunction]
+-- collectOrAdd :: FilePath -> State -> Query.ModuleImport Range -> EitherT (Compiler.ErrorSource Variable) IO (Query.Features a Variable k)
+collectOrAdd :: FilePath -> State -> ModuleImport Range -> EitherT (Compiler.ErrorSource Variable) IO (ResolvedModule Range Variable)
 collectOrAdd rootDir state mi = do
   let
     name =
       Query.importName mi
 
   if name == Query.ModuleName "Prelude" then do
-    prelude <- hoistEither $ Compiler.loadedPrelude >>= Compiler.sourceCheckF Dictionary.builtinFunctions
-    return $ Query.resolvedEntries prelude
+    prelude <- hoistEither $ Compiler.loadedPrelude >>= Compiler.sourceCheckF Check.defaultCheckOptions Dictionary.builtinFeatures
+    return prelude
   else do
     expected_location <-
       firstEitherT Compiler.ErrorSourceModuleError $ Query.getModuleFileName rootDir mi
@@ -169,10 +170,10 @@ collectOrAdd rootDir state mi = do
         return x
       Nothing -> do
         liftIO (lspLog  state ("* Cache miss for " <> expected_location))
-        checked <- Compiler.readIcicleModule (Query.importAnn mi) rootDir name
-        let
-          loaded =
-            fromMaybe [] $ fmap Query.resolvedEntries $ Map.lookup name checked
+        checked <- Compiler.readIcicleModule Check.defaultCheckOptions (Query.importAnn mi) rootDir name
+        loaded  <-
+          maybe (left Compiler.ErrorImpossible) pure $
+            Map.lookup name checked
 
         liftIO (lspLog  state ("* Cache write for " <> expected_location))
         liftIO $ modifyIORef (stateCoreChecked state) (Map.insert expected_location loaded)

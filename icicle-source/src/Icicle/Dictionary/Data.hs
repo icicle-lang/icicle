@@ -11,16 +11,18 @@ module Icicle.Dictionary.Data (
   , DictionaryOutput(..)
   , DictionaryFunction
   , ResolvedFunction(..)
-  , InputKey(..)
+  , SQ.InputKey(..)
   , AnnotSource
   , emptyDictionary
   , builtinFunctions
+  , builtinFeatures
   , prelude
   , mapOfInputs
   , mapOfOutputs
-  , unkeyed
+  , SQ.unkeyed
   , tombstonesOfDictionary
   , featureMapOfDictionary
+  , featureMapOfModules
   , parseFact
   , prettyDictionarySummary
   ) where
@@ -68,7 +70,7 @@ data DictionaryInput =
       inputId :: InputId
     , inputEncoding :: ValType
     , inputTombstones :: Set Text
-    , inputKey :: InputKey AnnotSource Variable
+    , inputKey :: SQ.InputKey AnnotSource Variable
     } deriving (Eq, Show)
 
 data DictionaryOutput =
@@ -77,16 +79,7 @@ data DictionaryOutput =
     , outputQuery :: QueryTop (ST.Annot Range Variable) Variable
     } deriving (Eq, Show)
 
--- | The query is keyed by this "virtual key". Facts (for one entity) are nubbed by this key.
-newtype InputKey a n =
-  InputKey {
-      unInputKey :: Maybe (SQ.Exp a n)
-    } deriving (Eq, Show)
-
 type AnnotSource = ST.Annot Range Variable
-
-unkeyed :: InputKey AnnotSource Variable
-unkeyed = InputKey Nothing
 
 tombstonesOfDictionary :: Dictionary -> Map InputId (Set Text)
 tombstonesOfDictionary =
@@ -101,6 +94,18 @@ dummyRange =
   Range
     (Position "builtin" 1 1)
     (Position "builtin" 1 1)
+
+
+builtinFeatures :: SQ.Features a Variable k
+builtinFeatures =
+  SQ.Features
+    (Map.empty)
+    (Map.fromList $ fmap (\x -> (SQ.functionName x, SQ.functionType x)) builtinFunctions)
+    (Just $ var "now")
+ where
+  var :: Text -> Name Variable
+  var = nameOf . NameBase . Variable
+
 
 builtinFunctions :: [DictionaryFunction]
 builtinFunctions
@@ -143,20 +148,35 @@ parseFact (Dictionary { dictionaryInputs = dict }) fact'
     , factValue     = v
     }
 
+
+-- | Get all the features and facts from a list of modules
+featureMapOfModules :: [SQ.ResolvedModule a Variable] -> SQ.Features () Variable (SQ.InputKey AnnotSource Variable)
+featureMapOfModules modules =
+  let
+    ds = join (fmap (Map.elems . SQ.resolvedInputs) modules)
+    fs = join (fmap SQ.resolvedEntries modules)
+    ds' = fmap (\(SQ.ModuleInput _ i t k) -> (i, t, SQ.unkeyed)) ds
+  in
+    featureMapOfSimple ds' fs
+
+
 -- | Get all the features and facts from a dictionary.
---
-featureMapOfDictionary :: Dictionary -> SQ.Features () Variable (InputKey AnnotSource Variable)
+featureMapOfDictionary :: Dictionary -> SQ.Features () Variable (SQ.InputKey AnnotSource Variable)
 featureMapOfDictionary (Dictionary { dictionaryInputs = ds, dictionaryFunctions = functions })
+ = featureMapOfSimple ds' functions
+    where
+   ds' =
+      fmap (\(DictionaryInput i t _ k) -> (i, t, k)) ds
+
+featureMapOfSimple :: Foldable t => t (InputId, ValType, (SQ.InputKey AnnotSource Variable)) -> [ResolvedFunction a Variable] -> SQ.Features () Variable (SQ.InputKey AnnotSource Variable)
+featureMapOfSimple ds functions
  = SQ.Features
      (Map.fromList $ concatMap mkFeatureContext ds)
      (Map.fromList $ fmap (\x -> (functionName x, functionType x)) functions)
      (Just $ var "now")
  where
 
-  mkFeatureContext
-    :: DictionaryInput
-    -> [(InputId, SQ.FeatureConcrete () Variable (InputKey AnnotSource Variable))]
-  mkFeatureContext (DictionaryInput iid enc _ key)
+  mkFeatureContext (iid, enc, key)
    = fmap (iid,) (SQ.mkFeatureContext enc key)
 
   var :: Text -> Name Variable
@@ -192,7 +212,7 @@ prettyDictionarySummary dict =
     xs ->
       vsep $ List.intersperse mempty xs
 
-  pprInput (DictionaryInput attr enc _ (InputKey mkey)) =
+  pprInput (DictionaryInput attr enc _ (SQ.InputKey mkey)) =
     case mkey of
       Nothing ->
         prettyTypedBest'
@@ -224,6 +244,6 @@ prettyDictionarySummary dict =
        freshNamer
         = Fresh.counterPrefixNameState (Variable . Text.pack . show) "inbuilt"
 
-instance Pretty (InputKey AnnotSource Variable) where
- pretty (InputKey Nothing)  = ""
- pretty (InputKey (Just x)) = "(" <> pretty x <> ")"
+instance Pretty (SQ.InputKey AnnotSource Variable) where
+ pretty (SQ.InputKey Nothing)  = ""
+ pretty (SQ.InputKey (Just x)) = "(" <> pretty x <> ")"

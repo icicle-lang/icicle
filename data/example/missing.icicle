@@ -4,3 +4,4 @@ module Missing where
 missing : Possibly a
 missing = get None
 
+input age : Int

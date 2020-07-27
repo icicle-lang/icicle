@@ -10,9 +10,12 @@ module Icicle.Source.Query.Module (
     Module         (..)
   , ModuleName     (..)
   , ModuleImport   (..)
+  , ModuleInput    (..)
   , ResolvedModule (..)
   , ModuleError    (..)
   , Decl           (..)
+  , InputKey       (..)
+  , unkeyed
 
   , getModuleFileName
   , topSort
@@ -25,12 +28,17 @@ import           Control.Monad.Trans.Either (EitherT, right, left)
 import           Data.Array as Array
 import qualified Data.Graph as Graph
 import           Data.List.NonEmpty (NonEmpty (..))
+import           Data.Map (Map)
 import           Data.Tree (Tree(..))
 import qualified Data.Text as Text
 
 import           GHC.Generics (Generic)
 
 import           Icicle.Common.Base (Name)
+import           Icicle.Common.Type (ValType)
+
+import           Icicle.Data.Name (InputId, OutputId)
+
 import           Icicle.Internal.Pretty (Pretty (..), (<+>), encloseSep, prettyPunctuation)
 
 import           Icicle.Source.Type
@@ -47,7 +55,9 @@ import           System.Directory
 
 data Decl a n
   = DeclFun a (Name n) (Maybe (Scheme n)) (Exp a n)
-  deriving (Eq, Ord, Show, Generic)
+  | DeclInput a InputId ValType (InputKey a n)
+  | DeclOutput a OutputId (QueryTop a n)
+  deriving (Eq, Show, Generic)
 
 
 instance TraverseAnnot Decl where
@@ -55,6 +65,11 @@ instance TraverseAnnot Decl where
     case decl of
       DeclFun a n t x ->
         DeclFun <$> f a <*> pure n <*> pure t <*> traverseAnnot f x
+      DeclInput a i t k ->
+        DeclInput <$> f a <*> pure i <*> pure t <*> traverseAnnot f k
+      DeclOutput a oid o ->
+        DeclOutput <$> f a <*> pure oid <*> traverseAnnot f o
+
 
 
 newtype ModuleName =
@@ -68,16 +83,17 @@ data Module a n =
       moduleName     :: ModuleName
     , moduleImports  :: [ModuleImport a]
     , moduleEntries  :: [Decl a n]
-    } deriving (Show, Eq, Ord, Generic)
+    } deriving (Show, Eq, Generic)
 
 
 data ResolvedModule a n =
   ResolvedModule {
       resolvedName     :: ModuleName
     , resolvedImports  :: [ModuleImport a]
+    , resolvedInputs   :: Map InputId (ModuleInput a n)
+    , resolvedOutputs  :: Map OutputId (QueryTop (Annot a n) n)
     , resolvedEntries  :: [ResolvedFunction a n]
-    } deriving (Show, Eq, Ord, Generic)
-
+    } deriving (Show, Eq, Generic)
 
 
 data ModuleImport a =
@@ -87,10 +103,32 @@ data ModuleImport a =
     } deriving (Show, Eq, Ord, Generic)
 
 
+data ModuleInput a n =
+  ModuleInput {
+      inputAnn      :: a
+    , inputId       :: InputId
+    , inputEncoding :: ValType
+    , inputKey      :: InputKey a n
+    } deriving (Show, Eq, Generic)
+
+
+-- | The query is keyed by this "virtual key". Facts (for one entity) are nubbed by this key.
+newtype InputKey a n =
+  InputKey {
+      unInputKey :: Maybe (Exp a n)
+    } deriving (Eq, Show)
+
+instance TraverseAnnot InputKey where
+  traverseAnnot f (InputKey e) =
+    InputKey <$> traverse (traverseAnnot f) e
+
+unkeyed :: InputKey a n
+unkeyed = InputKey Nothing
+
 data ModuleError a n
   = ModuleNotFound a FilePath
   | ModuleCycles (NonEmpty [Module a n])
-  deriving (Show, Eq, Ord, Generic)
+  deriving (Show, Eq, Generic)
 
 instance Pretty n => Pretty (ModuleError a n) where
   pretty = \case
@@ -100,6 +138,7 @@ instance Pretty n => Pretty (ModuleError a n) where
       "Cyclical dependencies discovered" <+>
         encloseSep mempty mempty (prettyPunctuation "->") (fmap (pretty . getModuleName . moduleName) x)
 
+
 annotOfModuleError :: ModuleError a n -> Maybe a
 annotOfModuleError e
  = case e of
@@ -108,9 +147,11 @@ annotOfModuleError e
     ModuleCycles _
      -> Nothing
 
+
 pathsToNode :: Eq a => a -> Tree a -> [[a]]
 pathsToNode x (Node y ns) =
   [[x] | x == y] <> fmap (y:) (pathsToNode x =<< ns)
+
 
 -- | Generate a sorted list of modules, based on their inputs.
 --
