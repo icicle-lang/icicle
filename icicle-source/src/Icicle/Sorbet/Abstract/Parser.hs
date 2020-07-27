@@ -462,10 +462,10 @@ primitives
   where
 
 
-parseRegex :: Parser s m => m (Position, BuiltinFun)
+parseRegex :: Parser s m => m (Range, BuiltinFun)
 parseRegex
   = do p         <- pToken Tok_Grepl
-       o                <- Mega.getOffset
+       o         <- Mega.getOffset
        (_,s)     <- pString
        let mRegex = Mega.parseMaybe Regex.parser s
        regex     <- maybe (failAtOffset o "Not a valid regular expression") (return) mRegex

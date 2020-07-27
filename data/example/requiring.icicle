@@ -12,7 +12,3 @@ requiring i x =
       missing
     False then
       x
-
-
-feature age =
-  from age in newest value

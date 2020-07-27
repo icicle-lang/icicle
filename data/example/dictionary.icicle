@@ -1,79 +1,35 @@
-module Demographics where
+module Default where
 
 import Missing
-import Requiring
-
-input age : Int
-
-input salary : Int
-
-input gender : String
 
 input injury : {
-    location : String
-  , severity : Int
-  , action   : Option String
-  , admitted : Option Time
-  , blah     : Sum String Int
-  , tups     : (String, Int)
-  , nested   : { this : Int }
+    action   : Option String
+  , location : String
+  , severity : Double
   }
 
-input sumtype : Sum { location : String} { fireside : Int }
+is_head : String -> Bool
+is_head l =
+  l == "head"
 
-
-feature gender =
-  from gender
-  in newest value
-
-
-feature is_head =
-  from injury in
-  newest (location == "head")
-
-
-feature max_thing =
+feature any_head =
   from injury
-  in
-    sum severity
+    in any (is_head location)
 
+feature sum_severity =
+  from injury
+    in sum severity
 
-feature fun =
-  from sumtype in
-  let
-    is_left =
-      case value of
-        Left _ then
-          True
-        Right _ then
-          False
+feature any_ea =
+  from injury
+    in any (grepl "ea" location)
 
-    get_left e =
-      case e of
-        Left a then
-          a
-        Right _ then
-          get None
+feature empty =
+  from injury
+    in missing
 
-    get_right e =
-      case e of
-        Left _ then
-          get None
-        Right a then
-          a
-
-    lefts =
-      filter is_left
-      in let
-           l = get_left value
-         in
-           count l
-
-    rights =
-      filter not is_left
-      in let
-           r = get_right value
-         in sum r.fireside
-
-  in
-    lefts > rights
+feature sum_heads =
+ from injury
+   in filter is_head location
+   in filter is_some action
+   in sum severity
