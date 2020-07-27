@@ -108,7 +108,7 @@ data ModuleInput a n =
       inputAnn      :: a
     , inputId       :: InputId
     , inputEncoding :: ValType
-    , inputKey      :: InputKey a n
+    , inputKey      :: InputKey (Annot a n) n
     } deriving (Show, Eq, Generic)
 
 
@@ -121,6 +121,12 @@ newtype InputKey a n =
 instance TraverseAnnot InputKey where
   traverseAnnot f (InputKey e) =
     InputKey <$> traverse (traverseAnnot f) e
+
+
+instance Pretty v => Pretty (InputKey a v) where
+ pretty (InputKey Nothing)  = ""
+ pretty (InputKey (Just x)) = "(" <> pretty x <> ")"
+
 
 unkeyed :: InputKey a n
 unkeyed = InputKey Nothing

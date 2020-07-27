@@ -243,7 +243,3 @@ prettyDictionarySummary dict =
      where
        freshNamer
         = Fresh.counterPrefixNameState (Variable . Text.pack . show) "inbuilt"
-
-instance Pretty (SQ.InputKey AnnotSource Variable) where
- pretty (SQ.InputKey Nothing)  = ""
- pretty (SQ.InputKey (Just x)) = "(" <> pretty x <> ")"

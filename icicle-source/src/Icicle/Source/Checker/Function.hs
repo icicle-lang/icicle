@@ -54,8 +54,8 @@ checkModule checkOpts env module'
         (ResolvedModule (moduleName module') (moduleImports module') inputs outputs entries, logs)
 
  where
-  go (env0,inputs0,output0,logs0) (DeclInput ann iid inputVT k) = do
-    pure (env0, Map.insert iid (ModuleInput ann iid inputVT k) inputs0, output0, logs0)
+  go (env0,inputs0,output0,logs0) (DeclInput ann iid inputVT _) = do
+    pure (env0, Map.insert iid (ModuleInput ann iid inputVT unkeyed) inputs0, output0, logs0)
 
   go (env0,inputs0,output0,logs0) (DeclOutput _ oid outputQT) = do
     let

@@ -1,7 +1,7 @@
-dictionary Demographics where
+module Demographics where
 
-import "missing.icicle"
-import "requiring.icicle"
+import Missing
+import Requiring
 
 input age : Int
 

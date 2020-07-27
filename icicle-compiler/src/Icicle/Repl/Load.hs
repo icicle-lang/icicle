@@ -100,25 +100,17 @@ loadTomlDictionary path = do
 
 loadSorbet :: FilePath -> Repl ()
 loadSorbet path = do
-  eIsDictionary <- liftIO . runEitherT $ Sorbet.lexCheckDictionary path
-  case eIsDictionary of
-    Left err -> do
-      putPretty $ Pretty.vsep [
-          "Couldn't parse Icicle file:"
-        , Pretty.indent 2 $ Pretty.pretty err
-        ]
-
-    Right isDictionary ->
-      if isDictionary then
-        loadSorbetDictionary path
-      else
-        loadFunctions path
+  loadSorbetDictionary path
 
 
 loadSorbetDictionary :: FilePath -> Repl ()
 loadSorbetDictionary path = do
+  let
+    rootDir
+      = FilePath.takeDirectory path
+
   options     <- getCheckOptions
-  edictionary <- liftIO . runEitherT $ Sorbet.loadDictionary options Toml.ImplicitPrelude path
+  edictionary <- liftIO . runEitherT $ Sorbet.loadDictionary options rootDir path
   case edictionary of
     Left err -> do
       putPretty $ Pretty.vsep [
@@ -129,10 +121,12 @@ loadSorbetDictionary path = do
     Right dictionary ->
       setDictionary dictionary
 
+
 loadFunctions :: FilePath -> Repl ()
 loadFunctions path = do
   src <- Text.decodeUtf8 <$> liftIO (ByteString.readFile path)
   loadFunctionsFrom path src
+
 
 loadFunctionsFrom :: FilePath -> Text -> Repl ()
 loadFunctionsFrom path src = do

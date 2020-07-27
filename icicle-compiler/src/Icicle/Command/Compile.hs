@@ -47,6 +47,7 @@ import qualified Icicle.Storage.Dictionary.Toml   as Toml
 import           P
 
 import           System.IO as IO (IO, FilePath)
+import qualified System.FilePath as FilePath
 
 data Compile =
   Compile {
@@ -99,7 +100,8 @@ loadDictionary input =
       InputDictionaryToml path ->
         Toml.loadDictionary Source.defaultCheckOptions Toml.ImplicitPrelude path
       InputDictionarySorbet path ->
-        Sorbet.loadDictionary Source.defaultCheckOptions Toml.ImplicitPrelude path
+        let rootDir = FilePath.takeDirectory path
+         in Sorbet.loadDictionary Source.defaultCheckOptions rootDir path
 
 compileDictionary ::
      Monad m
