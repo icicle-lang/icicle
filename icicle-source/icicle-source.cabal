@@ -79,7 +79,6 @@ library
                        Icicle.Sorbet.Lexical.Syntax
                        Icicle.Sorbet.Position
                        Icicle.Sorbet.Parse
-                       Icicle.Sorbet.Render
 
                        Icicle.Source.Eval
                        Icicle.Source.Query

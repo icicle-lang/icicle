@@ -22,7 +22,6 @@ import           Icicle.Common.Base
 import           Icicle.Internal.Pretty
 
 import           Icicle.Sorbet.Parse
-import           Icicle.Sorbet.Render
 
 import           Icicle.Source.Query as Query
 import           Icicle.Source.Type  as Type

@@ -892,15 +892,15 @@ appType ann errExp funT cons actT
     let t = recomposeT (tmpR'', posR'', datR)
     return (t, concat [cons, consD, consT, consT', consP, consP', consTX])
 
-  | let (tmpF,posF,datF) = decomposeT $ canonT funT
-  , TypeVar _     <- datF
-  = do
-    expT          <- freshType
-    resT          <- freshType
-    let funT'      = recomposeT (tmpF, posF, TypeArrow expT resT)
-    let funCons    = require ann (CEquals funT funT')
-    -- Rerun with a type arrow requirement.
-    appType ann errExp funT' (cons <> funCons) actT
+  --  | let (tmpF,posF,datF) = decomposeT $ canonT funT
+  --  , TypeVar _     <- datF
+  --  = do
+  --    expT          <- freshType
+  --    resT          <- freshType
+  --    let funT'      = recomposeT (tmpF, posF, TypeArrow expT resT)
+  --    let funCons    = require ann (CEquals funT funT')
+  --    -- Rerun with a type arrow requirement.
+  --    appType ann errExp funT' (cons <> funCons) actT
   | otherwise
   = genHoistEither
   $ errorNoSuggestions (ErrorFunctionWrongArgs ann errExp (Forall [] [] funT) [actT])
@@ -928,10 +928,10 @@ appType ann errExp funT cons actT
         let j = joinMode ignore (maybe pureMode id modE) (maybe pureMode id modA)
         return (modR, require ann j)
 
-  freshType
-    =    Temporality <$> (TypeVar <$> fresh)
-    <*> (Possibility <$> (TypeVar <$> fresh)
-    <*>                  (TypeVar <$> fresh))
+  -- freshType
+  --   =    Temporality <$> (TypeVar <$> fresh)
+  --   <*> (Possibility <$> (TypeVar <$> fresh)
+  --   <*>                  (TypeVar <$> fresh))
 
   purely (Just TemporalityPure) = Nothing
   purely tmp = tmp

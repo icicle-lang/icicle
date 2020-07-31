@@ -1,6 +1,7 @@
 module Default where
 
 import Missing
+import Demographics
 
 input injury : {
     action   : Option String
@@ -11,6 +12,10 @@ input injury : {
 is_head : String -> Bool
 is_head l =
   l == "head"
+
+feature is_head =
+  from injury
+    in newest (is_head location)
 
 feature any_head =
   from injury
@@ -26,10 +31,23 @@ feature any_ea =
 
 feature empty =
   from injury
-    in missing
+    in seq missing 0
 
-feature sum_heads =
- from injury
-   in filter is_head location
-   in filter is_some action
-   in sum severity
+feature head_damage =
+  from injury
+    in filter is_head location
+    in sum severity
+
+feature worst_injured =
+  from injury
+    in group fold (location, severity) =
+         (group location in sum severity)
+       in max_by severity location
+
+feature sd_injury =
+  from injury
+    in sd severity
+
+feature mean_injury =
+  from injury
+    in mean severity

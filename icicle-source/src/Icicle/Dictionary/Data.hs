@@ -150,12 +150,12 @@ parseFact (Dictionary { dictionaryInputs = dict }) fact'
 
 
 -- | Get all the features and facts from a list of modules
-featureMapOfModules :: [SQ.ResolvedModule a Variable] -> SQ.Features () Variable (SQ.InputKey AnnotSource Variable)
+featureMapOfModules :: [SQ.ResolvedModule Range Variable] -> SQ.Features () Variable (SQ.InputKey AnnotSource Variable)
 featureMapOfModules modules =
   let
-    ds = join (fmap (Map.elems . SQ.resolvedInputs) modules)
-    fs = join (fmap SQ.resolvedEntries modules)
+    ds  = join (fmap (Map.elems . SQ.resolvedInputs) modules)
     ds' = fmap (\(SQ.ModuleInput _ i t k) -> (i, t, SQ.unkeyed)) ds
+    fs  = builtinFunctions <> join (fmap SQ.resolvedEntries modules)
   in
     featureMapOfSimple ds' fs
 

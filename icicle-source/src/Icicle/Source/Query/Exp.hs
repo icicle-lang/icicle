@@ -40,9 +40,11 @@ module Icicle.Source.Query.Exp (
   ) where
 
 import           Control.Lens.Setter (over)
+import qualified Data.Text as Text
 
 import           GHC.Generics (Generic)
 
+import           Icicle.Data.Time
 import           Icicle.Source.Query.Builtin
 import           Icicle.Source.Query.Constructor
 import           Icicle.Source.Query.Operators
@@ -199,53 +201,60 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
   prettyPrec outer_prec xx =
     wrap $
       case xx of
-        App{}
-         -- Operators
-         | Just (Op o, _, [x]) <- takePrimApps xx
-         , FPrefix <- fixity o
-         -> pretty o <+> prettyPrec inner_prec x
-         | Just (Op o, _, [x,y]) <- takePrimApps xx
-         , FInfix _ <- fixity o
-         ->  prettyPrec inner_prec_1 x
-         <+> pretty  o
-         <+> prettyPrec inner_prec_2 y
-
-        App _ x y ->
-          prettyPrec inner_prec_1 x <+> prettyPrec inner_prec_2 y
-
         Var _ n ->
           annotate AnnVariable (pretty n)
-
-        Lam _ n x ->
-          prettyPunctuation "\\" <> pretty n <+> prettyPunctuation "->" <+> prettyPrec inner_prec_2 x
-
-        Prim _ p ->
-          annotate AnnPrimitive (pretty p)
 
         Nested _ q ->
           pretty q
 
-        If _ pred true false ->
-          vsep [
-              prettyKeyword "if" <+> pretty pred <+> prettyKeyword "then"
-            , indent 2 $ pretty true
-            , prettyKeyword "else"
-            , indent 2 $ pretty false
-            ]
+        App{}
+           -- Operators
+           | Just (Op o, _, [x]) <- takePrimApps xx
+           , FPrefix <- fixity o
+           -> pretty o <+> prettyPrec inner_prec x
+           | Just (Op o, _, [x,y]) <- takePrimApps xx
+           , FInfix _ <- fixity o
+           ->  prettyPrec inner_prec_1 x
+           <+> pretty o
+           <+> prettyPrec inner_prec_2 y
+
+        App _ x y ->
+          prettyPrec inner_prec_1 x <+> prettyPrec inner_prec_2 y
+
+        Prim _ (Lit (LitTime t)) ->
+          annotate AnnPrimitive (text $ Text.unpack $ renderTime t)
+
+        Prim _ p ->
+          annotate AnnPrimitive (pretty p)
+
+        Lam _ n x ->
+          prettyPunctuation "(" <>
+          prettyPunctuation "\\" <> pretty n <+> prettyPunctuation "->" <+> prettyPrec appPrec1 x <>
+          prettyPunctuation ")"
 
         Case _ scrut pats ->
           vsep [
-              prettyKeyword "case" <+> pretty scrut
+              prettyKeyword "case" <+> pretty scrut <+> prettyKeyword "of"
+            , prettyPunctuation "{"
             , vcat . with pats $ \(p, x) ->
                 vsep [
-                    prettyPunctuation "|" <+> pretty p <+> prettyPunctuation "->"
+                    indent 2 $ pretty p <+> prettyPunctuation "then"
                   , indent 4 $ pretty x
-                  ]
-            , prettyKeyword "end"
+                  ] <+> prettyPunctuation ";"
+            , prettyPunctuation "}"
+            ]
+
+        If _ scrut true false ->
+          vsep [
+              prettyKeyword "if" <+> pretty scrut <+> prettyKeyword "then"
+            , indent 4 $ pretty true
+            , prettyKeyword "else"
+            , indent 4 $ pretty false
             ]
 
         Access _ expression field ->
           pretty expression <> "." <> pretty field
+
    where
     (inner_prec, assoc) = precedenceOfX xx
 

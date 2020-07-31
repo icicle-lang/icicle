@@ -60,7 +60,6 @@ import qualified Icicle.Sea.FromAvalanche.Program as Sea
 import qualified Icicle.Sea.Preamble as Sea
 import qualified Icicle.Serial as Serial
 import qualified Icicle.Source.PrettyAnnot as Source
-import qualified Icicle.Sorbet.Render as Sorbet
 import qualified Icicle.Sorbet.Position as Sorbet
 import qualified Icicle.Source.Query as Source
 
@@ -277,7 +276,7 @@ compileQuery query = do
         (Pretty.pretty sourceType)
 
   whenSet FlagAnnotated $
-    putSection "Annotated" (Sorbet.PrettySorbet annot)
+    putSection "Annotated" (Source.PrettyAnnot annot)
 
   let
     inlined =
@@ -288,10 +287,10 @@ compileQuery query = do
       Source.sourceDesugarQT inlined
 
   whenSet FlagInlined $
-    putSection "Inlined" (Sorbet.PrettySorbet inlined)
+    putSection "Inlined" inlined
 
   whenSet FlagDesugar $
-    putSection "Desugar" (Sorbet.PrettySorbet blanded)
+    putSection "Desugar" blanded
 
   (annobland, _) <-
     hoistEither . first QuerySourceError $
@@ -302,7 +301,7 @@ compileQuery query = do
       Source.sourceReifyQT annobland
 
   whenSet FlagReified $ do
-    putSection "Reified" (Sorbet.PrettySorbet reified)
+    putSection "Reified" reified
 
   let
     finalSource =

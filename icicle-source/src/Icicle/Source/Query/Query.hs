@@ -72,14 +72,15 @@ type Context a n = Context' Query a n
 instance Pretty n => Pretty (QueryTop a n) where
   pretty q =
     vsep [
-        prettyKeyword "feature" <+> annotate AnnConstant (pretty (show (renderUnresolvedInputId (queryInput q))))
-      , prettyPunctuation "~>" <+> align (pretty (query q))
+        prettyKeyword "from" <+> annotate AnnConstant (pretty (show (renderUnresolvedInputId (queryInput q))))
+      , prettyPunctuation "in" <+> align (pretty (query q))
       ]
 
 instance Pretty n => Pretty (Query a n) where
   pretty q =
     align . prettyItems vsep (align . pretty $ final q) $
-      fmap (PrettyItem (prettyPunctuation "~>") . align . pretty) (contexts q)
+      fmap (PrettyItem (prettyPunctuation "in") . align . pretty) (contexts q)
+
 
 simplifyNestedQT :: QueryTop a n -> QueryTop a n
 simplifyNestedQT q

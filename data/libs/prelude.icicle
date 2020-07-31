@@ -311,7 +311,7 @@ circular_stats theta =
   in
     let
       mean   = atan2 y_loc x_loc
-      radius = sqrt (x_loc * x_loc + y_loc * y_loc)
+      radius = sqrt (x_loc^2 + y_loc^2)
       sd     = 1 - radius
       z_test = n * radius * radius
     in
