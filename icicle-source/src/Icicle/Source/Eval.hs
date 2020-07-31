@@ -417,9 +417,9 @@ evalP ann p xs vs env
              -> return i
              | otherwise -> err
             BuiltinData Box
-             | [VNone] <- args
+             | [VLeft _] <- args
              -> return $ VError ExceptTombstone
-             | [VSome a] <- args
+             | [VRight a] <- args
              -> return a
              | otherwise -> err
 

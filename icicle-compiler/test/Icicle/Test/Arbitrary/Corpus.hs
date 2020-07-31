@@ -214,18 +214,22 @@ testAllCorpus prop =
 prelude :: Either Savage.String [DictionaryFunction]
 prelude =
   mconcat . fmap Query.resolvedEntries <$>
-    nobodyCares (mapM (uncurry $ Source.readIcicleLibraryPure "check") [DictionaryLoad.prelude])
+    nobodyCares (mapM (uncurry $ Source.readIcicleLibraryPure Source.defaultCheckOptions "check") [DictionaryLoad.prelude])
 
 inputDictionary :: Either Savage.String Dictionary
-inputDictionary =
+inputDictionary = do
   let
     mkEntry (n, v) =
       DictionaryInput (corpusInputId n) v (Set.singleton tombstone) (InputKey Nothing)
-  in
+
+  prelude' <-
+    prelude
+
+  return $
     Dictionary
       (mapOfInputs $ fmap mkEntry corpusInputs)
       (mapOfOutputs [])
-      <$> prelude
+      (prelude' <> builtinFunctions)
 
 coreOfSource :: OutputId -> Text -> Either Savage.String (Core.Program () Var)
 coreOfSource oid src

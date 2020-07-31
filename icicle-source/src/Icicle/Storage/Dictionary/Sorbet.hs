@@ -10,7 +10,6 @@ module Icicle.Storage.Dictionary.Sorbet (
   , ImplicitPrelude (..)
   , loadDictionary
   , prelude
-
   ) where
 
 import           Icicle.Compiler.Source

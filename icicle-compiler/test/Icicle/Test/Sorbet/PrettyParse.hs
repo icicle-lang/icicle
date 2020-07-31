@@ -37,7 +37,7 @@ prop_parse_pretty_same = withDiscards 1000 . withTests 1000 . property $ do
 
   let
     q  = qwfQueryTop qwf
-    pp = show $ pretty (PrettySorbet q)
+    pp = show $ pretty q
     t  = Text.pack pp
 
     parsed  = sorbet (queryName q) t

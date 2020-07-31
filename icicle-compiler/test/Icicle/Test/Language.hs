@@ -111,11 +111,12 @@ dummySourceVar :: P.QueryTyped Source.Var
 dummySourceVar
   = let x = nameOf $ NameBase $ SP.Variable "dummy"
         pos = Sorbet.Position "dummy" 1 1
+        range = Sorbet.Range pos pos
         input = [inputid|default:input|]
     in  S.QueryTop
           (D.QualifiedInput input)
           (fromMaybe (Savage.error "dummy") . D.parseOutputId . D.renderInputId $ input)
-          (S.Query [] $ S.Var (S.Annot pos S.UnitT []) x)
+          (S.Query [] $ S.Var (S.Annot range S.UnitT []) x)
 
 factFromTopCoreValue :: BaseValue -> Maybe D.Value
 factFromTopCoreValue = \case
