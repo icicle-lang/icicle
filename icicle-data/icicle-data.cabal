@@ -79,11 +79,10 @@ library
 benchmark regex-bench
   type:                 exitcode-stdio-1.0
   hs-source-dirs:       benchmarks
-  default-language:     Haskell2010
   main-is:              Main.hs
 
   ghc-options:
-    -Wall -threaded     -O0 -rtsopts
+    -Wall -threaded
 
   build-depends:
     base,
@@ -98,11 +97,10 @@ benchmark regex-bench
 test-suite regex-tests
   type:                 exitcode-stdio-1.0
   hs-source-dirs:       tests
-  default-language:     Haskell2010
   main-is:              Main.hs
 
   ghc-options:
-    -Wall -threaded     -O0 -rtsopts
+    -Wall -threaded
 
   build-depends:
     base,
