@@ -201,10 +201,12 @@ defineFunction function =
 
     let
       decln = \case
-        Source.DeclFun _ n _ _ -> n
+        Source.DeclFun _ n _ _ -> [n]
+        Source.DeclInput _ _ _ _ -> []
+        Source.DeclOutput _ _ _ -> []
 
       names =
-        Set.fromList $ fmap decln (Source.moduleEntries parsed)
+        Set.fromList $ concatMap decln (Source.moduleEntries parsed)
 
       funEnv =
         dictionary {
@@ -244,7 +246,7 @@ defineFunction function =
         liftIO $ IO.putStrLn ""
 
     modify $ \s ->
-      s { stateDictionary = dictionary { dictionaryFunctions = Source.resolvedEntries funEnv' } }
+      s { stateDictionary = dictionary { dictionaryFunctions = dictionaryFunctions funEnv <> Source.resolvedEntries funEnv' } }
 
 compileQuery :: String -> EitherT QueryError Repl CompiledQuery
 compileQuery query = do
