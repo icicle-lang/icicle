@@ -92,29 +92,29 @@ envOfFeatureNow nowIsPure
 mkFeatureContext
   :: ValType
   -> k
-  -> [FeatureConcrete () Variable k]
+  -> FeatureConcrete () Variable k
 mkFeatureContext vt key
   = let context (ty, vars)
           = FeatureConcrete key ty (FeatureContext vars (var "time"))
-    in  fmap context (go vt)
+    in  context (go vt)
 
   where
   -- If a dictionary entry is a concrete definition, create a feature context with
   -- implicit names such as `now`, `value`, struct field names, etc.
   go :: ValType
-     -> [(Type Variable, Map (Name Variable) (FeatureVariable () Variable))]
+     -> (Type Variable, Map (Name Variable) (FeatureVariable () Variable))
   go enc
    | en@(StructT st@(StructType fs)) <- enc
-   = [ ( baseType     $  sumT en
-       , Map.fromList $  exps "fields" en
-                      <> fmap (go' st) (Map.toList fs)
-       )
-     ]
+   = ( baseType     $  sumT en
+      , Map.fromList $  exps "fields" en
+                    <> fmap (go' st) (Map.toList fs)
+      )
+
 
    | otherwise
    = let e' = enc
-     in [ ( baseType $ sumT e'
-          , Map.fromList $ exps "value" e' ) ]
+     in ( baseType $ sumT e'
+        , Map.fromList $ exps "value" e' )
 
   go' parent (fn, ft)
    = let getsum b   = xgetsum b fn ft parent

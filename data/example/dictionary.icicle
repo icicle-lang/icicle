@@ -13,9 +13,18 @@ is_head : String -> Bool
 is_head l =
   l == "head"
 
+max_group : Element b -> Aggregate a -> Aggregate (Possibly b)
+max_group k e =
+  group fold (k, e) = (group k in e)
+  in max_by e k
+
+feature age =
+  from age
+    in newest value
+
 feature is_head =
   from injury
-    in newest (is_head location)
+    in is_head (newest location)
 
 feature any_head =
   from injury
@@ -40,9 +49,11 @@ feature head_damage =
 
 feature worst_injured =
   from injury
-    in group fold (location, severity) =
-         (group location in sum severity)
-       in max_by severity location
+    in max_group location (sum severity)
+
+feature most_injured =
+  from injury
+    in max_group location (count severity)
 
 feature sd_injury =
   from injury

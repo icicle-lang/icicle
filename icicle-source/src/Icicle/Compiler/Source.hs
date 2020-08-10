@@ -406,19 +406,19 @@ checkModules opts unchecked =
       let
         featureMapOfResolved ds functions =
           Query.Features
-            (Map.fromList $ concatMap mkFeatureContext ds)
+            (Map.fromList $ fmap mkFeatureContext ds)
             (Map.fromList $ fmap (\x -> (Query.functionName x, Query.functionType x)) functions)
             (Just $ var "now")
 
         mkFeatureContext (iid, enc, key) =
-          fmap (iid,) (Query.mkFeatureContext enc key)
+          (iid, Query.mkFeatureContext enc key)
 
         var =
           nameOf . NameBase . Parse.Variable
 
         env1 =
           featureMapOfResolved
-            (join (fmap (fmap (\(Query.ModuleInput _ n t _) -> (n, t, Query.unkeyed)) . Map.elems . Query.resolvedInputs) env0))
+            (join (fmap (fmap (\(Query.ModuleInput _ n t k) -> (n, t, k)) . Map.elems . Query.resolvedInputs) env0))
             (Dict.builtinFunctions <> join (fmap Query.resolvedEntries env0))
 
       checked <-

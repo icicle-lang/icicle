@@ -43,8 +43,6 @@ import                  Icicle.Common.Base
 
 import                  Icicle.Data.Name
 
-import                  Icicle.Dictionary.Data
-
 import                  P
 
 import                  Control.Monad.Morph

@@ -4,6 +4,7 @@
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE       QuasiQuotes #-}
 {-# LANGUAGE RankNTypes        #-}
 module Icicle.Source.Checker.Function (
     checkF
@@ -54,8 +55,15 @@ checkModule checkOpts env module'
         (ResolvedModule (moduleName module') (moduleImports module') inputs outputs entries, logs)
 
  where
-  go (env0,inputs0,output0,logs0) (DeclInput ann iid inputVT _) = do
-    pure (env0, Map.insert iid (ModuleInput ann iid inputVT unkeyed) inputs0, output0, logs0)
+  go (env0,inputs0,output0,logs0) (DeclInput ann iid inputVT (InputKey iKey)) = do
+    let
+      FeatureConcrete _ _ plainContext =
+        mkFeatureContext inputVT unkeyed
+      keyEnv =
+        fmap function0 (envOfFeatureContext plainContext)
+
+    checkedKey <- firstEitherT (,[]) $ traverse (checkKey keyEnv) iKey
+    pure (env0, Map.insert iid (ModuleInput ann iid inputVT (InputKey checkedKey)) inputs0, output0, logs0)
 
   go (env0,inputs0,output0,logs0) (DeclOutput _ oid outputQT) = do
     let
@@ -112,9 +120,9 @@ featureMapOfAccumulator features env0 inputs0
      }
  where
   mkFeatureContextX (ModuleInput _ iid enc k) =
-    fmap (iid,) (mkFeatureContext enc unkeyed)
+    (iid, mkFeatureContext enc k)
   moreC =
-    Map.fromList $ concatMap mkFeatureContextX inputs0
+    Map.fromList $ fmap mkFeatureContextX (toList inputs0)
   moreF =
     Map.fromList $ fmap ((,) <$> functionName <*> functionType) env0
 
@@ -265,3 +273,23 @@ checkF' fun env
              let log_info1 = dischargeInfo q' cons' subs'
              checkLog $ CheckLogDischargeOk log_ppr log_info0 log_info1
              return (q', subs', cons')
+
+
+
+checkKey
+  :: (Hashable n, Eq n, Pretty n)
+  => Map.Map (Name n) (Scheme n)
+  -> Exp a n
+  -> EitherT (CheckError a n) (Fresh.Fresh n) (Exp (Annot a n) n)
+checkKey keyEnv expr = do
+  q'   <- defaults <$> constraintsQ keyEnv (Query [] expr)
+  let t = annResult $ annotOfQuery q'
+  case getTemporalityOrPure t of
+    TemporalityElement
+      -> return ()
+    _ -> hoistEither
+      $ errorSuggestions
+          (ErrorKeyNotElement (annotOfExp expr) t)
+          [Suggest "The key must be an element, otherwise, it couldn't be calculated for each value."]
+
+  pure $ final q'

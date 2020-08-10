@@ -47,6 +47,7 @@ data ErrorInfo a n
  | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
  | ErrorConstraintLeftover      a [(a, Constraint n)]
  | ErrorCantInferConstraints    a [(a, Constraint n)] [(a, Constraint n)]
+ | ErrorKeyNotElement           a (Type n)
  | ErrorReturnNotAggregate      a (Type n)
  | ErrorDuplicateFunctionNames a (Name n)
  | ErrorEmptyCase a (Exp a n)
@@ -79,6 +80,8 @@ annotOfError (CheckError e _)
     ErrorConstraintLeftover a _
      -> a
     ErrorCantInferConstraints a _ _
+     -> a
+    ErrorKeyNotElement          a _
      -> a
     ErrorReturnNotAggregate          a _
      -> a
@@ -208,6 +211,13 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
         , "from the specified constraints:"
         , mempty
         , vcat (fmap (\(_,con) -> indent 2 (pretty con)) xs)
+        ]
+
+    ErrorKeyNotElement a t ->
+      vsep [
+          "Key type is not an element value at" <+> pretty a
+        , mempty
+        , "Type: " <> inp t
         ]
 
     ErrorReturnNotAggregate a t ->

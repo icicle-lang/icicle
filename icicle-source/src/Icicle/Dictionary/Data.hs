@@ -154,7 +154,7 @@ featureMapOfModules :: [SQ.ResolvedModule Range Variable] -> SQ.Features () Vari
 featureMapOfModules modules =
   let
     ds  = join (fmap (Map.elems . SQ.resolvedInputs) modules)
-    ds' = fmap (\(SQ.ModuleInput _ i t k) -> (i, t, SQ.unkeyed)) ds
+    ds' = fmap (\(SQ.ModuleInput _ i t k) -> (i, t, k)) ds
     fs  = builtinFunctions <> join (fmap SQ.resolvedEntries modules)
   in
     featureMapOfSimple ds' fs
@@ -168,16 +168,16 @@ featureMapOfDictionary (Dictionary { dictionaryInputs = ds, dictionaryFunctions 
    ds' =
       fmap (\(DictionaryInput i t _ k) -> (i, t, k)) ds
 
-featureMapOfSimple :: Foldable t => t (InputId, ValType, (SQ.InputKey AnnotSource Variable)) -> [ResolvedFunction a Variable] -> SQ.Features () Variable (SQ.InputKey AnnotSource Variable)
+featureMapOfSimple :: Foldable t => t (InputId, ValType, SQ.InputKey AnnotSource Variable) -> [ResolvedFunction a Variable] -> SQ.Features () Variable (SQ.InputKey AnnotSource Variable)
 featureMapOfSimple ds functions
  = SQ.Features
-     (Map.fromList $ concatMap mkFeatureContext ds)
+     (Map.fromList $ fmap mkFeatureContext (toList ds))
      (Map.fromList $ fmap (\x -> (functionName x, functionType x)) functions)
      (Just $ var "now")
  where
 
   mkFeatureContext (iid, enc, key)
-   = fmap (iid,) (SQ.mkFeatureContext enc key)
+   = (iid, SQ.mkFeatureContext enc key)
 
   var :: Text -> Name Variable
   var = nameOf . NameBase . Variable

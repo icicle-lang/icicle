@@ -186,7 +186,7 @@ pInput ns = do
 pOutputName :: Parser s m => m OutputName
 pOutputName = do
   (_, Variable x) <- pVarId
-  maybe (fail "Couldn't parse as InputName") pure (parseOutputName x)
+  maybe (fail "Couldn't parse as OutputName") pure (parseOutputName x)
 
 
 pOutput :: Parser s m => Namespace -> m (Decl Range Var)

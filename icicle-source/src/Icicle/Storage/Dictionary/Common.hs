@@ -161,8 +161,8 @@ checkKey checkOpts d iid xx = do
                    (SQ.Prim pr (SQ.Lit (SQ.LitInt 0))))
 
   (checked, _)  <- first DictionaryErrorCompilation $ do
-    q'       <- P.sourceDesugarQT q
-    (q'', t) <- P.sourceCheckQT checkOpts d q'
+    q'          <- P.sourceDesugarQT q
+    (q'', t)    <- P.sourceCheckQT checkOpts d q'
     return (P.sourceReifyQT q'', t)
 
   case contexts . query $ checked of

@@ -12,9 +12,7 @@ import           Control.Monad.State (modify, gets)
 import           Control.Monad.Trans.Either (runEitherT)
 import           Control.Monad.Trans.Resource (runResourceT)
 
-import qualified Data.ByteString as ByteString
 import qualified Data.List as List
-import qualified Data.Text.Encoding as Text
 
 import qualified Icicle.Compiler.Source as Source
 import           Icicle.Dictionary      as Dictionary
@@ -120,12 +118,6 @@ loadSorbetDictionary path = do
 
     Right dictionary ->
       setDictionary dictionary
-
-
-loadFunctions :: FilePath -> Repl ()
-loadFunctions path = do
-  src <- Text.decodeUtf8 <$> liftIO (ByteString.readFile path)
-  loadFunctionsFrom path src
 
 
 loadFunctionsFrom :: FilePath -> Text -> Repl ()

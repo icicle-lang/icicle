@@ -297,4 +297,4 @@ runCommand = \case
       icicleCheck dictionary
 
   IcicleLSP path -> do
-    runLSP (Just "/Users/huw/Desktop/icicle-debug")
+    runLSP path
