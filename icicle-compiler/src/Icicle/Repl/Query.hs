@@ -230,7 +230,7 @@ defineFunction function =
       fundefs =
         List.filter (flip Set.member names . functionName) (Source.resolvedEntries funEnv')
 
-    for_ (List.zip fundefs logs) $ \((ResolvedFunction nm typ annot), log0) -> do
+    for_ (List.zip fundefs logs) $ \((ResolvedFunction _ nm typ annot), log0) -> do
       whenSet FlagType $
         putSection "Type" $
           Pretty.prettyTypedBest

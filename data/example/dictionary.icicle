@@ -62,3 +62,24 @@ feature sd_injury =
 feature mean_injury =
   from injury
     in mean severity
+
+feature injury_blah =
+  from injury
+    in filter location == "head" || (location == "arm" && is_some action)
+    in sum severity
+
+feature mean_day_of_week =
+  from injury
+    in let
+      tau =
+        2 * pi
+      dow =
+        tau / 7 * double (mod (days time) 7)
+      (m, _, _) =
+        circular_stats dow
+    in
+      m / tau * 7
+
+feature days_in_location =
+  from injury
+    in days_in location time now

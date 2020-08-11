@@ -6,6 +6,8 @@ module Icicle.LSP.Task.Diagnostics (
   , saveDiagnostics
   , closeDiagnostics
   , sendClearDiagnostics
+
+  , updateDiagnostics'
   ) where
 
 import           Icicle.Internal.Pretty hiding ((</>))
@@ -49,16 +51,25 @@ updateDiagnostics state sUri sSource = do
   diagnostics <- runEitherT $
     updateDiagnostics' state sUri sSource
 
+  let
+    localPath =
+      fromMaybe (Text.unpack sUri) $
+        List.stripPrefix "file://" $
+          Text.unpack sUri
+
   case diagnostics of
-    Right _ -> do
+    Right module_ -> do
+      modifyIORef (stateCoreChecked state) (Map.insert localPath module_)
       sendClearDiagnostics state sUri
+
     Left fu -> do
       lspLog  state ("* Sending Parse Errors")
+      modifyIORef (stateCoreChecked state) (Map.delete localPath)
       sendDiagnostics state sUri (errorVector fu)
 
 
 -- | Compute diagnostics for an in memory module
-updateDiagnostics' :: State -> Text -> Text -> EitherT (Compiler.ErrorSource Variable) IO ()
+updateDiagnostics' :: State -> Text -> Text -> EitherT (Compiler.ErrorSource Variable) IO (ResolvedModule Range Variable)
 updateDiagnostics' state sUri sSource = do
   funs    <- hoistEither $ Compiler.sourceParseF (takeFileName (Text.unpack sUri)) sSource
   prelude <- hoistEither $ Compiler.loadedPrelude >>= Compiler.sourceCheckF Check.defaultCheckOptions Dictionary.builtinFeatures
@@ -86,9 +97,9 @@ updateDiagnostics' state sUri sSource = do
     env0 =
       Dictionary.featureMapOfModules (rsvd <> implicitPrelude)
 
-  _    <- hoistEither $ Compiler.sourceDesugarF funs
-  _    <- hoistEither $ Compiler.sourceCheckF Check.defaultCheckOptions env0 funs
-  return ()
+  _     <- hoistEither $ Compiler.sourceDesugarF funs
+  funs' <- hoistEither $ Compiler.sourceCheckF Check.defaultCheckOptions env0 funs
+  return funs'
 
 
 -- | Compute diagnostics for a source file, and push them to the client.

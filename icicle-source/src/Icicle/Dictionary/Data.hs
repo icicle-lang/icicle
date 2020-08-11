@@ -228,7 +228,7 @@ prettyDictionarySummary dict =
   pprOutput (DictionaryOutput attr q)
    = prettyBinding (pretty attr) $ pretty q
 
-  pprFun (ResolvedFunction f t _)
+  pprFun (ResolvedFunction _ f t _)
    = prettyTypedFun (pretty f) (ST.prettyFunFromStrings t)
 
   pprInbuilt f

@@ -23,6 +23,7 @@ import           Icicle.LSP.Interface
 import           Icicle.LSP.Protocol
 import           Icicle.LSP.State
 import           Icicle.LSP.Task.Diagnostics as Task
+import           Icicle.LSP.Task.Hover as Task
 
 import           System.FilePath
 import           System.IO as System
@@ -126,8 +127,8 @@ lspStartup state req
                               "change" .= (1 :: Int), -- send us full file changes.
                               "save" .= True -- send us save notif.
                             ]
-                      -- , "hoverProvider"
-                      --     .= True
+                      , "hoverProvider"
+                          .= True
                       ]
                 ]
           ]
@@ -229,16 +230,20 @@ lspInitialized state req
         Task.saveDiagnostics state sUri
         lspLoop state
 
-
+  -- A hover request.
+  -- Keeping it simple here, pull out what we need, and the
+  -- Task will post either a response or nothing
   | "textDocument/hover"    <- reqMethod req
   , Just (Object jParams)   <- reqParams req
+  , Just jrid               <- reqId     req
   , Just (Object jDoc)      <- HashMap.lookup "textDocument" jParams
   , Just (String sUri)      <- HashMap.lookup "uri" jDoc
   , Just (Object jPos)      <- HashMap.lookup "position" jParams
   , Just (Number pLine)     <- HashMap.lookup "line" jPos
   , Just (Number pChar)     <- HashMap.lookup "character" jPos
-  = lspLog state "Getting there Huw"
-
+  = do  lspLog state "* Hover"
+        Task.hover state sUri jrid (round pLine) (round pChar)
+        lspLoop state
 
   -- Some other request that we don't handle.
   | otherwise

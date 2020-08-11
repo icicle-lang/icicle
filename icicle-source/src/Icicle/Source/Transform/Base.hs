@@ -67,9 +67,9 @@ transformF
     => Transform m c (Annot a n) n
     -> ResolvedFunction a n
     -> m (ResolvedFunction a n)
-transformF t (ResolvedFunction n typ q)
+transformF t (ResolvedFunction a n typ q)
  = do   q' <- transformX t q
-        return $ ResolvedFunction n typ q'
+        return $ ResolvedFunction a n typ q'
 
 
 transformC

@@ -90,7 +90,7 @@ checkModule checkOpts env module'
     if Map.member name envMap then
       hoistEither $ Left $ (CheckError (ErrorDuplicateFunctionNames ann name) [], [])
     else
-      pure (env0 <> [ResolvedFunction name funtype annotfun], inputs0, output0, logs0 <> [logs'])
+      pure (env0 <> [ResolvedFunction ann name funtype annotfun], inputs0, output0, logs0 <> [logs'])
 
 
 checkF
