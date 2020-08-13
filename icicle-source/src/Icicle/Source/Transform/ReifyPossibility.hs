@@ -127,8 +127,8 @@ reifyPossibilityX' wrap x
       -- > if scrut then ...
       -- ==>
       -- > case scrut
-      -- | Left e -> Left e
-      -- | Right scrut' -> if scrut' ...
+      -- > | Left e -> Left e
+      -- > | Right scrut' -> if scrut' ...
       If a scrut t f
        | typ <- annResult $ annotOfExp scrut
        , PossibilityPossibly <- getPossibilityOrDefinitely typ

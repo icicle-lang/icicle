@@ -10,6 +10,7 @@ import              Icicle.Common.Type
 import              Icicle.Common.Exp.Eval
 import              Icicle.Common.Exp.Prim.Minimal
 import qualified    Icicle.Data.Time                as Time
+import              Icicle.Data.Regex               (match)
 
 import              P
 
@@ -233,6 +234,12 @@ evalPrim p originalP vs
       -> if i >= 0 && i < length a
          then return $ VBase $ VRight $ a List.!! i
          else return $ VBase $ VLeft  $ VError ExceptIndexOutOfBounds
+      | otherwise
+      -> primError
+
+     PrimBuiltinFun (PrimBuiltinRegex (PrimBuiltinRegexMatch _ r))
+      | [VBase (VString s)] <- vs
+      -> return $ VBase $ VBool (match r s)
       | otherwise
       -> primError
 

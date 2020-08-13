@@ -99,6 +99,10 @@ instance NanEq Int where
   nanEq =
     (==)
 
+instance NanEq Integer where
+  nanEq =
+    (==)
+
 -- It's all for this :)
 instance NanEq Double where
   nanEq x y =

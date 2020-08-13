@@ -139,6 +139,7 @@ library
                        Icicle.LSP.Protocol.Request
                        Icicle.LSP.State
                        Icicle.LSP.Task.Diagnostics
+                       Icicle.LSP.Task.Hover
 
                        Icicle.Repl
                        Icicle.Repl.Completion

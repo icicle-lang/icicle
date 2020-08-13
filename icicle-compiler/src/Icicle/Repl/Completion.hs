@@ -7,6 +7,7 @@
 {-# LANGUAGE MultiWayIf #-}
 module Icicle.Repl.Completion (
     completion
+  , completeExpression
   ) where
 
 import           Control.Monad.IO.Class (MonadIO(..))

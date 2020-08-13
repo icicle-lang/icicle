@@ -25,6 +25,7 @@ import                  Icicle.Common.Base
 import                  Icicle.Source.Type
 import                  Icicle.Source.Query
 import qualified        Icicle.Data.Time                as DT
+import                  Icicle.Data.Regex               (match)
 
 import                  P
 import                  Data.List (zip, nubBy, groupBy, take)
@@ -383,6 +384,11 @@ evalP ann p xs vs env
              -> return $ VString $ Text.toUpper s
              | otherwise -> err
 
+            BuiltinRegex (Grepl _ pattern)
+             | [VString s] <- args
+             -> return $ VBool $ match pattern s
+             | otherwise -> err
+
             BuiltinTime DaysBetween
              | [VTime i, VTime j] <- args
              -> return $ VDouble $ fromIntegral $ DT.daysDifference i j
@@ -417,9 +423,9 @@ evalP ann p xs vs env
              -> return i
              | otherwise -> err
             BuiltinData Box
-             | [VNone] <- args
+             | [VLeft _] <- args
              -> return $ VError ExceptTombstone
-             | [VSome a] <- args
+             | [VRight a] <- args
              -> return a
              | otherwise -> err
 

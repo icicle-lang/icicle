@@ -72,4 +72,42 @@ library
                        Icicle.Data
                        Icicle.Data.Fact
                        Icicle.Data.Name
+                       Icicle.Data.Regex
                        Icicle.Data.Time
+
+
+benchmark regex-bench
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:       benchmarks
+  main-is:              Main.hs
+
+  ghc-options:
+    -Wall -threaded
+
+  build-depends:
+    base,
+    bytestring,
+    criterion,
+    icicle-data,
+    text,
+    transformers-either,
+    ambiata-jetski
+
+
+test-suite regex-tests
+  type:                 exitcode-stdio-1.0
+  hs-source-dirs:       tests
+  main-is:              Main.hs
+
+  ghc-options:
+    -Wall -threaded
+
+  build-depends:
+    base,
+    bytestring,
+    hedgehog,
+    icicle-data,
+    text,
+    transformers-either,
+    ambiata-jetski,
+    mmorph

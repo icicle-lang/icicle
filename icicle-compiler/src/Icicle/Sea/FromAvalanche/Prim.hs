@@ -19,6 +19,7 @@ import           Icicle.Internal.Pretty
 
 import           Icicle.Sea.FromAvalanche.Base
 import           Icicle.Sea.FromAvalanche.Type
+import           Icicle.Sea.Name (mangle, prettySeaName)
 
 import           P
 
@@ -74,6 +75,10 @@ seaOfXPrim p
      PrimMinimal (M.PrimLogical op)
       -> PDFun
        ( prefixOfValType BoolT <> seaOfPrimLogical op ) Nothing
+
+     PrimMinimal (M.PrimBuiltinFun (M.PrimBuiltinRegex (M.PrimBuiltinRegexMatch n _)))
+      -> PDFun
+       ( "iregex_" <> prettySeaName (mangle n)) Nothing
 
      PrimProject op
       -> PDFun (seaOfPrimProject op) Nothing

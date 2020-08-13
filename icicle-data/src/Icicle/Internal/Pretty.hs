@@ -60,6 +60,7 @@ import           Data.String (String)
 import           Data.List (replicate, lines, maximum, zipWith)
 import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.Text as T
+import           Data.Word (Word64)
 
 import           GHC.Show (appPrec, appPrec1)
 
@@ -121,6 +122,9 @@ instance Pretty Int where
   pretty i      = WL.pretty i
 
 instance Pretty Int64 where
+  pretty i      = WL.pretty i
+
+instance Pretty Word64 where
   pretty i      = WL.pretty i
 
 instance Pretty Integer where

@@ -1,3 +1,5 @@
+module Prelude where
+
 --------------------------------------------------------------------------------
 -- Base
 --------------------------------------------------------------------------------
@@ -138,14 +140,18 @@ count v =
 mean : Num a => Element a -> Aggregate (Possibly Double)
 mean v =
   let
-    v =
-      double v
+    v = double v
   in
-    fold1 (m, n) =
-      (v, 1) then
-        (m + (v - m) / (n + 1), n + 1)
-    in m
-
+    fold1 (n, m) =
+      (1, v) then
+        let
+          n = n + 1
+          d = v - m
+          m = m + d / n
+        in
+          (n, m)
+    in
+      m
 
 max : Element a -> Aggregate (Possibly a)
 max v =
@@ -191,8 +197,8 @@ variance v =
   let
     v = double v
   in
-    fold (n, m, m2) =
-      (0, 0, 0) then
+    fold1 (n, m, m2) =
+      (1, v, 0) then
         let
           n = n + 1
           d = v - m
@@ -216,17 +222,17 @@ covariance a b =
     a = double a
     b = double b
   in
-    fold (n, m1, m2, m12) =
-      (0, 0, 0, 0) then
+    fold1 (n, m1, m2, m12) =
+      (1, a, b, 0) then
         let
-          n   = n + 1
-          d1  = (a - m1) / n
+          n'  = n + 1
+          d1  = (a - m1) / n'
           m1  = m1 + d1
-          d2  = (b - m2) / n
+          d2  = (b - m2) / n'
           m2  = m2 + d2
-          m12 = m12 + n * d1 * d2 - m12 / n
+          m12 = m12 + n * d1 * d2 - m12 / n'
         in
-          (n, m1, m2, m12)
+          (n', m1, m2, m12)
     in
       m12 * n / (n - 1)
 
@@ -269,31 +275,14 @@ numflips' : Num n
          -> Aggregate (Possibly n)
 numflips' v t =
   let
-    zero =
+    lifted =
       if t then
-        (None, 0)
+        None
       else
-        (Some v, 0)
-
-    kons s i =
-      if t then
-        case s of
-          Some _ then
-            (None, i + 1)
-          None then
-            (None, i)
-      else
-        if (s == Some v) then
-          (Some v, i)
-        else
-          (Some v, i + 1)
-
+        Some v
   in
-    fold1 (s, i) =
-      zero then kons s i
-    in
-      from_integer i
-
+    numflips
+      lifted
 
 
 --------------------------------------------------------------------------------
@@ -322,7 +311,7 @@ circular_stats theta =
   in
     let
       mean   = atan2 y_loc x_loc
-      radius = sqrt (x_loc * x_loc + y_loc * y_loc)
+      radius = sqrt (x_loc^2 + y_loc^2)
       sd     = 1 - radius
       z_test = n * radius * radius
     in

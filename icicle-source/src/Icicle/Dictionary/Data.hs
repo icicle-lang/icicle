@@ -3,35 +3,38 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TupleSections     #-}
 module Icicle.Dictionary.Data (
     Dictionary(..)
   , DictionaryInput(..)
   , DictionaryOutput(..)
   , DictionaryFunction
   , ResolvedFunction(..)
-  , InputKey(..)
+  , SQ.InputKey(..)
   , AnnotSource
   , emptyDictionary
+  , builtinFunctions
+  , builtinFeatures
+  , prelude
   , mapOfInputs
   , mapOfOutputs
-  , unkeyed
+  , SQ.unkeyed
   , tombstonesOfDictionary
   , featureMapOfDictionary
+  , featureMapOfModules
   , parseFact
   , prettyDictionarySummary
   ) where
 
 import           Icicle.Data
 
-import qualified Icicle.Common.Exp.Prim.Minimal     as X
-import qualified Icicle.Common.Exp                  as X
 import qualified Icicle.Common.Fresh                as Fresh
-import qualified Icicle.Core                        as X
 import           Icicle.Common.Base
-import           Icicle.Common.Type                 (ValType(..), StructType(..))
+import           Icicle.Common.Type                 (ValType(..))
 
-import           Icicle.Sorbet.Position             (Position (..))
-import           Icicle.Source.Query                (QueryTop (..), ResolvedFunction (..), FeatureVariable (..))
+import           Icicle.Sorbet.Position             (Range (..), Position (..))
+import           Icicle.Source.Query                (QueryTop (..), ResolvedFunction (..))
 import qualified Icicle.Source.Query                as SQ
 import           Icicle.Source.Lexer.Token
 import qualified Icicle.Source.Type                 as ST
@@ -40,17 +43,20 @@ import           Icicle.Encoding
 
 import           Icicle.Internal.Pretty
 
-import qualified Data.List as List
-import qualified Data.Text as Text
-import           Data.Map (Map)
-import qualified Data.Map as Map
-import           Data.Set (Set)
+import           Data.FileEmbed                     (embedFile)
+import qualified Data.List                          as List
+import qualified Data.Text                          as Text
+import qualified Data.Text.Encoding                 as Text
+import           Data.Map                           (Map)
+import qualified Data.Map                           as Map
+import           Data.Set                           (Set)
 import           Data.String
+import           System.FilePath
 
 import           P
 
 type DictionaryFunction
-  = ResolvedFunction Position Variable
+  = ResolvedFunction Range Variable
 
 data Dictionary =
   Dictionary {
@@ -64,25 +70,16 @@ data DictionaryInput =
       inputId :: InputId
     , inputEncoding :: ValType
     , inputTombstones :: Set Text
-    , inputKey :: InputKey AnnotSource Variable
+    , inputKey :: SQ.InputKey AnnotSource Variable
     } deriving (Eq, Show)
 
 data DictionaryOutput =
   DictionaryOutput {
       outputId :: OutputId
-    , outputQuery :: QueryTop (ST.Annot Position Variable) Variable
+    , outputQuery :: QueryTop (ST.Annot Range Variable) Variable
     } deriving (Eq, Show)
 
--- | The query is keyed by this "virtual key". Facts (for one entity) are nubbed by this key.
-newtype InputKey a n =
-  InputKey {
-      unInputKey :: Maybe (SQ.Exp a n)
-    } deriving (Eq, Show)
-
-type AnnotSource = ST.Annot Position Variable
-
-unkeyed :: InputKey AnnotSource Variable
-unkeyed = InputKey Nothing
+type AnnotSource = ST.Annot Range Variable
 
 tombstonesOfDictionary :: Dictionary -> Map InputId (Set Text)
 tombstonesOfDictionary =
@@ -91,15 +88,35 @@ tombstonesOfDictionary =
 emptyDictionary :: Dictionary
 emptyDictionary =
   Dictionary Map.empty Map.empty builtinFunctions
-  where
-    builtinFunctions
-      = snd
-      $ Fresh.runFresh
-        (SQ.builtinDefinitions (Position "builtin" 0 0))
-        freshNamer
 
-    freshNamer
-      = Fresh.counterPrefixNameState (fromString . show) "builtin"
+dummyRange :: Range
+dummyRange =
+  Range
+    (Position "builtin" 1 1)
+    (Position "builtin" 1 1)
+
+
+builtinFeatures :: SQ.Features a Variable k
+builtinFeatures =
+  SQ.Features
+    (Map.empty)
+    (Map.fromList $ fmap (\x -> (SQ.functionName x, SQ.functionType x)) builtinFunctions)
+    (Just $ var "now")
+ where
+  var :: Text -> Name Variable
+  var = nameOf . NameBase . Variable
+
+
+builtinFunctions :: [DictionaryFunction]
+builtinFunctions
+  = snd
+  $ Fresh.runFresh
+    (SQ.builtinDefinitions dummyRange)
+    (Fresh.counterPrefixNameState (fromString . show) "builtin")
+
+prelude :: (FilePath, Text)
+prelude
+ = ("prelude.icicle", Text.decodeUtf8 $(embedFile "data/libs/prelude.icicle"))
 
 mapOfInputs :: [DictionaryInput] -> Map InputId DictionaryInput
 mapOfInputs =
@@ -131,106 +148,40 @@ parseFact (Dictionary { dictionaryInputs = dict }) fact'
     , factValue     = v
     }
 
+
+-- | Get all the features and facts from a list of modules
+featureMapOfModules :: [SQ.ResolvedModule Range Variable] -> SQ.Features () Variable (SQ.InputKey AnnotSource Variable)
+featureMapOfModules modules =
+  let
+    ds  = join (fmap (Map.elems . SQ.resolvedInputs) modules)
+    ds' = fmap (\(SQ.ModuleInput _ i t k) -> (i, t, k)) ds
+    fs  = builtinFunctions <> join (fmap SQ.resolvedEntries modules)
+  in
+    featureMapOfSimple ds' fs
+
+
 -- | Get all the features and facts from a dictionary.
---
-featureMapOfDictionary :: Dictionary -> SQ.Features () Variable (InputKey AnnotSource Variable)
+featureMapOfDictionary :: Dictionary -> SQ.Features () Variable (SQ.InputKey AnnotSource Variable)
 featureMapOfDictionary (Dictionary { dictionaryInputs = ds, dictionaryFunctions = functions })
+ = featureMapOfSimple ds' functions
+    where
+   ds' =
+      fmap (\(DictionaryInput i t _ k) -> (i, t, k)) ds
+
+featureMapOfSimple :: Foldable t => t (InputId, ValType, SQ.InputKey AnnotSource Variable) -> [ResolvedFunction a Variable] -> SQ.Features () Variable (SQ.InputKey AnnotSource Variable)
+featureMapOfSimple ds functions
  = SQ.Features
-     (Map.fromList $ concatMap mkFeatureContext ds)
+     (Map.fromList $ fmap mkFeatureContext (toList ds))
      (Map.fromList $ fmap (\x -> (functionName x, functionType x)) functions)
      (Just $ var "now")
  where
 
-  mkFeatureContext
-   = let context (attr, key, ty, vars)
-           = (attr, SQ.FeatureConcrete key ty (SQ.FeatureContext vars (var "time")))
-     in  fmap context . go
-
-  -- If a dictionary entry is a concrete definition, create a feature context with
-  -- implicit names such as `now`, `value`, struct field names, etc.
-  go :: DictionaryInput -> [( InputId
-                            , InputKey AnnotSource Variable
-                            , ST.Type Variable
-                            , Map (Name Variable) (FeatureVariable () Variable))]
-  go (DictionaryInput iid enc _ key)
-   | en@(StructT st@(StructType fs)) <- enc
-   = [ ( iid
-       , key
-       , baseType     $  sumT en
-       , Map.fromList $  exps "fields" en
-                      <> fmap (go' st) (Map.toList fs)
-       )
-     ]
-
-   | otherwise
-   = let e' = enc
-     in [ ( iid
-          , key
-          , baseType $ sumT e'
-          , Map.fromList $ exps "value" e' ) ]
-
-  go' parent (fn, ft)
-   = let getsum b   = xgetsum b fn ft parent
-         n          = nameOfStructField fn
-         (this, n') = (getsum True, n)
-     in varOfField this n' ft
-
-  varOfField get fn ft
-   = ( var fn, SQ.FeatureVariable (baseType ft) get True)
-
-  sumT ty  = SumT ErrorT ty
-  baseType = ST.typeOfValType
-
-  xfst t1 t2
-   = X.XPrim () (X.PrimMinimal $ X.PrimPair $ X.PrimPairFst t1 t2)
-  xsnd t1 t2
-   = X.XPrim () (X.PrimMinimal $ X.PrimPair $ X.PrimPairSnd t1 t2)
-
-  xget f t fs
-   = X.XPrim () (X.PrimMinimal $ X.PrimStruct $ X.PrimStructGet f t fs)
-
-  xgetsum hasTime f t fs x
-   = let e'     = StructT fs
-         nVal   = var "_val"
-         nErr   = var "_err"
-         xval   = X.XVar () nVal
-         xcase  = X.XPrim () $ X.PrimFold (X.PrimFoldSum ErrorT e') (SumT ErrorT t)
-         xleft  = X.XPrim () $ X.PrimMinimal $ X.PrimConst $ X.PrimConstLeft  ErrorT t
-         xright = X.XPrim () $ X.PrimMinimal $ X.PrimConst $ X.PrimConstRight ErrorT t
-         xfld   = xget f t fs
-         xend   = if hasTime
-                  then xfst (SumT ErrorT e') TimeT `xapp` x
-                  else x
-     in xcase
-      `xapp` (X.XLam () nErr ErrorT (xleft `xapp` X.XVar () nErr))
-      `xapp` (X.XLam () nVal e'     (xright `xapp` (xfld `xapp` xval)))
-      `xapp` xend
-
-  xtomb t1
-   = X.XApp () (X.XPrim () (X.PrimMinimal $ X.PrimRelation X.PrimRelationEq $ SumT ErrorT t1))
-               (X.XValue () (SumT ErrorT t1) (VLeft $ VError ExceptTombstone))
-
-  xapp
-   = X.XApp ()
-
-  exps :: Text -> ValType -> [(Name Variable, FeatureVariable () n)]
-  exps str e'
-   = [ (var str, SQ.FeatureVariable (baseType e') (X.XApp () (xfst (sumT e') TimeT)) True)
-     , time_as_snd e'
-     , true_when_tombstone e' ]
-
-  time_as_snd :: ValType -> (Name Variable, FeatureVariable () n)
-  time_as_snd e'
-   = ( var "time"
-     , SQ.FeatureVariable (baseType TimeT) (X.XApp () (xsnd (sumT e') TimeT)) False)
-
-  true_when_tombstone :: ValType -> (Name Variable, FeatureVariable () n)
-  true_when_tombstone e'
-   = ( var "tombstone"
-     , SQ.FeatureVariable (baseType BoolT) (X.XApp () (xtomb e') . X.XApp () (xfst (sumT e') TimeT)) False)
+  mkFeatureContext (iid, enc, key)
+   = (iid, SQ.mkFeatureContext enc key)
 
   var :: Text -> Name Variable
   var = nameOf . NameBase . Variable
+
 
 prettyDictionarySummary :: Dictionary -> Doc
 prettyDictionarySummary dict =
@@ -261,7 +212,7 @@ prettyDictionarySummary dict =
     xs ->
       vsep $ List.intersperse mempty xs
 
-  pprInput (DictionaryInput attr enc _ (InputKey mkey)) =
+  pprInput (DictionaryInput attr enc _ (SQ.InputKey mkey)) =
     case mkey of
       Nothing ->
         prettyTypedBest'
@@ -277,7 +228,7 @@ prettyDictionarySummary dict =
   pprOutput (DictionaryOutput attr q)
    = prettyBinding (pretty attr) $ pretty q
 
-  pprFun (ResolvedFunction f t _)
+  pprFun (ResolvedFunction _ f t _)
    = prettyTypedFun (pretty f) (ST.prettyFunFromStrings t)
 
   pprInbuilt f
@@ -292,7 +243,3 @@ prettyDictionarySummary dict =
      where
        freshNamer
         = Fresh.counterPrefixNameState (Variable . Text.pack . show) "inbuilt"
-
-instance Pretty (InputKey AnnotSource Variable) where
- pretty (InputKey Nothing)  = ""
- pretty (InputKey (Just x)) = "(" <> pretty x <> ")"

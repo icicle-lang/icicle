@@ -10,76 +10,46 @@ module Icicle.Storage.Dictionary.Sorbet (
   , ImplicitPrelude (..)
   , loadDictionary
   , prelude
-
-
-  , lexCheckDictionary
   ) where
 
+import           Icicle.Compiler.Source
 import           Icicle.Dictionary.Data
-
-import           Icicle.Internal.Pretty                        hiding ((</>))
-
-import           Icicle.Sorbet.Parse                           (ParseError (..))
-import           Icicle.Sorbet.Lexical.Lexer
-import           Icicle.Sorbet.Lexical.Layout
-import           Icicle.Sorbet.Lexical.Syntax
-import           Icicle.Sorbet.Position
-
-
-import           Icicle.Source.Checker                         (CheckOptions (..))
+import qualified Icicle.Source.Query                           as Q
 
 import           Icicle.Storage.Dictionary.Common
-import           Icicle.Storage.Dictionary.Data
-import           Icicle.Storage.Dictionary.Sorbet.Parser
 
-
-import qualified Control.Exception                             as E
 import           Control.Monad.Trans.Either
+import           Control.Monad.IO.Class
 
 import           System.FilePath
 import           System.IO
 
-import qualified Data.Text.IO                                  as T
-
-import qualified Text.Megaparsec as Mega
-import           Text.Megaparsec (MonadParsec)
+import qualified Data.ByteString                               as ByteString
+import qualified Data.Map                                      as Map
+import qualified Data.Set                                      as Set
+import qualified Data.Text.Encoding                            as Text
 
 import           P
 
 -- Top level IO function which loads all dictionaries and imports
-loadDictionary :: CheckOptions -> ImplicitPrelude -> FilePath -> EitherT DictionaryImportError IO Dictionary
-loadDictionary checkOpts impPrelude dictionary
- = loadDictionary' checkOpts impPrelude (dictionaryFunctions emptyDictionary) mempty parseSorbet [] dictionary
+loadDictionary :: CheckOptions -> FilePath -> FilePath -> EitherT DictionaryImportError IO Dictionary
+loadDictionary checkOpts rootdir fname = do
+  input   <- Text.decodeUtf8 <$> liftIO (ByteString.readFile fname)
+  natural <- firstEitherT DictionaryErrorCompilation $ readIcicleLibrary checkOpts rootdir fname input
 
+  let
+    tombstones =
+      Set.singleton "NA"
 
-parseSorbet :: DictionaryConfig
-            -> FilePath
-            -> EitherT DictionaryImportError IO (DictionaryConfig, [DictionaryInput'], [DictionaryOutput'])
-parseSorbet _ dictPath = do
-  inputText <- firstEitherT DictionaryErrorIO . EitherT $ E.try (T.readFile dictPath)
-  firstEitherT DictionaryErrorSorbet . hoistEither $ do
-    lexed  <- first LexParseError      $ Mega.runParser (consumeAll lexProgram) "" inputText
-    layed  <- first LayoutParseError   $ layoutProgram lexed
-    parsed <- first AbstractParseError $ Mega.runParser (consumeAll pDictionary) "" (PositionedStream inputText layed)
-    return parsed
+    inputs =
+      fmap (\(Q.ModuleInput _ iid enc key) ->
+        DictionaryInput iid enc tombstones key)
 
+    outputs =
+      Map.mapWithKey DictionaryOutput
 
-
-lexCheckDictionary :: FilePath -> EitherT DictionaryImportError IO Bool
-lexCheckDictionary dictPath = do
-  inputText <- firstEitherT DictionaryErrorIO . EitherT $ E.try (T.readFile dictPath)
-  firstEitherT DictionaryErrorSorbet . hoistEither $ do
-    lexed  <- first LexParseError      $ Mega.runParser (consumeAll lexProgram) "" inputText
-    case lexed of
-      Positioned _ _ Tok_Dictionary : _
-        -> pure True
-      _ -> pure False
-
-
-
-consumeAll :: MonadParsec e s m => m a ->  m a
-consumeAll f = do
- r <- f
- Mega.eof
- return r
-
+  pure $
+    Dictionary
+      (inputs      $ Q.resolvedInputs natural)
+      (outputs     $ Q.resolvedOutputs natural)
+      (builtinFunctions <> Q.resolvedEntries natural)

@@ -23,8 +23,7 @@ import qualified Icicle.Sorbet.Parse                           as Sorbet
 import qualified Icicle.Sorbet.Position                        as Sorbet
 
 import           Icicle.Source.Checker                         (CheckOptions (..))
-import qualified Icicle.Source.Parser                          as SP
-import           Icicle.Source.Query                           (QueryTop (..), Query (..), Exp, Decl)
+import           Icicle.Source.Query                           (QueryTop (..), Query (..), Exp)
 import qualified Icicle.Source.Query                           as SQ
 
 import           Icicle.Storage.Dictionary.Data
@@ -56,9 +55,6 @@ data DictionaryImportError
   | DictionaryErrorImpossible
   deriving (Show)
 
-type Funs a  = [ Decl a SP.Variable ]
-type FunEnvT = [ ResolvedFunction Sorbet.Position SP.Variable ]
-
 
 loadDictionary'
   :: CheckOptions
@@ -75,9 +71,10 @@ loadDictionary' checkOpts impPrelude parentFuncs parentConf grabber parentInputs
   let repoPath          = takeDirectory dictPath
 
   rawImports           <- traverse (readImport repoPath) (fmap T.unpack (configImports conf))
-  let prelude'          = if impPrelude == ImplicitPrelude then prelude else []
-  parsedImports        <- hoistEither $ traverse (uncurry parseImport) (prelude' <> rawImports)
-  importedFunctions    <- loadImports parentFuncs parsedImports
+  let prelude'          = if impPrelude == ImplicitPrelude then [prelude] else []
+  parsedImports        <- firstEitherT DictionaryErrorCompilation $
+                          traverse (uncurry (P.readIcicleLibrary checkOpts repoPath)) (prelude' <> rawImports)
+  let importedFunctions = bind SQ.resolvedEntries parsedImports
 
   -- Functions available for virtual features, and visible in sub-dictionaries.
   let availableFunctions = parentFuncs <> importedFunctions
@@ -128,22 +125,6 @@ readImport repoPath fileRel
      src <- T.readFile fileAbs
      return (fileRel, src)
 
-parseImport :: FilePath -> Text -> Either DictionaryImportError (Funs Sorbet.Position)
-parseImport path src
- = first DictionaryErrorCompilation (P.sourceParseF path src)
-
-loadImports :: FunEnvT -> [Funs Sorbet.Position] -> EitherT DictionaryImportError IO FunEnvT
-loadImports parentFuncs parsedImports
- = hoistEither . first DictionaryErrorCompilation
- $ foldlM (go parentFuncs) [] parsedImports
- where
-  go env acc f
-   = do -- Run desugar to ensure pattern matches are complete.
-        _  <- P.sourceDesugarF f
-        -- Type check the function (allowing it to use parents and previous).
-        f' <- P.sourceCheckF (env <> acc) f
-        -- Return these functions at the end of the accumulator.
-        return $ acc <> f'
 
 checkDefs :: CheckOptions
           -> Dictionary
@@ -163,21 +144,25 @@ checkDefs checkOpts d defs
 checkKey :: CheckOptions
          -> Dictionary
          -> InputId
-         -> Exp Sorbet.Position P.Var
+         -> Exp Sorbet.Range P.Var
          -> Either DictionaryImportError (InputKey AnnotSource P.Var)
 checkKey checkOpts d iid xx = do
-  let l = Sorbet.Position "dummy_pos_ctx"  0 0
-  let p = Sorbet.Position "dummy_pos_final"  0 0
+  let l = Sorbet.Position "dummy_pos_ctx"  1 1
+  let lr = Sorbet.Range l l
+
+  let p = Sorbet.Position "dummy_pos_final"  1 1
+  let pr = Sorbet.Range p p
+
   let q = QueryTop (QualifiedInput iid) [outputid|dummy_namespace:dummy_output|]
           -- We know the key must be of Pure or Element temporality,
           -- so it's ok to wrap it in a Group.
-          (Query   [SQ.Distinct l xx]
+          (Query   [SQ.Distinct lr xx]
           -- The final expression just needs to be Aggregate.
-                   (SQ.Prim p (SQ.Lit (SQ.LitInt 0))))
+                   (SQ.Prim pr (SQ.Lit (SQ.LitInt 0))))
 
   (checked, _)  <- first DictionaryErrorCompilation $ do
-    q'       <- P.sourceDesugarQT q
-    (q'', t) <- P.sourceCheckQT checkOpts d q'
+    q'          <- P.sourceDesugarQT q
+    (q'', t)    <- P.sourceCheckQT checkOpts d q'
     return (P.sourceReifyQT q'', t)
 
   case contexts . query $ checked of

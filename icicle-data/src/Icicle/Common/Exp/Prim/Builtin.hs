@@ -8,6 +8,7 @@ import           GHC.Generics (Generic)
 
 import           Icicle.Common.NanEq
 import           Icicle.Common.Type
+import           Icicle.Data.Regex (Regex)
 import           Icicle.Internal.Pretty
 
 import           P
@@ -19,6 +20,7 @@ data PrimBuiltinFun
   = PrimBuiltinMath   !PrimBuiltinMath
   | PrimBuiltinMap    !PrimBuiltinMap
   | PrimBuiltinArray  !PrimBuiltinArray
+  | PrimBuiltinRegex  !PrimBuiltinRegex
  deriving (Eq, Ord, Show, Generic, NanEq)
 
 -- | Built-in math functions
@@ -58,10 +60,16 @@ data PrimBuiltinArray
  | PrimBuiltinIndex  !ValType
  deriving (Eq, Ord, Show, Generic, NanEq)
 
+data PrimBuiltinRegex
+ = PrimBuiltinRegexMatch Text Regex
+ deriving (Eq, Ord, Show, Generic, NanEq)
+
+
 instance NFData PrimBuiltinFun
 instance NFData PrimBuiltinMath
 instance NFData PrimBuiltinMap
 instance NFData PrimBuiltinArray
+instance NFData PrimBuiltinRegex
 
 --------------------------------------------------------------------------------
 
@@ -69,6 +77,7 @@ instance Pretty PrimBuiltinFun where
  pretty (PrimBuiltinMath   p) = pretty p
  pretty (PrimBuiltinMap    p) = pretty p
  pretty (PrimBuiltinArray  p) = pretty p
+ pretty (PrimBuiltinRegex  p) = pretty p
 
 instance Pretty PrimBuiltinMath where
  pretty p = case p of
@@ -104,3 +113,7 @@ instance Pretty PrimBuiltinArray where
    PrimBuiltinSort   _t -> "sort#"
    PrimBuiltinLength _t -> "length#"
    PrimBuiltinIndex  _t -> "index#"
+
+instance Pretty PrimBuiltinRegex where
+ pretty p = case p of
+   PrimBuiltinRegexMatch t _r -> "match(" <> pretty t <> ")#"

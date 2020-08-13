@@ -381,23 +381,26 @@ inlineLets _ xx
 ifShuffle :: (Hashable n, Eq n)
           => a -> C.Exp a n -> FixT (Fresh n) (C.Exp a n)
 ifShuffle a_fresh xx
-  | Just (PrimFold PrimFoldBool ret'typ, [XLam _ _ _ toExp, fExp@(XLam _ _ _ foExp), oScrutinee]) <- takePrimApps xx
-  , Just (PrimFold PrimFoldBool _,       [tExp,                   XLam _ _ _ fiExp , iScrutinee]) <- takePrimApps toExp
+  | Just (PrimFold PrimFoldBool ret'typ, [XLam _ tN _ toExp, fExp@(XLam _ _ _ foExp), oScrutinee]) <- takePrimApps xx
+  , Just (PrimFold PrimFoldBool _,       [tExp,                    XLam _ _ _ fiExp , iScrutinee]) <- takePrimApps toExp
   , foExp `alphaEquality` fiExp
   = do let
          n'Scrutinee =
            xand `xapp` oScrutinee `xapp` iScrutinee
 
        progress $
+         xlet tN (xvalue UnitT VUnit) $
          xprim (PrimFold PrimFoldBool ret'typ) `xapp` tExp `xapp` fExp `xapp` n'Scrutinee
 
   | otherwise
   = return xx
 
  where
-    xapp  = XApp  a_fresh
-    xprim = XPrim a_fresh
-    xand  = xprim $ PrimMinimal (Min.PrimLogical Min.PrimLogicalAnd)
+    xvalue = XValue a_fresh
+    xlet   = XLet  a_fresh
+    xapp   = XApp  a_fresh
+    xprim  = XPrim a_fresh
+    xand   = xprim $ PrimMinimal (Min.PrimLogical Min.PrimLogicalAnd)
 
 subsNameInExp :: Eq n => Name n -> Name n -> Exp a n p -> Exp a n p
 subsNameInExp old new =

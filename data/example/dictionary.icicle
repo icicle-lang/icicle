@@ -1,0 +1,85 @@
+module Default where
+
+import Missing
+import Demographics
+
+input injury : {
+    action   : Option String
+  , location : String
+  , severity : Double
+  }
+
+is_head : String -> Bool
+is_head l =
+  l == "head"
+
+max_group : Element b -> Aggregate a -> Aggregate (Possibly b)
+max_group k e =
+  group fold (k, e) = (group k in e)
+  in max_by e k
+
+feature age =
+  from age
+    in newest value
+
+feature is_head =
+  from injury
+    in is_head (newest location)
+
+feature any_head =
+  from injury
+    in any (is_head location)
+
+feature sum_severity =
+  from injury
+    in sum severity
+
+feature any_ea =
+  from injury
+    in any (grepl "ea" location)
+
+feature empty =
+  from injury
+    in seq missing 0
+
+feature head_damage =
+  from injury
+    in filter is_head location
+    in sum severity
+
+feature worst_injured =
+  from injury
+    in max_group location (sum severity)
+
+feature most_injured =
+  from injury
+    in max_group location (count severity)
+
+feature sd_injury =
+  from injury
+    in sd severity
+
+feature mean_injury =
+  from injury
+    in mean severity
+
+feature injury_blah =
+  from injury
+    in filter location == "head" || (location == "arm" && is_some action)
+    in sum severity
+
+feature mean_day_of_week =
+  from injury
+    in let
+      tau =
+        2 * pi
+      dow =
+        tau / 7 * double (mod (days time) 7)
+      (m, _, _) =
+        circular_stats dow
+    in
+      m / tau * 7
+
+feature days_in_location =
+  from injury
+    in days_in location time now

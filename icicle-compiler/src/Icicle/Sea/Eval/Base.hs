@@ -26,19 +26,25 @@ import           Control.Monad.Trans.Either (EitherT, hoistEither)
 import qualified Data.List.NonEmpty as NonEmpty
 import           Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.Text as T
+import qualified Data.Set as Set
 
 import           Icicle.Avalanche.Prim.Flat (Prim)
 import           Icicle.Avalanche.Program (Program)
 
 import           Icicle.Common.Annot (Annot)
+import qualified Icicle.Common.Exp.Prim.Minimal as Min
 
 import           Icicle.Data.Name
+
+import qualified Icicle.Data.Regex as Regex
 
 import           Icicle.Internal.Pretty (pretty, vsep)
 import           Icicle.Internal.Pretty (Doc, Pretty, displayS, renderPretty)
 
 import           Icicle.Sea.Data
 import           Icicle.Sea.Error (SeaError(..))
+import           Icicle.Sea.Name (mangle, prettySeaName)
+import           Icicle.Sea.FromAvalanche.Analysis (regexOfProgram)
 import           Icicle.Sea.FromAvalanche.Program (seaOfPrograms)
 import           Icicle.Sea.FromAvalanche.State (clusterOfPrograms)
 import           Icicle.Sea.FromAvalanche.Type (seaOfDefinitions)
@@ -109,6 +115,9 @@ codeOfPrograms ::
   -> Either SeaError Text
 codeOfPrograms fingerprint programs = do
   let defs = seaOfDefinitions (concatMap (NonEmpty.toList . snd) programs)
+  let regs = Set.unions $ concatMap (fmap regexOfProgram . NonEmpty.toList . snd) programs
+  let rr   = vsep $ fmap (\(Min.PrimBuiltinRegexMatch n r) -> Regex.printC (prettySeaName (mangle n)) r)
+                  $ Set.toList regs
 
   progs <- zipWithM (\ix (a, p) -> seaOfPrograms ix a p) [0..] programs
   clusters <- zipWithM (\ix (a, p) -> clusterOfPrograms ix a p) [0..] programs
@@ -124,6 +133,7 @@ codeOfPrograms fingerprint programs = do
        "#define ICICLE_NO_INPUT 1"
     , seaPreamble
     , defs
+    , rr
     ] <> progs
 
 textOfDoc :: Doc -> Text

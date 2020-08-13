@@ -1,25 +1,31 @@
 -- | Typecheck and generalise functions
-{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE DoAndIfThenElse   #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE       QuasiQuotes #-}
+{-# LANGUAGE RankNTypes        #-}
 module Icicle.Source.Checker.Function (
     checkF
-  , checkFs
+  , checkModule
 
   , checkF'
   ) where
 
 import                  Icicle.Source.Checker.Base
+import                  Icicle.Source.Checker.Checker
 import                  Icicle.Source.Checker.Error
 import                  Icicle.Source.Checker.Constraint
 import                  Icicle.Source.Checker.Subsumption
 
 import                  Icicle.Source.Query
 import                  Icicle.Source.Type
+import                  Icicle.Source.Lexer.Token          (Variable (..))
 
 import                  Icicle.Common.Base
 import qualified        Icicle.Common.Fresh     as Fresh
+
 import                  Icicle.Internal.Pretty (Pretty, pretty)
 
 import                  P
@@ -29,40 +35,96 @@ import                  Control.Monad.Trans.Class (lift)
 
 import qualified        Data.Map                as Map
 import qualified        Data.Set                as Set
-import qualified        Data.List               as List
 import                  Data.Hashable           (Hashable)
 
 
-type Funs a n = [ Decl a n ]
-type FunEnvT a n = [ ResolvedFunction a n ]
+type FunEnvT a = Features () Variable (InputKey (Annot a Variable) Variable)
 
 
-checkFs :: (Hashable n, Eq n, Pretty n)
-        => FunEnvT a n
-        -> Funs a n
-        -> EitherT (CheckError a n, [CheckLog a n]) (Fresh.Fresh n)
-                   (FunEnvT a n, [[CheckLog a n]])
+checkModule
+  :: CheckOptions
+  -> FunEnvT a
+  -> Module a Variable
+  -> EitherT (CheckError a Variable, [CheckLog a Variable]) (Fresh.Fresh Variable)
+             (ResolvedModule a Variable, [[CheckLog a Variable]])
 
-checkFs env decls
- = foldlM go (env,[]) decls
+
+checkModule checkOpts env module'
+ = do (entries, inputs, outputs, logs) <- foldlM go ([],Map.empty,Map.empty,[]) (moduleEntries module')
+      return $
+        (ResolvedModule (moduleName module') (moduleImports module') inputs outputs entries, logs)
+
  where
-  go (env0,logs0) decl@(DeclFun ann name _ _)
-   = do
-    let envMap = Map.fromList $ fmap ((,) <$> functionName <*> functionType) env0
-    (checkResult,logs') <- lift $ checkF envMap decl
-    (annotfun, funtype) <- hoistEither $ first (,logs') checkResult
-    if List.elem name (fmap functionName env0)
-    then hoistEither $ Left $ (CheckError (ErrorDuplicateFunctionNames ann name) [], [])
-    else pure (env0 <> [ResolvedFunction name funtype annotfun], logs0 <> [logs'])
+  go (env0,inputs0,output0,logs0) (DeclInput ann iid inputVT (InputKey iKey)) = do
+    let
+      FeatureConcrete _ _ plainContext =
+        mkFeatureContext inputVT unkeyed
+      keyEnv =
+        fmap function0 (envOfFeatureContext plainContext)
 
-checkF  :: (Hashable n, Eq n, Pretty n)
-        => Map.Map (Name n) (Scheme n)
-        -> Decl a n
-        -> (Fresh.Fresh n) (Either (CheckError a n) (Exp (Annot a n) n, Scheme n), [CheckLog a n])
+    checkedKey <- firstEitherT (,[]) $ traverse (checkKey keyEnv) iKey
+    pure (env0, Map.insert iid (ModuleInput ann iid inputVT (InputKey checkedKey)) inputs0, output0, logs0)
 
-checkF env (DeclFun a _ t fun)
+  go (env0,inputs0,output0,logs0) (DeclOutput _ oid outputQT) = do
+    let
+      features =
+        featureMapOfAccumulator env env0 inputs0
+
+    (checked,_) <- firstEitherT (,[]) $ checkQT checkOpts features outputQT
+
+    pure (env0, inputs0, Map.insert oid checked output0, logs0)
+
+  go (env0,inputs0,output0,logs0) (DeclFun ann name t fun) = do
+    let
+      envMap =
+        Map.union
+          (Map.fromList $ fmap ((,) <$> functionName <*> functionType) env0)
+          (featuresFunctions env)
+
+    (checkResult,logs') <-
+      lift $ checkF envMap ann t fun
+
+    (annotfun, funtype) <-
+      hoistEither $ first (,logs') checkResult
+
+    if Map.member name envMap then
+      hoistEither $ Left $ (CheckError (ErrorDuplicateFunctionNames ann name) [], [])
+    else
+      pure (env0 <> [ResolvedFunction ann name funtype annotfun], inputs0, output0, logs0 <> [logs'])
+
+
+checkF
+  :: (Hashable n, Eq n, Pretty n)
+  => Map.Map (Name n) (Scheme n)
+  -> a
+  -> Maybe (Scheme n)
+  -> Exp a n
+  -> (Fresh.Fresh n) (Either (CheckError a n) (Exp (Annot a n) n, Scheme n), [CheckLog a n])
+
+checkF env a t fun
  = evalGen $ checkF' fun env >>= constrain a t
 
+
+-- | Get all the features and facts from a dictionary.
+--
+featureMapOfAccumulator
+  :: Foldable t
+  => FunEnvT a
+  -> [ResolvedFunction a Variable]
+  -> t (ModuleInput a Variable)
+  -> Features () Variable (InputKey (Annot a Variable) Variable)
+featureMapOfAccumulator features env0 inputs0
+ = features
+     { featuresFunctions = Map.union moreF (featuresFunctions features)
+     , featuresConcretes = Map.union moreC (featuresConcretes features)
+     }
+ where
+  mkFeatureContextX (ModuleInput _ iid enc k) =
+    (iid, mkFeatureContext enc k)
+  moreC =
+    Map.fromList $ fmap mkFeatureContextX (toList inputs0)
+  moreF =
+    Map.fromList $ fmap ((,) <$> functionName <*> functionType) env0
 
 constrain :: (Hashable n, Eq n, Pretty n)
           => a
@@ -211,3 +273,23 @@ checkF' fun env
              let log_info1 = dischargeInfo q' cons' subs'
              checkLog $ CheckLogDischargeOk log_ppr log_info0 log_info1
              return (q', subs', cons')
+
+
+
+checkKey
+  :: (Hashable n, Eq n, Pretty n)
+  => Map.Map (Name n) (Scheme n)
+  -> Exp a n
+  -> EitherT (CheckError a n) (Fresh.Fresh n) (Exp (Annot a n) n)
+checkKey keyEnv expr = do
+  q'   <- defaults <$> constraintsQ keyEnv (Query [] expr)
+  let t = annResult $ annotOfQuery q'
+  case getTemporalityOrPure t of
+    TemporalityElement
+      -> return ()
+    _ -> hoistEither
+      $ errorSuggestions
+          (ErrorKeyNotElement (annotOfExp expr) t)
+          [Suggest "The key must be an element, otherwise, it couldn't be calculated for each value."]
+
+  pure $ final q'

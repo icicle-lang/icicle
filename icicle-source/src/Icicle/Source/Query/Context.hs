@@ -115,16 +115,22 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Context' q a n) where
 
     LetFold _ f ->
       vsep [
-          pretty (foldType f) <+> annotate AnnBinding (pretty (foldBind f)) <+> prettyPunctuation "="
+          annotate AnnKeyword (pretty $ foldType f)
         , indent 2 . align $
-            pretty (foldInit f) <+> prettyPunctuation ":" <+> pretty (foldWork f)
+            annotate AnnBinding (pretty (foldBind f)) <+> prettyPunctuation "="
+        , indent 4 . align $
+            pretty (foldInit f)
+        , indent 2 . align $
+            prettyKeyword "then"
+        , indent 4 . align $
+            pretty (foldWork f)
         ]
 
     Let _ b x ->
       vsep [
-          prettyKeyword "let" <+> annotate AnnBinding (pretty b) <+> prettyPunctuation "="
-        , indent 2 . align $
-            pretty x
+          prettyKeyword "let"
+        , indent 2 . align $ annotate AnnBinding (pretty b) <+> prettyPunctuation "="
+        , indent 4 . align $ pretty x
         ]
 
 instance Pretty FoldType where

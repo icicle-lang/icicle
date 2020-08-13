@@ -22,7 +22,7 @@ import           P
 import           Icicle.Common.Base
 import qualified Icicle.Common.Type as CT
 import           Icicle.Data hiding (inputName)
-import           Icicle.Dictionary.Data hiding (inputId, outputId)
+import           Icicle.Dictionary.Data hiding (inputId, outputId, prelude)
 import           Icicle.Internal.Pretty
 import           Icicle.Test.Arbitrary.Data
 import           Icicle.Test.Arbitrary.Program
@@ -30,6 +30,7 @@ import qualified Icicle.Compiler        as Compiler
 import qualified Icicle.Compiler.Source as Source
 import qualified Icicle.Core as Core
 import qualified Icicle.Source.Lexer.Token as T
+import qualified Icicle.Source.Query as Query
 import qualified Icicle.Storage.Dictionary.Sorbet as DictionaryLoad
 
 import qualified Prelude as Savage
@@ -212,19 +213,23 @@ testAllCorpus prop =
 
 prelude :: Either Savage.String [DictionaryFunction]
 prelude =
-  mconcat <$>
-    nobodyCares (mapM (uncurry $ Source.readIcicleLibrary "check") DictionaryLoad.prelude)
+  mconcat . fmap Query.resolvedEntries <$>
+    nobodyCares (mapM (uncurry $ Source.readIcicleLibraryPure Source.defaultCheckOptions "check") [DictionaryLoad.prelude])
 
 inputDictionary :: Either Savage.String Dictionary
-inputDictionary =
+inputDictionary = do
   let
     mkEntry (n, v) =
       DictionaryInput (corpusInputId n) v (Set.singleton tombstone) (InputKey Nothing)
-  in
+
+  prelude' <-
+    prelude
+
+  return $
     Dictionary
       (mapOfInputs $ fmap mkEntry corpusInputs)
       (mapOfOutputs [])
-      <$> prelude
+      (prelude' <> builtinFunctions)
 
 coreOfSource :: OutputId -> Text -> Either Savage.String (Core.Program () Var)
 coreOfSource oid src

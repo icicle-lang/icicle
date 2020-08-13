@@ -145,7 +145,7 @@ data ErrorCompile var
  = ErrorSource      !(Source.ErrorSource                       var                  )
  | ErrorSourceResolveError !UnresolvedInputId
  -- Core
- | ErrorConvert     !(ToCore.ConvertError     Sorbet.Position  var                  )
+ | ErrorConvert     !(ToCore.ConvertError     Sorbet.Range  var                     )
  | ErrorFusion      !(Core.FusionError                         Source.Var           )
  | ErrorCoreCheck   !(Source.QueryTyped                        var                  )
                     !(Core.ProgramError       Source.AnnotUnit var                  )
@@ -160,7 +160,7 @@ data ErrorCompile var
 instance NFData (ErrorCompile a) where rnf x = seq x ()
 
 
-annotOfError :: ErrorCompile a -> Maybe Sorbet.Position
+annotOfError :: ErrorCompile a -> Maybe Sorbet.Range
 annotOfError e
  = case e of
     ErrorSource e'

@@ -161,6 +161,10 @@ primLookup' prim
     Fun (BuiltinMap MapLookup)
      -> f2 $ \k kt v vt -> functionType [k, v] [] [kt, GroupT kt vt] (OptionT vt)
 
+    Fun (BuiltinRegex (Grepl _ _))
+     -> f0 [StringT] BoolT
+
+
     PrimCon ConSome
      -> f1 $ \a at -> functionType [a] [] [at] (OptionT at)
 

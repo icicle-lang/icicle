@@ -8,15 +8,18 @@ module Icicle.Sea.FromAvalanche.Analysis (
   , outputsOfProgram
   , readsOfProgram
   , typesOfProgram
+  , regexOfProgram
   ) where
 
 import           Icicle.Avalanche.Prim.Flat
+
 import           Icicle.Avalanche.Program
 import           Icicle.Avalanche.Statement.Statement
 
 import           Icicle.Common.Annot
 import           Icicle.Common.Base
 import           Icicle.Common.Exp
+import qualified Icicle.Common.Exp.Prim.Minimal as Min
 import           Icicle.Common.Type
 
 import           Icicle.Data.Name
@@ -222,3 +225,43 @@ typesOfExp xx
      -> ann a `Set.union` typesOfExp b `Set.union` typesOfExp c
  where
   ann a = Set.singleton $ functionReturns $ annType a
+
+
+------------------------------------------------------------------------
+
+regexOfProgram :: Eq n => Program (Annot a) n Prim -> Set (Min.PrimBuiltinRegex)
+regexOfProgram = regexOfStatement . statements
+
+regexOfStatement :: Eq n => Statement (Annot a) n Prim -> Set (Min.PrimBuiltinRegex)
+regexOfStatement stmt
+ = case stmt of
+     Block []              -> Set.empty
+     Block (s:ss)          -> regexOfStatement s  `Set.union`
+                              regexOfStatement (Block ss)
+     Let _ x ss            -> regexOfExp       x  `Set.union`
+                              regexOfStatement ss
+     If x tt ee            -> regexOfExp       x  `Set.union`
+                              regexOfStatement tt `Set.union`
+                              regexOfStatement ee
+     While     _ _ _  t s  -> regexOfExp       t `Set.union`
+                              regexOfStatement s
+     ForeachInts _  _ f t s-> regexOfExp       f `Set.union`
+                              regexOfExp       t `Set.union`
+                              regexOfStatement s
+     Write _ x             -> regexOfExp x
+
+     ForeachFacts _ _ ss   -> regexOfStatement ss
+
+     InitAccumulator (Accumulator _ _ x) ss
+      -> regexOfExp       x  `Set.union`
+         regexOfStatement ss
+
+     Read _ _ _  ss        -> regexOfStatement ss
+
+     Output _ _ _          -> Set.empty
+   where
+    regexOfExp :: Exp (Annot a) n Prim -> Set (Min.PrimBuiltinRegex)
+    regexOfExp (XPrim _ (PrimMinimal (Min.PrimBuiltinFun (Min.PrimBuiltinRegex r))))
+     | otherwise = Set.singleton r
+    regexOfExp x = foldExp regexOfExp x
+

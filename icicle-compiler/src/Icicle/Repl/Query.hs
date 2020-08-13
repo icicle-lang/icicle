@@ -60,7 +60,6 @@ import qualified Icicle.Sea.FromAvalanche.Program as Sea
 import qualified Icicle.Sea.Preamble as Sea
 import qualified Icicle.Serial as Serial
 import qualified Icicle.Source.PrettyAnnot as Source
-import qualified Icicle.Sorbet.Render as Sorbet
 import qualified Icicle.Sorbet.Position as Sorbet
 import qualified Icicle.Source.Query as Source
 
@@ -87,7 +86,7 @@ import           Zebra.X.Either (firstJoin)
 data CompiledQuery =
   CompiledQuery {
       compiledOutputId :: OutputId
-    , compiledSource :: Source.QueryTop (Source.TypeAnnot Sorbet.Position) Source.Var
+    , compiledSource :: Source.QueryTop (Source.TypeAnnot Sorbet.Range) Source.Var
     , compiledCore :: Source.CoreProgramUntyped Source.Var
     , compiledAvalanche :: Maybe (Compiler.AvalProgramTyped Source.Var Flat.Prim)
     }
@@ -109,7 +108,7 @@ data QueryError =
  | QueryUnexpectedInputType !ValType
  | QueryOutputMissing !OutputId
 
-posOfError :: QueryError -> Maybe Sorbet.Position
+posOfError :: QueryError -> Maybe Sorbet.Range
 posOfError = \case
   QuerySourceError x ->
     Source.annotOfError x
@@ -198,20 +197,27 @@ defineFunction function =
         Source.sourceParseF "<interactive>" $ Text.pack function
 
     dictionary <- gets stateDictionary
+    options    <- lift getCheckOptions
 
     let
       decln = \case
-        Source.DeclFun _ n _ _ -> n
+        Source.DeclFun _ n _ _ -> [n]
+        Source.DeclInput _ _ _ _ -> []
+        Source.DeclOutput _ _ _ -> []
 
       names =
-        Set.fromList $ fmap decln parsed
+        Set.fromList $ concatMap decln (Source.moduleEntries parsed)
 
       funEnv =
-        List.filter (not . flip Set.member names . functionName) $
-        dictionaryFunctions dictionary
+        dictionary {
+          dictionaryFunctions =
+            List.filter (not . flip Set.member names . functionName) $
+              dictionaryFunctions dictionary
+        }
+
 
       funResolved =
-        Source.sourceCheckFunLog funEnv parsed
+        Source.sourceCheckFunLog options (featureMapOfDictionary funEnv) parsed
 
     whenSet FlagTypeCheckLog $
       for_ (funResolved ^. _Left . _2) putPretty
@@ -222,9 +228,9 @@ defineFunction function =
 
     let
       fundefs =
-        List.filter (flip Set.member names . functionName) funEnv'
+        List.filter (flip Set.member names . functionName) (Source.resolvedEntries funEnv')
 
-    for_ (List.zip fundefs logs) $ \((ResolvedFunction nm typ annot), log0) -> do
+    for_ (List.zip fundefs logs) $ \((ResolvedFunction _ nm typ annot), log0) -> do
       whenSet FlagType $
         putSection "Type" $
           Pretty.prettyTypedBest
@@ -240,7 +246,7 @@ defineFunction function =
         liftIO $ IO.putStrLn ""
 
     modify $ \s ->
-      s { stateDictionary = dictionary { dictionaryFunctions = funEnv' } }
+      s { stateDictionary = dictionary { dictionaryFunctions = dictionaryFunctions funEnv <> Source.resolvedEntries funEnv' } }
 
 compileQuery :: String -> EitherT QueryError Repl CompiledQuery
 compileQuery query = do
@@ -272,7 +278,7 @@ compileQuery query = do
         (Pretty.pretty sourceType)
 
   whenSet FlagAnnotated $
-    putSection "Annotated" (Sorbet.PrettySorbet annot)
+    putSection "Annotated" (Source.PrettyAnnot annot)
 
   let
     inlined =
@@ -283,10 +289,10 @@ compileQuery query = do
       Source.sourceDesugarQT inlined
 
   whenSet FlagInlined $
-    putSection "Inlined" (Sorbet.PrettySorbet inlined)
+    putSection "Inlined" inlined
 
   whenSet FlagDesugar $
-    putSection "Desugar" (Sorbet.PrettySorbet blanded)
+    putSection "Desugar" blanded
 
   (annobland, _) <-
     hoistEither . first QuerySourceError $
@@ -297,7 +303,7 @@ compileQuery query = do
       Source.sourceReifyQT annobland
 
   whenSet FlagReified $ do
-    putSection "Reified" (Sorbet.PrettySorbet reified)
+    putSection "Reified" reified
 
   let
     finalSource =

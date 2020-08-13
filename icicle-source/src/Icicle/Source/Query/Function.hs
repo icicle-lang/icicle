@@ -24,10 +24,11 @@ import                  P
 
 data ResolvedFunction a n =
   ResolvedFunction {
-     functionName :: Name n
+     functionAnn :: a
+   , functionName :: Name n
    , functionType :: Scheme n
    , functionDefinition :: Exp (Annot a n) n
-   } deriving (Eq, Show)
+   } deriving (Eq, Ord, Show)
 
 -- | Build a function environment containing our builtin functions.
 builtinDefinitions :: (IsString n, Hashable n, Eq n) => a -> Fresh.Fresh n [ResolvedFunction a n]
@@ -47,11 +48,11 @@ buildResolved a_fresh builtin = do
     prim
       = Prim annot (Fun builtin)
   return $
-    ResolvedFunction name typ prim
+    ResolvedFunction a_fresh name typ prim
 
 
 instance Pretty n => Pretty (ResolvedFunction a n) where
-  pretty (ResolvedFunction n t x) =
+  pretty (ResolvedFunction _ n t x) =
     align $
       vsep [
         pretty n <+> prettyPunctuation ":" <+> pretty t
@@ -65,5 +66,5 @@ instance Pretty n => Pretty (ResolvedFunction a n) where
 instance TraverseAnnot ResolvedFunction where
   traverseAnnot f xx =
     case xx of
-      ResolvedFunction n t q ->
-        ResolvedFunction n t <$> traverseAnnot (traverseAnnot f) q
+      ResolvedFunction a n t q ->
+        ResolvedFunction <$> f a <*> pure n <*> pure t <*> traverseAnnot (traverseAnnot f) q

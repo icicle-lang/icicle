@@ -73,13 +73,13 @@ newtype Construct =
   Construct Text
   deriving (Eq, Ord, Show, Generic)
 
-pVariable :: Parser s m => m (Position, Name Variable)
+pVariable :: Parser s m => m (Range, Name Variable)
 pVariable = do
   (p, vid) <- pVarId
   pure $ (p, nameOf (NameBase vid))
 
 
-pVarId :: Parser s m => m (Position, Variable)
+pVarId :: Parser s m => m (Range, Variable)
 pVarId =
   label "variable" .
   tryToken $ \pos -> \case
@@ -90,7 +90,7 @@ pVarId =
     _ ->
       Nothing
 
-pVarOp :: Parser s m => m (Position, Operator)
+pVarOp :: Parser s m => m (Range, Operator)
 pVarOp =
   label "operator" .
   tryToken $ \pos -> \case
@@ -99,7 +99,7 @@ pVarOp =
     _ ->
       Nothing
 
-pConId :: Parser s m => m (Position, Construct)
+pConId :: Parser s m => m (Range, Construct)
 pConId =
   label "constructor" .
   tryToken $ \pos -> \case
@@ -108,9 +108,7 @@ pConId =
     _ ->
       Nothing
 
-
-
-pInteger :: Parser s m => m (Position, Integer)
+pInteger :: Parser s m => m (Range, Integer)
 pInteger =
   label "integer literal" .
   tryPosToken $ \case
@@ -119,7 +117,7 @@ pInteger =
     _ ->
       Nothing
 
-pRational :: Parser s m => m (Position, Scientific)
+pRational :: Parser s m => m (Range, Scientific)
 pRational =
   label "rational literal" .
   tryPosToken $ \case
@@ -128,7 +126,7 @@ pRational =
     _ ->
       Nothing
 
-pString :: Parser s m => m (Position, Text)
+pString :: Parser s m => m (Range, Text)
 pString =
   label "string literal" .
   tryPosToken $ \case
@@ -137,7 +135,7 @@ pString =
     _ ->
       Nothing
 
-pDate :: Parser s m => m (Position, Day)
+pDate :: Parser s m => m (Range, Day)
 pDate =
   label "date literal" .
   tryPosToken $ \case
@@ -147,7 +145,7 @@ pDate =
       Nothing
 
 
-pToken :: Parser s m => Token -> m Position
+pToken :: Parser s m => Token -> m Range
 pToken tok0 =
   label ("“" <> T.unpack (renderToken tok0) <> "”") .
   tryToken $ \pos tok ->
@@ -156,15 +154,15 @@ pToken tok0 =
     else
       Nothing
 
-tryToken :: Parser s m => (Position -> Token -> Maybe a) -> m a
+tryToken :: Parser s m => (Range -> Token -> Maybe a) -> m a
 tryToken f  =
-  tryPositioned $ \(Positioned start _ tok) ->
-    f start tok
+  tryPositioned $ \(Positioned start end tok) ->
+    f (Range start end) tok
 
-tryPosToken :: Parser s m => (Token -> Maybe a) -> m (Position, a)
+tryPosToken :: Parser s m => (Token -> Maybe a) -> m (Range, a)
 tryPosToken f  =
-  tryPositioned $ \(Positioned start _ tok) ->
-    fmap (start,) $ f tok
+  tryPositioned $ \(Positioned start end tok) ->
+    fmap (Range start end,) $ f tok
 
 tryPositioned :: Parser s m => (Positioned Token -> Maybe a) -> m a
 tryPositioned f =

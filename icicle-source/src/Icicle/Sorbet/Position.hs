@@ -12,6 +12,7 @@ module Icicle.Sorbet.Position (
     Positioned(..)
   , Position(..)
   , PositionedStream(..)
+  , Range(..)
 
   , renderPosition
   , toParsec
@@ -54,6 +55,12 @@ data Position =
     , posColumn :: !Int
     } deriving (Eq, Ord, Generic, Data, Typeable)
 
+data Range =
+  Range {
+      rangeStart :: !Position
+    , rangeEnd :: !Position
+  } deriving (Eq, Ord, Generic, Data, Typeable)
+
 instance Show a => Show (Positioned a) where
   showsPrec =
     gshowsPrec
@@ -62,7 +69,13 @@ instance Show Position where
   showsPrec =
     gshowsPrec
 
+instance Show Range where
+  showsPrec =
+    gshowsPrec
+
 instance NFData Position
+
+instance NFData Range
 
 data PositionedStream a =
   PositionedStream {
@@ -176,3 +189,6 @@ renderPosition sp =
         then ""
         else ":" <> Text.pack (posFile sp))
 
+instance Pretty Range where
+  pretty =
+    pretty . rangeStart

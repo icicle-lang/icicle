@@ -12,12 +12,8 @@ import P
 -- | Client request.
 data Request a
   = Request
-  { reqId         :: JsonRpcId
+  { reqId         :: Maybe JsonRpcId
   , reqMethod     :: String
-  , reqParams     :: Maybe a }
-
-  | Notification
-  { reqMethod     :: String
   , reqParams     :: Maybe a }
   deriving Show
 
@@ -26,17 +22,12 @@ instance FromJSON a => FromJSON (Request a) where
     let
       parseReq = do
         Request
-          <$> v .:  "id"
+          <$> v .:? "id"
           <*> v .:  "method"
           <*> v .:? "params"
 
-      parseNotification =
-        Notification
-          <$> v .:  "method"
-          <*> v .:? "params"
-
     in
-      parseReq <|> parseNotification
+      parseReq
 
   parseJSON _ =
     fail "Couldn't parse request"

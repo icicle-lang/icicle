@@ -134,6 +134,7 @@ reservedIdentifiers :: Map [Char] Token
 reservedIdentifiers =
   Map.fromList [
       ("dictionary", Tok_Dictionary)
+    , ("module", Tok_Module)
     , ("import", Tok_Import)
     , ("where", Tok_Where)
     , ("input", Tok_Input)
@@ -162,6 +163,7 @@ reservedIdentifiers =
     , ("days", Tok_Days)
     , ("months", Tok_Months)
     , ("weeks", Tok_Weeks)
+    , ("grepl", Tok_Grepl)
     ]
 
 lexVarOp :: Lexer s m => m (Positioned Token)
@@ -382,9 +384,9 @@ lexBlockComment =
 positioned :: Lexer s m => m a -> m (Positioned a)
 positioned lex = do
   start <- position
-  x <- lex
-  Position efile eline ecol <- position
-  pure $ Positioned start (Position efile eline $ ecol - 1) x
+  x     <- lex
+  end   <- position
+  pure $ Positioned start end x
 
 position :: Lexer s m => m Position
 position = do

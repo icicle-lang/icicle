@@ -12,12 +12,10 @@ import           Control.Monad.State (modify, gets)
 import           Control.Monad.Trans.Either (runEitherT)
 import           Control.Monad.Trans.Resource (runResourceT)
 
-import qualified Data.ByteString as ByteString
 import qualified Data.List as List
-import qualified Data.Text.Encoding as Text
 
 import qualified Icicle.Compiler.Source as Source
-import           Icicle.Dictionary
+import           Icicle.Dictionary      as Dictionary
 import qualified Icicle.Internal.Pretty as Pretty
 import           Icicle.Repl.Data
 import           Icicle.Repl.Monad
@@ -26,6 +24,7 @@ import           Icicle.Repl.Source
 import qualified Icicle.Runtime.Serial.Zebra as Runtime
 import qualified Icicle.Storage.Dictionary.Toml as Toml
 import qualified Icicle.Storage.Dictionary.Sorbet as Sorbet
+import qualified Icicle.Source.Query as Query
 
 import           P
 
@@ -99,25 +98,17 @@ loadTomlDictionary path = do
 
 loadSorbet :: FilePath -> Repl ()
 loadSorbet path = do
-  eIsDictionary <- liftIO . runEitherT $ Sorbet.lexCheckDictionary path
-  case eIsDictionary of
-    Left err -> do
-      putPretty $ Pretty.vsep [
-          "Couldn't parse Icicle file:"
-        , Pretty.indent 2 $ Pretty.pretty err
-        ]
-
-    Right isDictionary ->
-      if isDictionary then
-        loadSorbetDictionary path
-      else
-        loadFunctions path
+  loadSorbetDictionary path
 
 
 loadSorbetDictionary :: FilePath -> Repl ()
 loadSorbetDictionary path = do
+  let
+    rootDir
+      = FilePath.takeDirectory path
+
   options     <- getCheckOptions
-  edictionary <- liftIO . runEitherT $ Sorbet.loadDictionary options Toml.ImplicitPrelude path
+  edictionary <- liftIO . runEitherT $ Sorbet.loadDictionary options rootDir path
   case edictionary of
     Left err -> do
       putPretty $ Pretty.vsep [
@@ -128,18 +119,26 @@ loadSorbetDictionary path = do
     Right dictionary ->
       setDictionary dictionary
 
-loadFunctions :: FilePath -> Repl ()
-loadFunctions path = do
-  src <- Text.decodeUtf8 <$> liftIO (ByteString.readFile path)
-  loadFunctionsFrom path src
 
 loadFunctionsFrom :: FilePath -> Text -> Repl ()
 loadFunctionsFrom path src = do
-  case Source.readIcicleLibrary "<interactive>" path src of
+  let
+    rootDir
+      = FilePath.takeDirectory path
+
+  opts <- getCheckOptions
+  ret  <- liftIO . runEitherT $
+    Source.readIcicleLibrary opts rootDir path src
+
+  case ret of
    Left err ->
      putPretty err
 
-   Right functions0 -> do
+   Right module0 -> do
+     let
+       functions0 =
+         Query.resolvedEntries module0
+
      liftIO . IO.putStrLn $
        "Loaded " <> show (length functions0) <> " functions from " <> path
 
@@ -197,7 +196,7 @@ loadFile path = do
 
               Right dictionary -> do
                 setDictionary dictionary
-                traverse_ (uncurry loadFunctionsFrom) Toml.prelude
+                uncurry loadFunctionsFrom Dictionary.prelude
                 liftIO . IO.putStrLn $ "Selected zebra binary file as input: " <> path
                 modify $ \s ->
                   s { stateInput = InputZebra path }

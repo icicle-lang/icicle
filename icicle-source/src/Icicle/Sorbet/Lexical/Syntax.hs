@@ -55,6 +55,7 @@ data Token =
   -- Reserved Identifiers
   --
   | Tok_Dictionary
+  | Tok_Module
   | Tok_Import
   | Tok_Where
   | Tok_Input
@@ -86,6 +87,11 @@ data Token =
   | Tok_Days
   | Tok_Months
   | Tok_Weeks
+
+  --
+  -- Regex support
+  --
+  | Tok_Grepl
 
   --
   -- Identifiers
@@ -130,6 +136,7 @@ renderToken = \case
   Tok_At                -> "@"
   Tok_FlowsInto         -> "~>"
   Tok_Dictionary        -> "dictionary"
+  Tok_Module            -> "module"
   Tok_Import            -> "import"
   Tok_Where             -> "where"
   Tok_Input             -> "input"
@@ -158,6 +165,7 @@ renderToken = \case
   Tok_Days              -> "days"
   Tok_Months            -> "months"
   Tok_Weeks             -> "weeks"
+  Tok_Grepl             -> "grepl"
   Tok_PrjId    varId    -> "." <> varId
   Tok_VarId    varId    -> varId
   Tok_ConId    conId    -> conId
