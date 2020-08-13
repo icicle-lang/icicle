@@ -23,7 +23,6 @@ import qualified Icicle.Common.Exp.Prim.Minimal as Min
 import           Icicle.Common.Type
 
 import           Icicle.Data.Name
-import           Icicle.Data.Regex (Regex)
 
 import           Icicle.Sea.Data
 

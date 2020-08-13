@@ -78,24 +78,22 @@ lspBegin mFileLog =
     pid <- Process.getProcessID
     -- Create a new file for the debug log, if we were asked for one.
     mLogDebug <-
-      case mFileLog of
-        Nothing -> return Nothing
-        Just filePath ->
-          do
-            let filePathPid = filePath <> "." <> show pid
-            hLogDebug <- System.openFile filePathPid System.WriteMode
-            return $ Just (filePathPid, hLogDebug)
+      for mFileLog $ \fileLog -> do
+        let fileLogPid = fileLog <> "." <> show pid
+        hLogDebug <- System.openFile fileLogPid System.WriteMode
+        return (fileLogPid, hLogDebug)
 
-    -- The type checked module is stored here, when we have one.
+    -- The type checked modules are stored here, when we have them
     refCoreChecked <- newIORef Map.empty
     -- The complete state.
-    let state =
-          State
-            { stateLogDebug = mLogDebug,
-              statePhase = PhaseStartup,
-              stateCoreChecked = refCoreChecked
-            }
-    lspLog state "* Salt language server starting up"
+    let
+      state =
+        State {
+            stateLogDebug = mLogDebug
+          , statePhase = PhaseStartup
+          , stateCoreChecked = refCoreChecked
+          }
+    lspLog state "* Icicle language server starting up"
     return state
 
 ---------------------------------------------------------------------------------------------------
@@ -107,13 +105,9 @@ lspStartup state req
   -- Client sends us 'inititialize' with the set of its capabilities.
   -- We reply with our own capabilities.
   | "initialize" <- reqMethod req
-    -- Just (Success (params :: InitializeParams)) <-
-    --   fmap fromJSON $ reqParams req =
   = do
       lspLog state "* Initialize"
-      -- Log the list of client capabilities.
-      -- lspLog state $ T.ppShow params
-      -- Tell the client what our capabilities are.
+      -- It's highly unlikely these aren't supported.
       lspSend state $
         object
           [ "id" .= reqId req,
@@ -123,9 +117,9 @@ lspStartup state req
                     .= object
                       [ "textDocumentSync"
                           .= object
-                            [ "openClose" .= True, -- send us open/close notif.
+                            [ "openClose" .= True,    -- send us open/close notif.
                               "change" .= (1 :: Int), -- send us full file changes.
-                              "save" .= True -- send us save notif.
+                              "save" .= True          -- send us save notification.
                             ]
                       , "hoverProvider"
                           .= True
@@ -134,6 +128,7 @@ lspStartup state req
           ]
 
       lspLoop state
+
   -- Client sends us 'initialized' if it it is happy with the
   -- capabilities that we sent.
   | "initialized" <- reqMethod req =
@@ -153,6 +148,8 @@ lspStartup state req
 --
 --   Once initialized we receive the main requests and update our state.
 --
+--   This is weakly typed intentionally here. We're just bashing on json
+--   explicitly.
 lspInitialized :: State -> Request Value -> IO ()
 lspInitialized state req
 
@@ -162,7 +159,7 @@ lspInitialized state req
   | "workspace/didChangeConfiguration" <- reqMethod req
   , Just (Object jParams)              <- reqParams req
   = do
-         lspLog state "* DidChangeConfiguration (salt)"
+         lspLog state "* DidChangeConfiguration (icicle)"
          lspLog state $ "  jSettings:    " <> show jParams
          lspLoop state
 
