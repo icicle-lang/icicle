@@ -59,6 +59,13 @@ primLookup' prim
            let bt = TypeVar b
            return $ functionType [a,b] [] [at, bt] (PairT at bt)
 
+    Op  Dollar
+     -> do a <- Fresh.fresh
+           b <- Fresh.fresh
+           let at = TypeVar a
+           let bt = TypeVar b
+           return $ functionType [a,b] [] [TypeArrow at bt, bt] bt
+
     -- Literals will not be NaN or Inf
     Lit (LitInt _)
      -> fNumDefinitely $ \at -> ([], at)

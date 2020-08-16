@@ -397,9 +397,9 @@ ifShuffle a_fresh xx
 
  where
     xvalue = XValue a_fresh
-    xlet   = XLet  a_fresh
-    xapp   = XApp  a_fresh
-    xprim  = XPrim a_fresh
+    xlet   = XLet   a_fresh
+    xapp   = XApp   a_fresh
+    xprim  = XPrim  a_fresh
     xand   = xprim $ PrimMinimal (Min.PrimLogical Min.PrimLogicalAnd)
 
 subsNameInExp :: Eq n => Name n -> Name n -> Exp a n p -> Exp a n p

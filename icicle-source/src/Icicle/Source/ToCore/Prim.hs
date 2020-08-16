@@ -213,7 +213,13 @@ convertPrim p ann resT xts = go p
    = do a' <- convertValType ann a
         b' <- convertValType ann b
         return $ primmin $ Min.PrimConst $ Min.PrimConstPair a' b'
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
 
+  goop Dollar
+   | [(a,_),(b,_)] <- xts
+   = return (a CE.@~ b)
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p

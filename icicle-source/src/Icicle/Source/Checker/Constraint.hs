@@ -620,6 +620,11 @@ generateX x env
 
             return (x', subs, cons <> cons'complete)
 
+    -- Quick hack so that dollar works, we just inline it as
+    -- soon as we start type checking.
+    App _ (App _ (Prim _ (Op Dollar)) f) arg
+     -> generateX (App (annotOfExp f) f arg) env
+
     -- Applications are a bit more complicated.
     -- If your function expects an argument with a particular temporality,
     -- and you give it that temporality, it is fine; function application is as usual.

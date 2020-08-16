@@ -39,6 +39,7 @@ data Op
  | TimeBinary    TimeBinary
 
  | TupleComma
+ | Dollar
  deriving (Show, Eq, Ord, Generic)
 
 instance NFData Op
@@ -151,6 +152,8 @@ fixity o
 
     TupleComma
         -> FInfix $ Infix AssocLeft 0
+    Dollar
+        -> FInfix $ Infix AssocRight 0
 
 
 data OpsOfSymbol
@@ -188,6 +191,7 @@ symbol s
     "months after"  -> inf $ TimeBinary MonthsAfter
 
     "," -> inf TupleComma
+    "$" -> inf Dollar
 
     _   -> OpsOfSymbol  Nothing    Nothing
  where
@@ -238,4 +242,5 @@ instance Pretty Op where
  pretty (TimeBinary MonthsBefore) = "months before"
 
  pretty TupleComma              = ","
+ pretty Dollar                  = "$"
 
