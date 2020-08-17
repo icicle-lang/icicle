@@ -323,43 +323,28 @@ circular_stats theta =
 --------------------------------------------------------------------------------
 
 
+map_update_add : Definitely k -> Definitely Int -> Definitely (Group k Int) -> Possibly (Group k Int)
+map_update_add k v m =
+  case map_lookup k m of
+    None then
+      map_insert k v m
+    Some old then
+      map_insert k (v + old) m
+
+
+
 -- Count the days that an entity has spent in different states.
 -- e.g. days-in state time now = [("NSW", 20), ("QLD", 1)]
 days_in : Element a -> Element Time -> Aggregate Time -> Aggregate (Possibly (Group a Int))
-days_in x tx now =
-    fold (s, nv, m) =
-      (None, 0, map_create) then
-        case s of
-          None then
-            (Some (x, tx), 0, m)
-
-          Some (v, tv) then
-            let
-              nx = days_between tv tx
-              n  = nv + nx
-            in
-              if v == x then
-                (Some (x, tx), nv + nx, m)
-              else
-                let
-                  m' =
-                    case (map_lookup v m) of
-                      None then
-                        map_insert v n m
-                      Some nv' then
-                        map_insert v (n + nv') m
-                in
-                  (Some (x, tx), 0, m')
-  in
-    let
-      x_new   = newest x
-      tx_new  = newest tx
-      tx_days = days_between tx_new now
-      n       = nv + tx_days
-  in
-    case (map_lookup x_new m) of
-      None then
-        map_insert x_new n m
-      Some nv' then
-        map_insert x_new (n + nv') m
-
+days_in x x_time now =
+  fold1 (y, y_time, n, m) =
+    (x, x_time, 0, map_create) then
+      let
+        n = n + days_between y_time x_time
+      in if y == x then
+        (x, x_time, n, m)
+      else
+        (x, x_time, 0, map_update_add y n m)
+  in let
+    n = n + days_between y_time now
+  in map_update_add y n m
