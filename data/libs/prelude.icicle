@@ -331,7 +331,7 @@ days_in x tx now =
       (None, 0, map_create) then
         case s of
           None then
-            (Some (x, tx), 1, m)
+            (Some (x, tx), 0, m)
 
           Some (v, tv) then
             let
@@ -355,10 +355,11 @@ days_in x tx now =
       x_new   = newest x
       tx_new  = newest tx
       tx_days = days_between tx_new now
+      n       = nv + tx_days
   in
     case (map_lookup x_new m) of
       None then
-        map_insert x_new tx_days m
-      Some n then
-        map_insert x_new (tx_days + n) m
+        map_insert x_new n m
+      Some nv' then
+        map_insert x_new (n + nv') m
 

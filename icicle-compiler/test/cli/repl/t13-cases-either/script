@@ -10,8 +10,8 @@ from salary ~> fold perhaps = Left 0 then case perhaps of Right i then Left i; L
 from salary ~> windowed 1 days ~> case None of Some a then Some a; None then Some 0
 
 -- Nested case with a polymorphic scrutinee (Num a => (Bool,a))
-from salary ~> let v = (True,1) ~> fold s2 = False : case (case v of (a,b) then a) of True then False; False then True ~> s2
+from salary ~> let v = (True,1) ~> fold s2 = False then case (case v of (a,b) then a) of True then False; False then True ~> s2
 
 -- Case matching on literals
-from salary ~> latest 10 ~> case value of 10 then "ten"; 100 then "One hundred"; 1000 then "One thousand"; _ -> "Not a power of 10"
-from injury ~> latest 10 ~> case (Some location) of Some "head" then "head"; _ -> "Not the head" end
+from salary ~> latest 10 ~> case value of 10 then "ten"; 100 then "One hundred"; 1000 then "One thousand"; _ then "Not a power of 10"
+from injury ~> latest 10 ~> case (Some location) of Some "head" then "head"; _ then "Not the head" end
