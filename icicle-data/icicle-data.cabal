@@ -26,6 +26,7 @@ library
                      , semigroups                      >= 0.16       && < 0.20
                      , template-haskell                >= 2.9        && < 2.16
                      , text                            >= 1.2
+                     , these
                      , thyme                           == 0.3.*
                      , time                            >= 1.5        && < 1.10
                      , time-locale-compat              == 0.1.*

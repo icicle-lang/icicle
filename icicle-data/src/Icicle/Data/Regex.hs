@@ -11,11 +11,14 @@ module Icicle.Data.Regex (
   , zero
   , epsilon
   , add
+  , question
   , times
+  , pow
   , plus
   , star
   , once
   , dot
+  , bound
   , range
 
   , match
@@ -26,7 +29,9 @@ module Icicle.Data.Regex (
 
 import           Data.Bits ((.|.), (.&.))
 import qualified Data.Bits as Bits
+import qualified Data.List as List
 import qualified Data.Text as Text
+import           Data.These (These (..))
 
 import           GHC.Generics (Generic)
 
@@ -34,6 +39,7 @@ import           Icicle.Common.NanEq
 import           Icicle.Internal.Pretty (Doc, vsep, indent, pretty)
 import qualified Icicle.Internal.Pretty as Pretty
 import           P
+import qualified Prelude as Savage
 
 data Transition =
   Transition
@@ -88,6 +94,10 @@ add (Regex nL asL fL bsL) (Regex nR asR fR bsR) =
     bs = Bits.unsafeShiftL bsR nL .|. bsL
 
 
+question :: Regex -> Regex
+question a = a `add` epsilon
+
+
 times :: Regex -> Regex -> Regex
 times (Regex nL asL fL bsL) (Regex nR asR fR bsR) =
     Regex n as f bs
@@ -113,6 +123,23 @@ times (Regex nL asL fL bsL) (Regex nR asR fR bsR) =
     f = remapLeft <> fmap (shiftTransition nL) fR
 
     bs = Bits.unsafeShiftL bsR nL
+
+
+-- | Straight from the prelude.
+--   I would love to make Regex a semiring and not have this, but
+--   the prelude is just not specific enough.
+pow :: Regex -> Int -> Regex
+pow x0 y0 | y0 < 0    = Savage.error "Negative exponent"
+          | y0 == 0   = epsilon
+          | otherwise = f x0 y0
+    where -- f : x0 ^ y0 = x ^ y
+          f x y | even y    = f (x `times` x) (y `quot` 2)
+                | y == 1    = x
+                | otherwise = g (x `times` x) (y `quot` 2) x
+          -- g : x0 ^ y0 = (x ^ y) * z
+          g x y z | even y = g (x `times` x) (y `quot` 2) z
+                  | y == 1 = x `times` z
+                  | otherwise = g (x `times` x) (y `quot` 2) (x `times` z)
 
 
 star :: Regex -> Regex
@@ -153,6 +180,18 @@ dot :: Regex
 dot = Regex 2 1 f 2
   where
     f = [Transition MatchAny 0 2]
+
+
+bound :: These Int Int -> Regex -> Regex
+bound =
+  go
+    where
+  go (This a) r
+    = pow r a `times` star r
+  go (These a b) r
+    = pow r a `times` go (That (b - a)) r
+  go (That b) r
+    = foldl times epsilon (List.replicate b (question r))
 
 
 match :: Regex -> Text -> Bool

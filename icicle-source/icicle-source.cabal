@@ -39,6 +39,7 @@ library
                      , semigroups                      >= 0.16       && < 0.20
                      , unordered-containers            == 0.2.*
                      , text                            == 1.2.*
+                     , these
                      , thyme                           == 0.3.*
                      , time                            >= 1.5        && < 1.10
                      , time-locale-compat              == 0.1.*
