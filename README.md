@@ -10,19 +10,31 @@
 Purpose
 -------
 
-Icicle is a language for expressing (and statically checking) streaming
-computations for fast generation of machine learning features and event
-sourcing states.
+Icicle is a language designed for easy collaboration in feature
+engineering and business intelligence without fear or difficulty.
+
+Using static type checking with a novel, modal type system, we can
+be 10x faster than Spark, allow different users' queries to be
+efficiently fused, and guarantee that if a query type checks, it
+won't crash or interfere with any other.
+
+Icicle is a simple language designed for data scientists, data
+engineers, and business intelligence professional to achieve state
+of the art performance without difficulty.
+
 
 The key principles of Icicle are to:
 
+ - Permit different users to build queries independently, but execute
+   them together efficiently with sharing and non-interference;
  - Provide a static guarantee that all computations must be computed in
-   a single pass, that is, no data point may be examined more that once;
+   a single pass;
  - Use a first class notion of time - one should be able to query any
    entity's state and features at any time (this is important for
    preventing label leakage for instance); and
  - Use query fusion and high level optimisations to achieve great
    performance.
+
 
 Motivation
 ----------
