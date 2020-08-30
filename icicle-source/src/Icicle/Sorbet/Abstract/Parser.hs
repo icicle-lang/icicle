@@ -237,18 +237,18 @@ pContextEnd = pToken Tok_In <|> pToken Tok_FlowsInto
 --   The AST needs to change a bit though for that to happen.
 pContextLet :: Parser s m => m [Context Range Var]
 pContextLet = do
-  _ <- pToken Tok_Let
+  p <- pToken Tok_Let
   _ <- pToken Tok_LBrace
 
   let
     letFun = do
-      (p, n) <- pVariable
+      (_, n) <- pVariable
       x      <- pFunction
       return  $ Let p (PatVariable n) x
 
     letPat = do
       pat    <- pPattern
-      p      <- pToken Tok_Equals
+      _      <- pToken Tok_Equals
       x      <- pExp
       return  $ Let p pat x
 
