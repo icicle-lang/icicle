@@ -30,6 +30,7 @@ module Icicle.Data.Regex (
 import           Data.Bits ((.|.), (.&.))
 import qualified Data.Bits as Bits
 import qualified Data.List as List
+import           Data.Char (ord)
 import qualified Data.Text as Text
 import           Data.These (These (..))
 
@@ -220,16 +221,18 @@ printC name (Regex numStates starting transitions acceptance) =
   vsep [
       "ibool_t iregex_" <> name <> "(const istring_t str) {"
     , indent 2 $ vsep [
-        "const char *s = (const istring_t) str;"
+        "// current code point value"
+      , "int32_t cp;"
+      , "istring_t next = utf8codepoint(str, &cp);"
       , "uint64_t one = 1;"
       , initialiseVars
-      , "while ('\\0' != *s) {"
+      , "while (cp != 0) {"
       , indent 2 $ vsep [
           initialiseNext
         , vsep (fmap goIf transitions)
         , realiseUpdates
+        , "next = utf8codepoint(next, &cp);"
         ]
-      , "s++;"
       , "}"
       , "if (" <> accept <> ") {"
       , "  return itrue;"
@@ -278,7 +281,7 @@ printC name (Regex numStates starting transitions acceptance) =
           from `divMod` 64
       in
         vsep [
-          "if ((current" <> pretty n <> " & (one << " <> pretty fromN <> ")) && *s >= '" <> pretty s <> "' && *s <= '" <> pretty fe <> "') {"
+          "if ((current" <> pretty n <> " & (one << " <> pretty fromN <> ")) && cp >= " <> pretty (ord s) <> " && cp <= " <> pretty (ord fe) <> ") {"
         , indent 2 $ sepX vsep $ \m ->
             "next" <> pretty m <> " |= " <> pretty (clip to m) <> "U;"
         , "}"
@@ -289,7 +292,7 @@ printC name (Regex numStates starting transitions acceptance) =
           from `divMod` 64
       in
         vsep [
-          "if ((current" <> pretty n <> " & (one << " <> pretty fromN <> ")) && *s == '" <> pretty c <> "') {"
+          "if ((current" <> pretty n <> " & (one << " <> pretty fromN <> ")) && cp == " <> pretty (ord c) <> ") {"
         , indent 2 $ sepX vsep $ \m ->
             "next" <> pretty m <> " |= " <> pretty (clip to m) <> "U;"
         , "}"
@@ -304,4 +307,29 @@ printCWithTestHeaders name r =
   , "typedef const char *istring_t;"
   , "static const ibool_t ifalse = 0;"
   , "static const ibool_t itrue  = 1;"
+  , "static istring_t utf8codepoint(const istring_t str,"
+  , "                  int32_t * out_codepoint) {"
+  , "const char *s = (const char *)str;"
+  , "if (0xf0 == (0xf8 & s[0])) {"
+  , "  // 4 byte utf8 codepoint"
+  , "  *out_codepoint = ((0x07 & s[0]) << 18) | ((0x3f & s[1]) << 12) |"
+  , "                   ((0x3f & s[2]) << 6) | (0x3f & s[3]);"
+  , "  s += 4;"
+  , "} else if (0xe0 == (0xf0 & s[0])) {"
+  , "  // 3 byte utf8 codepoint"
+  , "  *out_codepoint ="
+  , "      ((0x0f & s[0]) << 12) | ((0x3f & s[1]) << 6) | (0x3f & s[2]);"
+  , "  s += 3;"
+  , "} else if (0xc0 == (0xe0 & s[0])) {"
+  , "  // 2 byte utf8 codepoint"
+  , "  *out_codepoint = ((0x1f & s[0]) << 6) | (0x3f & s[1]);"
+  , "  s += 2;"
+  , "} else {"
+  , "  // 1 byte utf8 codepoint otherwise"
+  , "  *out_codepoint = s[0];"
+  , "  s += 1;"
+  , "}"
+  , ""
+  , "return s;"
+  , "}"
   ] <> "\n" <> printC name r
