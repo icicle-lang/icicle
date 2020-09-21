@@ -223,7 +223,7 @@ instance TransformX Statement where
 
      ForeachFacts (FactBinds ntime ns) v ss
       -> let name_go (n, t) = (,) <$> names n <*> pure t
-         in ForeachFacts <$> (FactBinds <$> names ntime <*> traverse name_go ns) <*> return v <*> go ss
+         in ForeachFacts <$> (FactBinds <$> names ntime <*> traverse name_go ns) <*> pure v <*> go ss
 
      Block ss
       -> Block <$> gos ss
@@ -241,14 +241,12 @@ instance TransformX Statement where
 
   where
    go  = transformX names exps
-   gos = mapM go
+   gos = traverse go
 
 
 instance TransformX Accumulator where
  transformX names exps (Accumulator n t x)
-  = do n' <- names n
-       x' <- exps  x
-       return $ Accumulator n' t x'
+  = Accumulator <$> names n <*> pure t <*> exps x
 
 
 -- Pretty printing -------------

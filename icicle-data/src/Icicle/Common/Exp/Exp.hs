@@ -88,10 +88,10 @@ annotOfExp (XLet   a _ _ _) = a
 
 
 class TransformX x where
- transformX :: Monad m
-            => (Name  n   -> m (Name   n'))
-            -> (Exp a n p -> m (Exp a' n' p'))
-            ->    x a n p -> m (x   a' n' p')
+ transformX :: Applicative f
+            => (Name  n   -> f (Name   n'))
+            -> (Exp a n p -> f (Exp a' n' p'))
+            ->    x a n p -> f (x   a' n' p')
 
 type Ann a n = (a, Set (Name n))
 

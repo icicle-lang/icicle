@@ -32,16 +32,10 @@ instance (NFData a, NFData n, NFData p) => NFData (Program a n p)
 
 instance TransformX Program where
  transformX names exps p
-  = do  bindtime'   <-      names                  $ bindtime   p
-        maxMapSize' <-      names                  $ maxMapSize p
-        statements' <-      transformX names exps  $ statements p
-
-        return $ Program
-               { input      = input p
-               , bindtime   = bindtime'
-               , maxMapSize = maxMapSize'
-               , statements = statements'
-               }
+  = Program (input p)
+      <$> names (bindtime   p)
+      <*> names (maxMapSize p)
+      <*> transformX names exps (statements p)
 
 renameProgram :: (Name n -> Name n') -> Program a n p -> Program a n' p
 renameProgram f p
