@@ -143,7 +143,7 @@ foldSourceType :: Monoid x => (Type n -> x) -> (Type n -> x)
 foldSourceType =
   foldMapOf traverseType
 
-mapSourceType :: (Type n -> Type n) -> (Type n -> Type n)
+mapSourceType :: TraverseType a => (Type (N a) -> Type (N a)) -> a -> a
 mapSourceType =
   over traverseType
 
@@ -249,6 +249,11 @@ data Annot a n
 
 instance (NFData a, NFData n) => NFData (Annot a n)
 
+instance TraverseType (Annot a n) where
+  type N (Annot a n) = n
+  traverseType f t = case t of
+    Annot a r cs
+      -> (\r' -> Annot a r' cs) <$> f r
 
 annotDiscardConstraints :: Annot a n -> (a, Type n)
 annotDiscardConstraints ann

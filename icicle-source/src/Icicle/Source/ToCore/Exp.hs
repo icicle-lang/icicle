@@ -52,10 +52,10 @@ convertExp x
             fs    <- featureContextVariables <$> convertFeatures
             case bound of
              Just fv
-              -> return $ CE.XVar () fv
+              -> return $ CE.xVar fv
              _
               | Just fv <- Map.lookup n fs
-              -> (featureVariableExp fv . CE.XVar ()) <$> convertInputName
+              -> (featureVariableExp fv . CE.xVar) <$> convertInputName
               | otherwise
               -> convertError $ ConvertErrorExpNoSuchVariable (annAnnot ann) n
 
@@ -146,7 +146,7 @@ convertExpQ q
             -- NB: because it's non-recursive let, the freshen must be done after the definition
             b' <- convertFreshenAdd b
             x' <- convertExpQ $ Query cs $ final q
-            return $ CE.XLet () b' d' x'
+            return $ CE.xLet b' d' x'
     _
      -> convertError
       $ ConvertErrorExpNestedQueryNotAllowedHere (annAnnot $ annotOfQuery q) q
@@ -198,9 +198,9 @@ convertCase x scrut pats scrutT resT
           | Just ([na,nb],tup) <- Map.lookup ConTuple   m
           , xfst <- CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst ta tb) CE.@~ CE.xVar sn
           , xsnd <- CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd ta tb) CE.@~ CE.xVar sn
-          -> return ( CE.XLet () sn scrut
-                    $ CE.XLet () na xfst
-                    $ CE.XLet () nb xsnd
+          -> return ( CE.xLet sn scrut
+                    $ CE.xLet na xfst
+                    $ CE.xLet nb xsnd
                     $ tup)
 
          T.SumT ta tb

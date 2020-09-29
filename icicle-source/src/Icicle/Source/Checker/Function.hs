@@ -242,7 +242,7 @@ checkF' fun env
       -- Put it all together
       let funT  = Forall binds constrs arrT
 
-      return (lams, funT)
+      return (reannot (mapSourceType fixmodes) lams, funT)
  where
   bindArg cx (_,n)
    = do t <- freshType

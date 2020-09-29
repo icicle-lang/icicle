@@ -167,9 +167,9 @@ collectOrAdd rootDir state mi = do
     name =
       Query.importName mi
 
-  if name == Query.ModuleName "Prelude" then do
-    prelude <- hoistEither $ Compiler.loadedPrelude >>= Compiler.sourceCheckF Check.defaultCheckOptions Dictionary.builtinFeatures
-    return prelude
+  if name == Query.ModuleName "Prelude" then
+    hoistEither $ Compiler.loadedPrelude >>= Compiler.sourceCheckF Check.defaultCheckOptions Dictionary.builtinFeatures
+
   else do
     expected_location <-
       firstEitherT Compiler.ErrorSourceModuleError $ Query.getModuleFileName rootDir mi
