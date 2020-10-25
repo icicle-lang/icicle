@@ -182,6 +182,8 @@ evalX x vs env
      -> evalQ q vs env
 
     App a _ _
+     | Just (Op Dollar, a', [f, r]) <- takePrimApps x
+     -> evalX (App a' f r) vs env
      | Just (p, a', xs) <- takePrimApps x
      -> evalP a' p xs vs env
      | otherwise
@@ -622,6 +624,9 @@ evalP ann p xs vs env
              | [a, b] <- args
              -> return $ VPair a b
              | otherwise
+             -> err
+
+            Dollar
              -> err
 
  where
