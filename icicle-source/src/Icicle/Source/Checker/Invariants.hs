@@ -35,19 +35,16 @@ invariantQ ctx (Query (c:cs) xfinal)
      -> go
 
     Latest{}
-     -> goBanAll
+     -> go
 
     GroupBy _ x
-     -> goX x >> goBanAll
+     -> goX x >> go
 
     Distinct _ x
-     -> goX x >> goBanAll
+     -> goX x >> go
 
     GroupFold _ _ _ x
-     | allowGroupFolds inv
-     -> goX x >> goBanAll
-     | otherwise
-     -> errBanGroupFold
+     -> goX x >> go
 
     Filter _ x
      -> goX x >> go
@@ -57,20 +54,9 @@ invariantQ ctx (Query (c:cs) xfinal)
      -> goX x >> go
 
  where
-  inv = checkInvariants ctx
   q' = Query cs xfinal
   go = invariantQ ctx q'
   goX = invariantX ctx
-
-  goBanAll
-     = flip invariantQ q'
-     $ ctx { checkInvariants = inv { allowGroupFolds = False }}
-
-  errBanGroupFold
-   = errorSuggestions
-      (ErrorContextNotAllowedHere (annotOfContext c) c)
-      [ Suggest "Group folds are unsupported inside groups/latests." ]
-
 
 invariantX
         :: (Hashable n, Eq n)

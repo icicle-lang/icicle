@@ -444,8 +444,43 @@ convertFold q
 
            return $ ConvertFoldResult kons zero xtra t'sum t'xtra
 
-    (GroupFold (Annot { annAnnot = ann }) _ _ _ : _)
-     -> errNotAllowed ann
+    (GroupFold (Annot { annAnnot = ann }) (PatVariable k) (PatVariable v) e : _ )
+     -> do  (tk, tv) <- groupFoldType (convertValType (annAnnot $ annotOfQuery q)) ann e
+
+            n'acc    <- lift fresh
+            n'map    <- lift fresh
+
+            -- Convert the inner group into a stream fold that produces a map.
+            inner    <- convertFold (Query [] e)
+
+            -- The key and value will be available after the fold
+            k'       <- convertFreshenAdd k
+            v'       <- convertFreshenAdd v
+
+            -- Convert the rest of the query into a map fold.
+            res      <- convertFold q'
+            let t'acc = typeFold res
+
+            -- Perform the map fold.
+            let xtra  = CE.xLam n'map (typeFold inner)
+                      ( mapExtract res CE.@~
+                      ( CE.xPrim
+                          (C.PrimFold (C.PrimFoldMap tk tv) t'acc)
+                        CE.@~ ( CE.xLam n'acc t'acc
+                              $ CE.xLam k'   tk
+                              $ CE.xLam v'   tv
+                                (foldKons res CE.@~ CE.xVar n'acc))
+                        CE.@~ foldZero res
+                        CE.@~ (mapExtract inner CE.@~ CE.xVar n'map)))
+
+            return (inner { mapExtract = xtra })
+
+    -- Group folds with patterns should have been desugared
+    (GroupFold (Annot { annAnnot = ann }) (PatVariable _) pat _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
+
+    (GroupFold (Annot { annAnnot = ann }) pat _ _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
     (Windowed (Annot { annAnnot = ann }) newerThan olderThan : _)
      -> do  res       <- convertFold q'
@@ -483,6 +518,7 @@ convertFold q
             let k'     = CE.xLam prev tt'
                        ( CE.xPrim (C.PrimFold C.PrimFoldBool tt')
                          CE.@~ CE.xLam n'unit T.UnitT (foldKons res CE.@~ prev') CE.@~ CE.xLam n'unit T.UnitT prev' CE.@~ bothComparison )
+
             return (res { foldKons = k' })
 
           where
@@ -545,9 +581,6 @@ convertFold q
 
  where
   q' = q { contexts = drop 1 $ contexts q }
-
-  errNotAllowed ann
-   = convertError $ ConvertErrorContextNotAllowedInGroupBy ann q
 
   -- Perform beta reduction, just to simplify the output a tiny bit.
   beta = Beta.betaToLets ()

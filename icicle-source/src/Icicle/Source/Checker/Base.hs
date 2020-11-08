@@ -76,10 +76,7 @@ data CheckEnv a n
 --   i.e. unimplemented things.
 --
 data Invariants
- = Invariants {
- -- | Unimplemented in Core: windows inside groups/windows/group-folds/latests
-   allowGroupFolds :: Bool
- }
+ = Invariants {}
 
 -- | Initial environment at top-level, not inside a group, and allowing contexts
 emptyCheckEnv :: CheckEnv a n
@@ -87,7 +84,7 @@ emptyCheckEnv
  = CheckEnv Map.empty Map.empty emptyInvariants
 
 emptyInvariants :: Invariants
-emptyInvariants = Invariants True
+emptyInvariants = Invariants
 
 --------------------------------------------------------------------------------
 
