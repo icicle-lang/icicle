@@ -32,19 +32,16 @@ invariantQ ctx (Query [] x)
 invariantQ ctx (Query (c:cs) xfinal)
  = case c of
     Windowed{}
-     | allowWindows inv
-     -> goBanWindow
-     | otherwise
-     -> errBanWindow "Consider moving the window to the start of the query."
+     -> go
 
     Latest{}
      -> goBanAll
 
     GroupBy _ x
-     -> goX x >> goBanWindowAndGroupFold
+     -> goX x >> goBanAll
 
     Distinct _ x
-     -> goX x >> goBanWindowAndGroupFold
+     -> goX x >> goBanAll
 
     GroupFold _ _ _ x
      | allowGroupFolds inv
@@ -67,23 +64,7 @@ invariantQ ctx (Query (c:cs) xfinal)
 
   goBanAll
      = flip invariantQ q'
-     $ ctx { checkInvariants = inv { allowWindows = False
-                                   , allowGroupFolds = False }}
-
-  goBanWindow
-     = flip invariantQ q'
-     $ ctx { checkInvariants = inv { allowWindows = False }}
-
-  goBanWindowAndGroupFold
-     = flip invariantQ q'
-     $ ctx { checkInvariants = inv { allowWindows = False
-                                   , allowGroupFolds = False }}
-
-  errBanWindow sug
-   = errorSuggestions
-      (ErrorContextNotAllowedHere (annotOfContext c) c)
-      [ Suggest "Windows cannot be inside groups/latest."
-      , Suggest sug]
+     $ ctx { checkInvariants = inv { allowGroupFolds = False }}
 
   errBanGroupFold
    = errorSuggestions
