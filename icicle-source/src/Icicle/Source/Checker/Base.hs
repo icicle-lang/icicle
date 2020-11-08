@@ -76,7 +76,11 @@ data CheckEnv a n
 --   i.e. unimplemented things.
 --
 data Invariants
- = Invariants {}
+ = Invariants {
+   allowLatest :: Bool
+ , allowWindows :: Bool
+ , allowGroupFolds :: Bool
+ }
 
 -- | Initial environment at top-level, not inside a group, and allowing contexts
 emptyCheckEnv :: CheckEnv a n
@@ -84,7 +88,7 @@ emptyCheckEnv
  = CheckEnv Map.empty Map.empty emptyInvariants
 
 emptyInvariants :: Invariants
-emptyInvariants = Invariants
+emptyInvariants = Invariants True True True
 
 --------------------------------------------------------------------------------
 
