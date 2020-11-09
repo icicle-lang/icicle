@@ -450,7 +450,7 @@ convertFold q
             n'acc    <- lift fresh
             n'map    <- lift fresh
 
-            -- Convert the inner group into a stream fold that produces a map.
+            -- Convert the inner group into a fold that produces a map.
             inner    <- convertFold (Query [] e)
 
             -- The key and value will be available after the fold
@@ -461,7 +461,7 @@ convertFold q
             res      <- convertFold q'
             let t'acc = typeFold res
 
-            -- Perform the map fold.
+            -- Perform the map fold over the result of the inner fold.
             let xtra  = CE.xLam n'map (typeFold inner)
                       ( mapExtract res CE.@~
                       ( CE.xPrim
@@ -473,6 +473,8 @@ convertFold q
                         CE.@~ foldZero res
                         CE.@~ (mapExtract inner CE.@~ CE.xVar n'map)))
 
+            -- Update the inner group's fold to include the map
+            -- fold as its extract function.
             return (inner { mapExtract = xtra })
 
     -- Group folds with patterns should have been desugared
