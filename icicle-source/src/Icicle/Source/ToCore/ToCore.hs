@@ -176,10 +176,6 @@ convertQuery q
 
             return (bothPre <> filteredProgram, b)
           where
-            windowEdge now (Days   d) = CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays) CE.@~ now CE.@~ CE.constI d
-            windowEdge now (Weeks  w) = CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays) CE.@~ now CE.@~ CE.constI (w * 7)
-            windowEdge now (Months m) = CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusMonths) CE.@~ now CE.@~ CE.constI m
-
             (>=~) :: C.Exp () n -> C.Exp () n -> C.Exp () n
             (>=~) = CE.prim2 (C.PrimMinimal $ Min.PrimRelation Min.PrimRelationGe T.TimeT)
             infix 4 >=~

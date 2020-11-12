@@ -33,18 +33,22 @@ invariantQ ctx (Query (c:cs) xfinal)
  = case c of
     Windowed{}
      | allowWindows inv
-     -> goBanWindow
+     -> go
      | otherwise
-     -> errBanWindow "Consider moving the window to the start of the query."
+     -> errBanWindow
+
 
     Latest{}
-     -> goBanAll
+     | allowLatest inv
+     -> go
+     | otherwise
+     -> errBanLatest
 
     GroupBy _ x
-     -> goX x >> goBanWindowAndGroupFold
+     -> goX x >> go
 
     Distinct _ x
-     -> goX x >> goBanWindowAndGroupFold
+     -> goX x >> go
 
     GroupFold _ _ _ x
      | allowGroupFolds inv
@@ -67,29 +71,27 @@ invariantQ ctx (Query (c:cs) xfinal)
 
   goBanAll
      = flip invariantQ q'
-     $ ctx { checkInvariants = inv { allowWindows = False
+     $ ctx { checkInvariants = inv { allowLatest = False
+                                   , allowWindows = False
                                    , allowGroupFolds = False }}
 
-  goBanWindow
-     = flip invariantQ q'
-     $ ctx { checkInvariants = inv { allowWindows = False }}
-
-  goBanWindowAndGroupFold
-     = flip invariantQ q'
-     $ ctx { checkInvariants = inv { allowWindows = False
-                                   , allowGroupFolds = False }}
-
-  errBanWindow sug
+  errBanLatest
    = errorSuggestions
       (ErrorContextNotAllowedHere (annotOfContext c) c)
-      [ Suggest "Windows cannot be inside groups/latest."
-      , Suggest sug]
+      [ Suggest "Latest is not allowed inside group-folds."
+      , Suggest "Group folds aren't ordered with respect to time, so `latest` doesn't make sense."
+      , Suggest "Note that 'newest' is implemented using latest, so you might see this error even without an explicit `latest`."]
+
+  errBanWindow
+   = errorSuggestions
+      (ErrorContextNotAllowedHere (annotOfContext c) c)
+      [ Suggest "Windows cannot be inside group-folds."
+      , Suggest "Group folds results don't carry time with them, so a window doesn't make sense here."]
 
   errBanGroupFold
    = errorSuggestions
       (ErrorContextNotAllowedHere (annotOfContext c) c)
-      [ Suggest "Group folds are unsupported inside groups/latests." ]
-
+      [ Suggest "Group folds are unsupported inside other group folds." ]
 
 invariantX
         :: (Hashable n, Eq n)

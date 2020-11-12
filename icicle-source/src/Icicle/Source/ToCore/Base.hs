@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE LambdaCase #-}
 module Icicle.Source.ToCore.Base (
     CoreBinds    (..)
   , ConvertError (..)
@@ -30,13 +31,18 @@ module Icicle.Source.ToCore.Base (
   , pre, filt, sfold, post
   , programOfBinds
   , pullPosts
+  , windowEdge
   ) where
 
 import qualified        Icicle.Core             as C
+import qualified        Icicle.Core.Exp.Combinators as CE
+
 import                  Icicle.Common.Fresh
 import                  Icicle.Common.Base
 import                  Icicle.Common.Type  hiding (Type)
 import qualified        Icicle.Common.Exp       as X
+import qualified        Icicle.Common.Exp.Prim.Minimal as Min
+
 import                  Icicle.Data.Name
 
 import                  Icicle.Source.Query
@@ -148,6 +154,7 @@ data ConvertError a n
  | ConvertErrorBadCaseNoDefault              a (Exp (Annot a n) n)
  | ConvertErrorBadCaseNestedConstructors     a (Exp (Annot a n) n)
  | ConvertErrorImpossibleFold1               a
+ | ConvertErrorInputTypeNotPair              a ValType
  | ConvertErrorPatternUnconvertable          a (Pattern n)
  | ConvertErrorCannotCheckKey                a (X.Exp () n C.Prim) (X.ExpError () n C.Prim)
  deriving (Show, Eq, Ord)
@@ -186,6 +193,8 @@ annotOfError e
     ConvertErrorImpossibleFold1 a
      -> Just a
     ConvertErrorCannotCheckKey a _ _
+     -> Just a
+    ConvertErrorInputTypeNotPair a _
      -> Just a
 
 
@@ -326,6 +335,18 @@ convertValType ann ty
 convertError :: ConvertError a n -> ConvertM a n r
 convertError = lift . lift . Left
 
+
+
+windowEdge :: C.Exp () n -> WindowUnit -> C.Exp () n
+windowEdge now = \case
+  Days d ->
+    CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays) CE.@~ now CE.@~ CE.constI d
+  Weeks  w ->
+    CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusDays) CE.@~ now CE.@~ CE.constI (w * 7)
+  Months m ->
+    CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeMinusMonths) CE.@~ now CE.@~ CE.constI m
+
+
 -- | These errors should only occur if
 --   - there is a bug in the conversion (there is)
 --   - or the program shouldn't type check
@@ -368,13 +389,19 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
 
      ConvertErrorBadCaseNoDefault a x
       -> pretty a <> ": case has no default alternative: " <> pretty x
+
      ConvertErrorBadCaseNestedConstructors a x
       -> pretty a <> ": case has nested constructors in pattern; these should be removed by an earlier pass: " <> pretty x
+
      ConvertErrorImpossibleFold1 a
       -> pretty a <> ": fold1 cannot be converted; desugar first"
+
      ConvertErrorPatternUnconvertable a p
       -> pretty a <> ": pattern conversion error; desugar first:" <> pretty p
+
      ConvertErrorCannotCheckKey a x r
       -> pretty a <> ": cannot check type of converted key expression: " <> line <> pretty x <> line <> pretty r
 
+     ConvertErrorInputTypeNotPair a t
+      -> pretty a <> ": cannot convert, input type was expected to be a pair, got: " <> pretty t
 

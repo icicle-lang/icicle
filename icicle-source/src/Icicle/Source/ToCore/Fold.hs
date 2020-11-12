@@ -4,6 +4,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
+{-# LANGUAGE LambdaCase        #-}
 module Icicle.Source.ToCore.Fold (
     convertFold
   , ConvertFoldResult(..)
@@ -222,9 +223,9 @@ convertFold q
             n'unit     <- lift fresh
             let tt'    = typeFold res
             let prev'  = CE.xVar prev
-            let k' = CE.xLam prev tt'
-                   ( CE.xPrim (C.PrimFold C.PrimFoldBool tt')
-                     CE.@~ CE.xLam n'unit T.UnitT (foldKons res CE.@~ prev') CE.@~ CE.xLam n'unit T.UnitT prev' CE.@~ e' )
+            let k'     = CE.xLam prev tt'
+                       ( CE.xPrim (C.PrimFold C.PrimFoldBool tt')
+                         CE.@~ CE.xLam n'unit T.UnitT (foldKons res CE.@~ prev') CE.@~ CE.xLam n'unit T.UnitT prev' CE.@~ e' )
             return (res { foldKons = k' })
 
     (Latest _ i : _)
@@ -443,10 +444,97 @@ convertFold q
 
            return $ ConvertFoldResult kons zero xtra t'sum t'xtra
 
-    (GroupFold (Annot { annAnnot = ann }) _ _ _ : _)
-     -> errNotAllowed ann
-    (Windowed (Annot { annAnnot = ann }) _ _ : _)
-     -> errNotAllowed ann
+    (GroupFold (Annot { annAnnot = ann }) (PatVariable k) (PatVariable v) e : _ )
+     -> do  (tk, tv) <- groupFoldType (convertValType (annAnnot $ annotOfQuery q)) ann e
+
+            n'acc    <- lift fresh
+            n'map    <- lift fresh
+
+            -- Convert the inner group into a fold that produces a map.
+            inner    <- convertFold (Query [] e)
+
+            -- The key and value will be available after the fold
+            k'       <- convertFreshenAdd k
+            v'       <- convertFreshenAdd v
+
+            -- Convert the rest of the query into a map fold.
+            res      <- convertFold q'
+            let t'acc = typeFold res
+
+            -- Perform the map fold over the result of the inner fold.
+            let xtra  = CE.xLam n'map (typeFold inner)
+                      ( mapExtract res CE.@~
+                      ( CE.xPrim
+                          (C.PrimFold (C.PrimFoldMap tk tv) t'acc)
+                        CE.@~ ( CE.xLam n'acc t'acc
+                              $ CE.xLam k'   tk
+                              $ CE.xLam v'   tv
+                                (foldKons res CE.@~ CE.xVar n'acc))
+                        CE.@~ foldZero res
+                        CE.@~ (mapExtract inner CE.@~ CE.xVar n'map)))
+
+            -- Update the inner group's fold to include the map
+            -- fold as its extract function.
+            return (inner { mapExtract = xtra })
+
+    -- Group folds with patterns should have been desugared
+    (GroupFold (Annot { annAnnot = ann }) (PatVariable _) pat _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
+
+    (GroupFold (Annot { annAnnot = ann }) pat _ _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
+
+    (Windowed (Annot { annAnnot = ann }) newerThan olderThan : _)
+     -> do  res       <- convertFold q'
+            now       <- convertDateName
+            time      <- convertInputName
+            i'typ     <- splitPair =<< convertInputType
+            prev      <- lift fresh
+            n'unit    <- lift fresh
+
+            let
+              -- All widows have a left edge
+              leftComparison
+                = xsnd i'typ (CE.xVar time) >=~ windowEdge (CE.xVar now) newerThan
+
+              -- If olderThan is set, we need to create
+              -- the right edge of the window as well;
+              -- otherwise, just use the left edge.
+              bothComparison
+                = case olderThan of
+                    Just olderThan' ->
+                      let
+                        rightComparison =
+                          windowEdge (CE.xVar now) olderThan' >=~ xsnd i'typ (CE.xVar time)
+                      in
+                        (leftComparison CE.&&~ rightComparison)
+
+                    Nothing ->
+                      leftComparison
+
+              -- Create the filtered program by filtering the downstream
+              -- streams. We leave the precomputations and postcomputations
+              -- of `bs` alone, and combine them with the new program.
+            let tt'    = typeFold res
+            let prev'  = CE.xVar prev
+            let k'     = CE.xLam prev tt'
+                       ( CE.xPrim (C.PrimFold C.PrimFoldBool tt')
+                         CE.@~ CE.xLam n'unit T.UnitT (foldKons res CE.@~ prev') CE.@~ CE.xLam n'unit T.UnitT prev' CE.@~ bothComparison )
+
+            return (res { foldKons = k' })
+
+          where
+            (>=~) :: C.Exp () n -> C.Exp () n -> C.Exp () n
+            (>=~) = CE.prim2 (C.PrimMinimal $ Min.PrimRelation Min.PrimRelationGe T.TimeT)
+            infix 4 >=~
+
+            xsnd i'typ = CE.xApp $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ uncurry Min.PrimPairSnd i'typ
+
+            splitPair = \case
+              T.PairT a b ->
+                return (a, b)
+              t ->
+                convertError $ ConvertErrorInputTypeNotPair ann t
 
     (Let (Annot { annAnnot = ann }) p def : _)
      | TemporalityPure  <- getTemporalityOrPure $ annResult $ annotOfExp def
@@ -459,7 +547,7 @@ convertFold q
      | TemporalityElement  <- getTemporalityOrPure $ annResult $ annotOfExp def
      -> do  def' <- convertExp def
             n'   <- lift fresh
-            t' <- convertValType' $ annResult $ annotOfExp def
+            t'   <- convertValType' $ annResult $ annotOfExp def
             let err = CE.xValue t' $ T.defaultOfType t'
             let res = ConvertFoldResult (CE.xLam n' t' def') err (CE.xLam n' t' $ CE.xVar n') t' t'
             convertAsLet ann p res
@@ -495,9 +583,6 @@ convertFold q
 
  where
   q' = q { contexts = drop 1 $ contexts q }
-
-  errNotAllowed ann
-   = convertError $ ConvertErrorContextNotAllowedInGroupBy ann q
 
   -- Perform beta reduction, just to simplify the output a tiny bit.
   beta = Beta.betaToLets ()
