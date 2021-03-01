@@ -46,7 +46,7 @@ subsume ann q inf req = do
       errorNoSuggestions (ErrorSchemesMatchError ann req inf)
 
   -- Introduce the inferred type.
-  (_, skol, inf'c)  <- introForalls ann inf
+  (_, skol, inf'c)  <- visitForalls ann inf
 
   -- Introduce the desired type.
   (_, intro, req'c) <- visitForalls ann req
@@ -113,7 +113,7 @@ subsumeT inferred sig
     TypeVar a
      | TypeVar b <- sig
      , a == b
-     -> return $ Map.empty
+     -> return Map.empty
 
     TypeVar a
      -- Occurs check.
@@ -190,7 +190,7 @@ subsumeT inferred sig
     PossibilityPossibly     -> eq
     PossibilityDefinitely   -> eq
 
-    TypeArrow  at ar
+    TypeArrow at ar
      | TypeArrow bt br <- sig
      -> join $ combine <$> subsumeT at bt <*> subsumeT ar br
      | otherwise
