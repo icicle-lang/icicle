@@ -88,7 +88,7 @@ checkModule checkOpts env module'
       hoistEither $ first (,logs') checkResult
 
     if Map.member name envMap then
-      hoistEither $ Left $ (CheckError (ErrorDuplicateFunctionNames ann name) [], [])
+      hoistEither $ Left (CheckError (ErrorDuplicateFunctionNames ann name) [], [])
     else
       pure (env0 <> [ResolvedFunction ann name funtype annotfun], inputs0, output0, logs0 <> [logs'])
 
@@ -154,7 +154,7 @@ checkF' :: (Hashable n, Eq n, Pretty n)
 checkF' fun env
  = do let (arguments, body) = takeLams fun
       -- Give each argument a fresh type variable
-      env' <- foldM bindArg env $ arguments
+      env' <- foldM bindArg env arguments
       -- Get the type annotated body
       (q', subs', cons') <- generateX body env'
 

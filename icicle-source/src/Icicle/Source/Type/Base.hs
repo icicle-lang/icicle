@@ -86,27 +86,26 @@ data Scheme n
  = Forall {
     schemeBounds      :: [Name n]
   , schemeConstraints :: [Constraint n]
-  , schemeType        :: (Type n)
+  , schemeType        :: Type n
  } deriving (Eq, Ord, Show, Generic)
 
 
 anyArrows :: Type n -> Bool
 anyArrows
- = let go (TypeArrow {}) = Any True
+ = let go TypeArrow {} = Any True
        go x = foldSourceType go x
    in getAny . go
 
 
-class TraverseType a where
-  type N a :: *
-  traverseType :: Applicative f => (Type (N a) -> f (Type (N a))) -> (a -> f a)
+class TraverseType a n where
+  traverseType :: Applicative f => (Type n -> f (Type n)) -> (a -> f a)
 
-instance TraverseType a => TraverseType [a] where
-  type N [a] = N a
+
+instance TraverseType a n => TraverseType [a] n where
   traverseType f d = traverse (traverseType f) d
 
-instance TraverseType (Type n) where
-  type N (Type n) = n
+
+instance TraverseType (Type n) n where
   traverseType f t = case t of
     BoolT        -> pure BoolT
     TimeT        -> pure TimeT
@@ -134,8 +133,7 @@ instance TraverseType (Type n) where
     TypeVar v               -> pure (TypeVar v)
     TypeArrow a b           -> TypeArrow <$> f a <*> f b
 
-instance TraverseType (Scheme n) where
-  type N (Scheme n) = n
+instance TraverseType (Scheme n) n where
   traverseType f (Forall ns cs typ) =
     Forall ns <$> traverseType f cs <*> f typ
 
@@ -143,7 +141,7 @@ foldSourceType :: Monoid x => (Type n -> x) -> (Type n -> x)
 foldSourceType =
   foldMapOf traverseType
 
-mapSourceType :: TraverseType a => (Type (N a) -> Type (N a)) -> a -> a
+mapSourceType :: TraverseType a n => (Type n -> Type n) -> a -> a
 mapSourceType =
   over traverseType
 
@@ -217,8 +215,7 @@ instance NFData n => NFData (Type n)
 instance NFData n => NFData (Scheme n)
 instance NFData n => NFData (Constraint n)
 
-instance TraverseType (Constraint n) where
-  type N (Constraint n) = n
+instance TraverseType (Constraint n) n where
   traverseType f t = case t of
     CEquals t1 t2
       -> CEquals <$> f t1 <*> f t2
@@ -249,8 +246,7 @@ data Annot a n
 
 instance (NFData a, NFData n) => NFData (Annot a n)
 
-instance TraverseType (Annot a n) where
-  type N (Annot a n) = n
+instance TraverseType (Annot a n) n where
   traverseType f t = case t of
     Annot a r cs
       -> (\r' -> Annot a r' cs) <$> f r
