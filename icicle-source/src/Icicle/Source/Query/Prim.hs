@@ -128,6 +128,9 @@ primLookup' prim
     Fun (BuiltinText ToUpper)
      -> f0 [StringT] (Possibility PossibilityPossibly StringT)
 
+    Fun (BuiltinRegex (Grepl _ _))
+     -> f0 [StringT] (Possibility PossibilityPossibly BoolT)
+
     Fun (BuiltinTime DaysBetween)
      -> f0 [TimeT, TimeT] IntT
     Fun (BuiltinTime DaysJulianEpoch)
@@ -167,9 +170,6 @@ primLookup' prim
      -> f2 $ \k kt v vt -> functionType [k, v] [] [kt, GroupT kt vt] (GroupT kt vt)
     Fun (BuiltinMap MapLookup)
      -> f2 $ \k kt v vt -> functionType [k, v] [] [kt, GroupT kt vt] (OptionT vt)
-
-    Fun (BuiltinRegex (Grepl _ _))
-     -> f0 [StringT] BoolT
 
 
     PrimCon ConSome
@@ -240,6 +240,7 @@ primReturnsPossibly (Fun (BuiltinData  Box))        _ = True
 primReturnsPossibly (Fun (BuiltinMap   MapInsert))  _ = True
 primReturnsPossibly (Fun (BuiltinArray ArrayIndex)) _ = True
 primReturnsPossibly (Fun (BuiltinText  _))          _ = True
+primReturnsPossibly (Fun (BuiltinRegex  _))         _ = True
 primReturnsPossibly p ty
  | (_, pos, dat)       <- decomposeT ty
  , DoubleT             <- dat

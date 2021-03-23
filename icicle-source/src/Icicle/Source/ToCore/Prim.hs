@@ -245,6 +245,13 @@ convertPrim p ann resT xts = go p
    = convertError
    $ ConvertErrorPrimNoArguments ann 2 p
 
+  goregex (Grepl n r)
+   | [(a,_)] <- xts
+   = primCheckString T.BoolT (primbuiltin $ Min.PrimBuiltinRegex $ Min.PrimBuiltinRegexMatch n r) a
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
+
   -- Source built-in primitives supported by other language fragments
   gotime DaysBetween
    = return $ primmin $ Min.PrimTime Min.PrimTimeDaysDifference
@@ -433,9 +440,6 @@ convertPrim p ann resT xts = go p
    = return $ primbuiltin $ Min.PrimBuiltinArray $ prim t
    | otherwise
    = convertError $ ConvertErrorCannotConvertType ann tt
-
-  goregex (Grepl n r)
-   = return $ primbuiltin $ Min.PrimBuiltinRegex $ Min.PrimBuiltinRegexMatch n r
 
 primInsert
         :: (Hashable n)
