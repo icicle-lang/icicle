@@ -153,7 +153,7 @@ lspStartup state req
 lspInitialized :: State -> Request Value -> IO ()
 lspInitialized state req
 
-  -- On startup VSCode sends us a didChangeConfiguration,
+  --   On startup VSCode sends us a didChangeConfiguration,
   --   but we don't have any settings define, so the payload is empty.
   --   Just drop it on the floor.
   | "workspace/didChangeConfiguration" <- reqMethod req
@@ -254,4 +254,4 @@ lspInitialized state req
 -- exception raised by the computation.
 onException' :: IO a -> (SomeException -> IO b) -> IO a
 onException' io what =
-  io `catch` (\e -> do _ <- what e; throwIO e)
+  io `catch` (\e -> what e *> throwIO e)

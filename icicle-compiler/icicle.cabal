@@ -15,6 +15,13 @@ extra-source-files:
   data/make/main.c
   data/sea/*.h
 
+tested-with:
+  GHC==8.0.2,
+  GHC==8.2.2,
+  GHC==8.4.4,
+  GHC==8.6.5,
+  GHC==8.8.4
+
 library
   build-depends:
                        base                            >= 3          && < 5
