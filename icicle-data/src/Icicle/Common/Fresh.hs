@@ -20,7 +20,7 @@ import              Icicle.Common.Base
 
 import              P
 
-import              Control.Monad.Trans.Class
+import              Control.Monad.Morph
 import              Data.Functor.Identity
 import              Data.Hashable
 
@@ -35,11 +35,10 @@ runFresh f ns
  = runIdentity
  $ runFreshT f ns
 
--- argh
+
 runFreshIdentity :: Monad m => Fresh n x -> FreshT n m x
-runFreshIdentity f
- = FreshT
- $ \ns -> return $ runFresh f ns
+runFreshIdentity
+ = hoist generalize
 
 --------------------------------------------------------------------------------
 
@@ -107,3 +106,8 @@ instance MonadTrans (FreshT n) where
   $ \ns
   -> do v <- m
         return (ns, v)
+
+instance MFunctor (FreshT n) where
+  hoist f (FreshT p) =
+    FreshT $
+      f . p

@@ -30,6 +30,7 @@ library
                      , containers                      == 0.5.*
                      , hashable                        >= 1.2
                      , lens                            >= 4.7
+                     , mmorph                          >= 1.0
                      , semigroups                      >= 0.16       && < 0.20
                      , template-haskell                >= 2.9        && < 2.16
                      , text                            >= 1.2
