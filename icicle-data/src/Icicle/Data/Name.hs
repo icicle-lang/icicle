@@ -217,7 +217,7 @@ parseHeadTail validHead validTail xs =
 
 namespaceValidHead :: Char -> Bool
 namespaceValidHead c =
-  (c >= 'a' && c <= 'z')
+  c >= 'a' && c <= 'z'
 
 namespaceValidTail :: Char -> Bool
 namespaceValidTail c =

@@ -10,7 +10,6 @@ module Icicle.Sorbet.Abstract.Regex (
 ) where
 
 import            Control.Monad.Combinators.Expr
-import            Data.List (replicate)
 import            Data.Void
 import            Data.These
 

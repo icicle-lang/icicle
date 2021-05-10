@@ -55,15 +55,15 @@ mkNameState :: (s -> (NameBase n, s)) -> s -> NameState n
 mkNameState = NameState
 
 counterNameState :: (Int -> NameBase n) -> Int -> NameState n
-counterNameState f i
- = mkNameState (\i' -> (f i', i'+1)) i
+counterNameState f
+ = mkNameState (\i' -> (f i', i' + 1))
 
 counterPrefixNameState :: (Int -> n) -> n -> NameState n
 counterPrefixNameState print prefix
  = counterNameState (NameMod prefix . NameBase . print) 0
 
 fresh :: (Hashable n, Monad m) => FreshT n m (Name n)
-fresh = freshBase >>= return . nameOf
+fresh = nameOf <$> freshBase
 
 freshBase :: Monad m => FreshT n m (NameBase n)
 freshBase
@@ -78,8 +78,7 @@ freshPrefix pre
 
 freshPrefixBase :: (Hashable n, Monad m) => NameBase n -> FreshT n m (Name n)
 freshPrefixBase pre
- = do n <- freshBase
-      return $ nameOf $ prefix pre n
+ = nameOf . prefix pre <$> freshBase
  where
   prefix (NameBase a)   b = NameMod a b
   prefix (NameMod  a b) c = NameMod a (prefix b c)
@@ -96,15 +95,11 @@ instance Monad m => Monad (FreshT n m) where
  return a = FreshT $ \ns -> return (ns, a)
 
 instance Monad m => Functor (FreshT n m) where
- fmap f p
-  = p >>= (return . f)
+ fmap = liftM
 
 instance Monad m => Applicative (FreshT n m) where
  pure = return
- (<*>) f x
-  = do f' <- f
-       x' <- x
-       return $ f' x'
+ (<*>) = ap
 
 instance MonadTrans (FreshT n) where
  lift m

@@ -321,7 +321,7 @@ prettyFun fun =
       TypeArrow a res ->
         let
           (as, res') = go res
-          a' = if (anyArrows a) then parens (pretty a) else pretty a
+          a' = if anyArrows a then parens (pretty a) else pretty a
         in
           (a' : as, res')
       _ ->
@@ -331,7 +331,7 @@ prettyFun fun =
       go (schemeType fun)
 
     cons =
-      fmap pretty $ schemeConstraints fun
+      pretty <$> schemeConstraints fun
 
   in
     PrettyFunType cons args final
@@ -378,7 +378,7 @@ instance Pretty n => Pretty (Constraint n) where
       pretty a <+> prettyPunctuation "=:" <+>
       prettyApp hsep 0 (prettyConstructor "PossibilityJoin") [b, c]
 
-instance (Pretty n) => Pretty (Annot a n) where
+instance Pretty n => Pretty (Annot a n) where
   pretty ann =
     prettyItems sep (pretty $ annResult ann) $
       fmap (PrettyItem (prettyPunctuation "=>") . pretty . snd) (annConstraints ann)

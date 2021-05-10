@@ -67,7 +67,7 @@ data Exp' q a n
   | Nested a (q a n)
 
   -- | Function application.
-  | App  a (Exp' q a n) (Exp' q a n)
+  | App a (Exp' q a n) (Exp' q a n)
 
   -- | Source Primitive
   | Prim a Prim

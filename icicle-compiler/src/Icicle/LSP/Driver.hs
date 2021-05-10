@@ -43,7 +43,7 @@ import           P
 runLSP :: Maybe FilePath -> IO ()
 runLSP mFileLog = do
   state <- lspBegin mFileLog
-  lspLoop state `onException'` (\e -> lspLog state (displayException e))
+  lspLoop state `onException'` (lspLog state . displayException)
 
 
 ---------------------------------------------------------------------------------------------------

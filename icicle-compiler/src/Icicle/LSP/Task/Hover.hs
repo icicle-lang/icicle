@@ -37,7 +37,7 @@ hover state sUri jrid line_ col = do
 
   known <- readIORef (stateCoreChecked state)
 
-  case (Map.lookup localPath known) of
+  case Map.lookup localPath known of
     Just module_ -> do
       lspLog state ("* Cache hit for " <> localPath)
 
@@ -75,7 +75,7 @@ typeAt pos module_ = do
 
 sendHover :: State -> JsonRpcId -> Maybe (Type Variable) -> IO ()
 sendHover state jrid mType = do
-  lspLog  state ("* Sending Hover info")
+  lspLog  state "* Sending Hover info"
 
   lspSend state $ object
     [ "id" .= jrid
@@ -92,7 +92,7 @@ sendHover state jrid mType = do
 
 sendNothing :: State -> JsonRpcId -> IO ()
 sendNothing state jrid = do
-  lspLog  state ("* Sending no hover info, we couldn't find the module.")
+  lspLog  state "* Sending no hover info, we couldn't find the module."
   lspSend state $ object
     [ "id"     .= jrid
     , "result" .= Aeson.Null

@@ -31,14 +31,14 @@ instance ToJSON JsonRpcId where
 instance FromJSON JsonRpcId where
   parseJSON js
     | Number s <- js
-    , Just i   <- Scientific.toBoundedInteger s
+    , Just i <- Scientific.toBoundedInteger s
     = return $ JsonRpcIdInt i
 
     | String s <- js
     = return $ JsonRpcIdString s
 
-    | Null     <- js
-    = return $ JsonRpcIdNull
+    | Null <- js
+    = return JsonRpcIdNull
 
     | otherwise
     = fail "Coudn't parser JsonRpcId"

@@ -44,7 +44,7 @@ lspRead state
                 "\r"    -> return ()
                 _       -> lspFail state "Invalid JsonRPC header from client: no CR")
 
-        txChunk  <- lspReadChunk state lenChunk
+        txChunk  <- lspReadChunk lenChunk
 
         case eitherDecode txChunk of
               Left str ->
@@ -62,9 +62,9 @@ lspRead state
 --   encoded bytestring, not the number of unicode characters.
 --   If this is wrong then the stream will get out of sync.
 --
-lspReadChunk :: State -> Int -> IO LBS.ByteString
-lspReadChunk _state nChunk
- = LBS.hGet S.stdin nChunk
+lspReadChunk :: Int -> IO LBS.ByteString
+lspReadChunk
+ = LBS.hGet S.stdin
 
 
 -- | Send a JSON value via JsonRPC to the client.

@@ -63,7 +63,7 @@ updateDiagnostics state sUri sSource = do
       sendClearDiagnostics state sUri
 
     Left fu -> do
-      lspLog  state ("* Sending Parse Errors")
+      lspLog  state "* Sending Parse Errors"
       modifyIORef (stateCoreChecked state) (Map.delete localPath)
       sendDiagnostics state sUri (errorVector fu)
 
@@ -87,19 +87,15 @@ updateDiagnostics' state sUri sSource = do
           takeDirectory (Text.unpack sUri)
 
     implicitPrelude =
-      if modName == Query.ModuleName "Prelude" then
-        []
-      else
-        [prelude]
+      [prelude | modName /= Query.ModuleName "Prelude"]
 
   rsvd <- traverse (collectOrAdd rootDir state) imports
   let
     env0 =
       Dictionary.featureMapOfModules (rsvd <> implicitPrelude)
 
-  _     <- hoistEither $ Compiler.sourceDesugarF funs
-  funs' <- hoistEither $ Compiler.sourceCheckF Check.defaultCheckOptions env0 funs
-  return funs'
+  void . hoistEither $ Compiler.sourceDesugarF funs
+  hoistEither $ Compiler.sourceCheckF Check.defaultCheckOptions env0 funs
 
 
 -- | Compute diagnostics for a source file, and push them to the client.
@@ -116,7 +112,7 @@ saveDiagnostics state sUri = do
     Right _ -> do
       sendClearDiagnostics state sUri
     Left fu -> do
-      lspLog  state ("* Sending Parse Errors")
+      lspLog  state "* Sending Parse Errors"
       sendDiagnostics state sUri (errorVector fu)
 
 -- | Compute diagnostics for a source file, and push them to the client.
@@ -153,8 +149,9 @@ saveDiagnostics' state sUri = do
   input <- Text.decodeUtf8 <$> liftIO (ByteString.readFile localPath)
   modul <- Compiler.readIcicleLibrary Check.defaultCheckOptions rootDir sourceName input
 
-  liftIO (lspLog  state ("* Cache rewrite for " <> localPath))
-  liftIO $ modifyIORef (stateCoreChecked state) (Map.insert localPath modul)
+  liftIO $ do
+    lspLog state ("* Cache rewrite for " <> localPath)
+    modifyIORef (stateCoreChecked state) (Map.insert localPath modul)
 
 
 -- Check our in memory cache of checked modules
@@ -186,8 +183,9 @@ collectOrAdd rootDir state mi = do
           maybe (left Compiler.ErrorImpossible) pure $
             Map.lookup name checked
 
-        liftIO (lspLog  state ("* Cache write for " <> expected_location))
-        liftIO $ modifyIORef (stateCoreChecked state) (Map.insert expected_location loaded)
+        liftIO $ do
+          lspLog state ("* Cache write for " <> expected_location)
+          modifyIORef (stateCoreChecked state) (Map.insert expected_location loaded)
         return loaded
 
 

@@ -216,7 +216,7 @@ executable icicle
                      , containers
                      , directory
                      , filepath
-                     , optparse-applicative            >= 0.14       && < 0.16
+                     , optparse-applicative            >= 0.14       && < 0.17
                      , mmorph
                      , parallel
                      , parsec
