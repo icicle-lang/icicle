@@ -43,7 +43,7 @@ runFreshIdentity
 --------------------------------------------------------------------------------
 
 data NameState n
- = forall s. NameState (s -> (NameBase n, s)) s
+ = forall s. NameState (s -> (NameBase n, s)) !s
 
 -- we don't care about sequencing the name state, just need this for
 -- functions of type FreshT n m a. The `a` is the only thing we care
