@@ -99,7 +99,7 @@ dummyRange =
 builtinFeatures :: SQ.Features a Variable k
 builtinFeatures =
   SQ.Features
-    (Map.empty)
+    Map.empty
     (Map.fromList $ fmap (\x -> (SQ.functionName x, SQ.functionType x)) builtinFunctions)
     (Just $ var "now")
  where

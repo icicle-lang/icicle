@@ -93,7 +93,7 @@ convertExp x
             resT   <- convertValType (annAnnot ann) $ annResult ann
             sn     <- lift fresh
             return
-              ((CE.xPrim $ C.PrimFold C.PrimFoldBool resT)
+              (CE.xPrim (C.PrimFold C.PrimFoldBool resT)
                 CE.@~ CE.xLam sn T.UnitT true'
                 CE.@~ CE.xLam sn T.UnitT false'
                 CE.@~ scrut')
@@ -114,12 +114,30 @@ convertExp x
             case xpressionT of
               T.StructT st@(T.StructType struct'map)
                 | Just fieldType <- Map.lookup field struct'map
-                -> return $
+                -> return
                     (CE.xPrim (C.PrimMinimal $ Min.PrimStruct $ Min.PrimStructGet field fieldType st)
                       CE.@~ xpression')
 
+              T.TimeT
+                | field == T.StructField "year"
+                -> return
+                    (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeProjectYear)
+                      CE.@~ xpression')
+
+              T.TimeT
+                | field == T.StructField "month"
+                -> return
+                    (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeProjectMonth)
+                      CE.@~ xpression')
+
+              T.TimeT
+                | field == T.StructField "day"
+                -> return
+                    (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeProjectDay)
+                      CE.@~ xpression')
+
               _ -> convertError
-                 $ ConvertErrorCannotConvertType (annAnnot ann) (annResult $ annotOfExp xpression)
+                 $ ConvertErrorCannotConvertType (annAnnot ann) (annResult ann)
 
 
  where

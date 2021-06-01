@@ -91,6 +91,10 @@ dischargeC c
     CHasField res (StructT sfs) f
      | Just ft <- Map.lookup f sfs
      -> dischargeC (CEquals res ft)
+    CHasField res TimeT f
+     | let sf = CT.nameOfStructField f
+     , sf == "year" || sf == "month" || sf == "day"
+     -> dischargeC (CEquals res IntT)
     CHasField _ (TypeVar _) _
      -> return $ DischargeLeftover c
     CHasField _ t f

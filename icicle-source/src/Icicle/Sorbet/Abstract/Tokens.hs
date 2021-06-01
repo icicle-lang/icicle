@@ -76,7 +76,7 @@ newtype Construct =
 pVariable :: Parser s m => m (Range, Name Variable)
 pVariable = do
   (p, vid) <- pVarId
-  pure $ (p, nameOf (NameBase vid))
+  pure (p, nameOf (NameBase vid))
 
 
 pVarId :: Parser s m => m (Range, Variable)
@@ -84,9 +84,9 @@ pVarId =
   label "variable" .
   tryToken $ \pos -> \case
     Tok_VarId varId ->
-      Just $ (pos, Variable varId)
+      Just (pos, Variable varId)
     Tok_Wild ->
-      Just $ (pos, Variable "_")
+      Just (pos, Variable "_")
     _ ->
       Nothing
 
@@ -95,7 +95,7 @@ pVarOp =
   label "operator" .
   tryToken $ \pos -> \case
     Tok_VarOp varOp ->
-      Just $ (pos, Operator varOp)
+      Just (pos, Operator varOp)
     _ ->
       Nothing
 
@@ -104,7 +104,7 @@ pConId =
   label "constructor" .
   tryToken $ \pos -> \case
     Tok_ConId conId ->
-      Just $ (pos, Construct conId)
+      Just (pos, Construct conId)
     _ ->
       Nothing
 
@@ -162,7 +162,7 @@ tryToken f  =
 tryPosToken :: Parser s m => (Token -> Maybe a) -> m (Range, a)
 tryPosToken f  =
   tryPositioned $ \(Positioned start end tok) ->
-    fmap (Range start end,) $ f tok
+    (Range start end,) <$> f tok
 
 tryPositioned :: Parser s m => (Positioned Token -> Maybe a) -> m a
 tryPositioned f =
@@ -208,13 +208,17 @@ position = do
 
 failAtOffset :: Parser s m => Int -> String -> m b
 failAtOffset offset errMsg =
-  Mega.setOffset offset >> fail errMsg
-
+  Mega.region (setErrorOffset offset) (fail errMsg)
 
 
 pPositionedFail :: Parser s m => m a -> (a -> Maybe b) -> String -> m b
 pPositionedFail x check err = do
-  o <- Mega.getOffset
-  v <- x
-  maybe (failAtOffset o err) pure (check v)
+  offset <- Mega.getOffset
+  Mega.region (setErrorOffset offset) $ do
+    v <- x
+    maybe (fail err) pure (check v)
 
+
+setErrorOffset :: Int -> Mega.ParseError s e ->  Mega.ParseError s e
+setErrorOffset o (Mega.TrivialError _ a b) = Mega.TrivialError o a b
+setErrorOffset o (Mega.FancyError   _ a) = Mega.FancyError   o a

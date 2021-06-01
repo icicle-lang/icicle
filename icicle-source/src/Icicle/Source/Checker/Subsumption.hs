@@ -167,7 +167,8 @@ subsumeT inferred sig
      | StructT bs <- sig
      , Map.keysSet as == Map.keysSet bs
      , m' <- Map.intersectionWith (,) as bs
-     -> join $ foldM combine Map.empty <$> mapM (uncurry subsumeT) m'
+     -> do recordSubs <- traverse (uncurry subsumeT) m'
+           foldM combine Map.empty recordSubs
      | otherwise
      -> Nothing
 
