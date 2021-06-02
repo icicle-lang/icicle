@@ -205,27 +205,36 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
           annotate AnnVariable (pretty n)
 
         Nested _ q ->
-          pretty q
+          hang 2 (pretty q)
 
         App{}
            -- Operators
            | Just (Op o, _, [x]) <- takePrimApps xx
            , FPrefix <- fixity o
-           -> pretty o <+> prettyPrec inner_prec x
+           -> hang 2 $ pretty o <+> prettyPrec inner_prec x
+           | Just (Op TupleComma, _, [x,y]) <- takePrimApps xx
+           ->  parens $
+               prettyPrec inner_prec_1 x
+           <+> pretty TupleComma
+           <+> prettyPrec inner_prec_2 y
            | Just (Op o, _, [x,y]) <- takePrimApps xx
            , FInfix _ <- fixity o
-           ->  prettyPrec inner_prec_1 x
+           ->  hang 2 $
+               prettyPrec inner_prec_1 x
            <+> pretty o
            <+> prettyPrec inner_prec_2 y
 
         App _ x y ->
-          prettyPrec inner_prec_1 x <+> prettyPrec inner_prec_2 y
+          hang 2 $
+            prettyPrec inner_prec_1 x <+> prettyPrec inner_prec_2 y
 
         Prim _ (Lit (LitTime t)) ->
-          annotate AnnPrimitive (text $ Text.unpack $ renderTime t)
+          hang 2 $
+            annotate AnnPrimitive (text $ Text.unpack $ renderTime t)
 
         Prim _ p ->
-          annotate AnnPrimitive (pretty p)
+          hang 2 $
+            annotate AnnPrimitive (pretty p)
 
         Lam _ n x ->
           prettyPunctuation "(" <>
@@ -235,13 +244,11 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
         Case _ scrut pats ->
           vsep [
               prettyKeyword "case" <+> pretty scrut <+> prettyKeyword "of"
-            , prettyPunctuation "{"
             , vcat . with pats $ \(p, x) ->
                 vsep [
                     indent 2 $ pretty p <+> prettyPunctuation "then"
                   , indent 4 $ pretty x
-                  ] <+> prettyPunctuation ";"
-            , prettyPunctuation "}"
+                  ]
             ]
 
         If _ scrut true false ->
@@ -310,7 +317,7 @@ precedenceOfX xx
     Var{}
      -> precedenceNeverParens
     Lam{}
-     -> precedenceApplication
+     -> precedenceAlwaysParens
     Nested{}
      -> precedenceAlwaysParens
     App{}
@@ -320,9 +327,9 @@ precedenceOfX xx
     Prim{}
      -> precedenceNeverParens
     If{}
-     -> precedenceApplication
+     -> precedenceAlwaysParens
     Case{}
-     -> precedenceApplication
+     -> precedenceAlwaysParens
     Access{}
      -> precedenceNeverParens
 

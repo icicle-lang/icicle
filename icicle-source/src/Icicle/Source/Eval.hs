@@ -15,6 +15,7 @@
 --
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Icicle.Source.Eval (
     EvalError   (..)
   , evalQ
@@ -213,6 +214,12 @@ evalX x vs env
                      Right xx
                  Nothing ->
                     Left $ EvalErrorBadMapLookup ann x
+             VTime t | field == StructField "day" ->
+               return $ VDouble $ fromIntegral $ DT.dayOf t
+             VTime t | field == StructField "month" ->
+               return $ VDouble $ fromIntegral $ DT.monthOf t
+             VTime t | field == StructField "year" ->
+               return $ VDouble $ fromIntegral $ DT.yearOf t
              _ ->
                Left $ EvalErrorBadMapLookup ann x
 

@@ -171,6 +171,7 @@ convertFold q
               | otherwise
               -> convertError $ ConvertErrorExpNoSuchVariable ann v
 
+
      | Case (Annot { annAnnot = ann, annResult = retty }) scrut pats <- final q
       -> do -- Case expressions are very similar to primops.
             -- We know that the scrutinee and the patterns are all aggregates.
@@ -185,7 +186,7 @@ convertFold q
             retty' <- convertValType' retty
             scrutT <- convertValType' $ annResult $ annotOfExp scrut
 
-            let ts  = fmap (typeFold) res
+            let ts  = fmap typeFold res
             -- Create pairs for zeros
             (zz, tt) <- pairConstruct (fmap foldZero res) ts
 
@@ -207,6 +208,29 @@ convertFold q
 
             return $ ConvertFoldResult kk zz xx tt retty'
 
+     -- Use the conversion for case expression.
+     -- The semantics are identical, so this is
+     -- fine.
+     | If ann scrut true false <- final q
+      -> convertFold q { final =
+          Case ann scrut [
+            (PatCon ConTrue [], true)
+          , (PatCon ConFalse [], false)
+          ]
+         }
+
+     | Access annot@(Annot { annResult = retty }) accessed field <- final q
+      -> do -- Convert the accessed expression as a fold
+            res    <- convertFold $ Query [] accessed
+            retty' <- convertValType' retty
+
+            n'unit <- lift fresh
+            -- Map the extraction:
+            --  convert the access of the applied lambda, then wrap it up in a new lambda
+            access <- convertAccess annot (mapExtract res CE.@~ CE.xVar n'unit) (typeExtract res) field
+            let xx  = CE.xLam n'unit T.UnitT access
+
+            return $ res { mapExtract = xx, typeExtract = retty' }
 
      -- It must be a non-primitive application
      | otherwise

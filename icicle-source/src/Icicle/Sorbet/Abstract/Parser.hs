@@ -147,9 +147,7 @@ pDeclTyped pos typName = do
       , "  " <> show (pretty var)
       ]
 
-  fun      <- pFunction
-  return $
-    DeclFun pos var (Just s) fun
+  DeclFun pos var (Just s) <$> pFunction
 
 
 pFunction :: Parser s m => m (Exp Range Var)
@@ -243,14 +241,12 @@ pContextLet = do
   let
     letFun = do
       (_, n) <- pVariable
-      x      <- pFunction
-      return  $ Let p (PatVariable n) x
+      Let p (PatVariable n) <$> pFunction
 
     letPat = do
       pat    <- pPattern
       _      <- pToken Tok_Equals
-      x      <- pExp
-      return  $ Let p pat x
+      Let p pat <$> pExp
 
     letE   = letFun <|> letPat
 
@@ -390,8 +386,8 @@ pExp = do
 
 pExp1 :: Parser s m => m (Exp Range Var)
 pExp1
- =   ((uncurry Var       <$> var        ) >>= accessor)
- <|> (uncurry Prim       <$> primitives )
+ =   ((uncurry Var       <$> var       ) >>= accessor)
+ <|> (uncurry Prim       <$> primitives)
  <|> (simpNested         <$> inParens)
  <|> parseIf
  <|> parseCase

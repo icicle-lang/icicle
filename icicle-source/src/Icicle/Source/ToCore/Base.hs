@@ -154,6 +154,7 @@ data ConvertError a n
  | ConvertErrorBadCaseNoDefault              a (Exp (Annot a n) n)
  | ConvertErrorBadCaseNestedConstructors     a (Exp (Annot a n) n)
  | ConvertErrorImpossibleFold1               a
+ | ConvertErrorCannotConvertAccessor         a ValType StructField
  | ConvertErrorInputTypeNotPair              a ValType
  | ConvertErrorPatternUnconvertable          a (Pattern n)
  | ConvertErrorCannotCheckKey                a (X.Exp () n C.Prim) (X.ExpError () n C.Prim)
@@ -191,6 +192,8 @@ annotOfError e
     ConvertErrorBadCaseNestedConstructors a _
      -> Just a
     ConvertErrorImpossibleFold1 a
+     -> Just a
+    ConvertErrorCannotConvertAccessor a _ _
      -> Just a
     ConvertErrorCannotCheckKey a _ _
      -> Just a
@@ -395,6 +398,9 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
 
      ConvertErrorImpossibleFold1 a
       -> pretty a <> ": fold1 cannot be converted; desugar first"
+
+     ConvertErrorCannotConvertAccessor a t f
+      -> pretty a <> ": field accessor cannot be converted; type: " <> pretty t <> "; field to gather: " <> pretty f
 
      ConvertErrorPatternUnconvertable a p
       -> pretty a <> ": pattern conversion error; desugar first:" <> pretty p

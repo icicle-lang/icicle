@@ -78,27 +78,42 @@ runtime =
 sundry :: TestSuite
 sundry =
   TestSuite "sundry" [
-      Icicle.Test.Avalanche.CheckCommutes.tests
-    , Icicle.Test.Avalanche.EvalCommutes.tests
-    , Icicle.Test.Avalanche.Flatten.tests
-    , Icicle.Test.Avalanche.Melt.tests
-    , Icicle.Test.Avalanche.MeltPrim.tests
-    , Icicle.Test.Avalanche.SimpCommutes.tests
-    , Icicle.Test.Common.Data.tests
-    , Icicle.Test.Core.Exp.Alpha.tests
-    , Icicle.Test.Core.Exp.Check.tests
-    , Icicle.Test.Core.Exp.Eval.tests
-    , Icicle.Test.Core.Exp.Simp.tests
-    , Icicle.Test.Core.Program.Condense.tests
-    , Icicle.Test.Core.Program.Eval.tests
-    , Icicle.Test.Core.Program.Fusion.tests
+      Icicle.Test.Common.Data.tests
     , Icicle.Test.Data.Time.tests
     , Icicle.Test.Encoding.tests
     , Icicle.Test.Foreign.Array.tests
     , Icicle.Test.Internal.EditDistance.tests
     , Icicle.Test.Language.tests
     , Icicle.Test.Serial.tests
-    , Icicle.Test.Source.Convert.tests
+    ]
+
+avalanche :: TestSuite
+avalanche =
+  TestSuite "avalanche" [
+      Icicle.Test.Avalanche.CheckCommutes.tests
+    , Icicle.Test.Avalanche.EvalCommutes.tests
+    , Icicle.Test.Avalanche.Flatten.tests
+    , Icicle.Test.Avalanche.Melt.tests
+    , Icicle.Test.Avalanche.MeltPrim.tests
+    , Icicle.Test.Avalanche.SimpCommutes.tests
+    ]
+
+core :: TestSuite
+core =
+  TestSuite "core" [
+      Icicle.Test.Core.Exp.Alpha.tests
+    , Icicle.Test.Core.Exp.Check.tests
+    , Icicle.Test.Core.Exp.Eval.tests
+    , Icicle.Test.Core.Exp.Simp.tests
+    , Icicle.Test.Core.Program.Condense.tests
+    , Icicle.Test.Core.Program.Eval.tests
+    , Icicle.Test.Core.Program.Fusion.tests
+    ]
+
+source :: TestSuite
+source =
+  TestSuite "source" [
+      Icicle.Test.Source.Convert.tests
     , Icicle.Test.Source.MaxMapSize.tests
     , Icicle.Test.Source.Progress.tests
     ]
@@ -114,8 +129,11 @@ suites :: Map String TestSuite
 suites =
   Map.fromList $ fmap (\x -> (suiteName x, x)) [
       runtime
-    , sundry
+    , avalanche
+    , core
     , sorbet
+    , source
+    , sundry
     ]
 
 runTestSuite :: TestSuite -> IO ()

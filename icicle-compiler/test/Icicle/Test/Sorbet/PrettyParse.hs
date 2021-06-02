@@ -10,6 +10,7 @@ import qualified Icicle.Test.Gen.Core.Type as CoreGen
 
 import           P
 
+import           Data.Functor.Identity (runIdentity)
 import qualified Data.Text as Text
 import           Data.String
 
@@ -19,6 +20,7 @@ import           Hedgehog hiding (Var)
 import qualified Hedgehog.Gen.QuickCheck as Gen
 
 import           Icicle.Common.Base
+import           Icicle.Common.FixT
 import           Icicle.Internal.Pretty
 
 import           Icicle.Sorbet.Parse
@@ -36,7 +38,22 @@ prop_parse_pretty_same = withDiscards 1000 . withTests 1000 . property $ do
   qwf <- forAll $ Gen.quickcheck (genQueryWithFeatureTypedGen 0)
 
   let
-    q  = qwfQueryTop qwf
+    -- Remove field access applications which
+    -- aren't applied to a var.
+    -- These are permitted in the AST, but
+    -- we can't parse them at the moment.
+    removeAccessor () x
+      | Access _ Query.Var {} _ <- x
+      = return ((), x)
+      | Access _ y _ <- x
+      = progress ((), y)
+      | otherwise
+      = return ((), x)
+
+    removeAccessors
+      = idTransform { transformExp = removeAccessor }
+
+    q  = runIdentity $ fixpoint (transformQT removeAccessors) (qwfQueryTop qwf)
     pp = show $ pretty q
     t  = Text.pack pp
 
@@ -61,6 +78,7 @@ prop_parse_pretty_same = withDiscards 1000 . withTests 1000 . property $ do
       = return ((), Query.Var a (name p))
       | otherwise
       = return ((), x)
+
 
     -- Replace introduced primitives in the generated
     -- query with vars with the same name, as we will

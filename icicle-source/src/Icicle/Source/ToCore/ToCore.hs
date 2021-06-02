@@ -466,6 +466,27 @@ convertReduce xx
 
         return (bs' <> b', nm)
 
+ | Access a@(Annot { annAnnot = ann, annResult = retty }) accessed field <- xx
+ = do   -- Convert the accessed expression
+        res    <- convertReduce accessed
+        accT   <- convertValType ann $ annResult $ annotOfExp accessed
+
+        let bs  = fst res
+        let acc = CE.xVar $ snd res
+
+        -- Map the final result:
+        --  convert the access of the reduced bound variable.
+        access <- convertAccess a acc accT field
+        nm     <- lift fresh
+
+        let b'  | TemporalityPure <- getTemporalityOrPure retty
+                = pre nm access
+                | otherwise
+                = post nm access
+
+        return (bs <> b', nm)
+
+
  -- It's not a variable or a nested query,
  -- so it must be an application of a non-primitive
  | otherwise

@@ -12,6 +12,7 @@ module Icicle.Source.ToCore.Exp (
   , convertExpQ
   , convertCase
   , convertCaseFreshenPat
+  , convertAccess
 
   , isAnnotPossibly
   , unwrapSum
@@ -110,34 +111,7 @@ convertExp x
     Access ann xpression field
      -> do  xpression' <- convertExp xpression
             xpressionT <- convertValType (annAnnot ann) $ annResult $ annotOfExp xpression
-
-            case xpressionT of
-              T.StructT st@(T.StructType struct'map)
-                | Just fieldType <- Map.lookup field struct'map
-                -> return
-                    (CE.xPrim (C.PrimMinimal $ Min.PrimStruct $ Min.PrimStructGet field fieldType st)
-                      CE.@~ xpression')
-
-              T.TimeT
-                | field == T.StructField "year"
-                -> return
-                    (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeProjectYear)
-                      CE.@~ xpression')
-
-              T.TimeT
-                | field == T.StructField "month"
-                -> return
-                    (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeProjectMonth)
-                      CE.@~ xpression')
-
-              T.TimeT
-                | field == T.StructField "day"
-                -> return
-                    (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeProjectDay)
-                      CE.@~ xpression')
-
-              _ -> convertError
-                 $ ConvertErrorCannotConvertType (annAnnot ann) (annResult ann)
+            convertAccess ann xpression' xpressionT field
 
 
  where
@@ -250,6 +224,43 @@ convertCase x scrut pats scrutT resT
    = convertError $ ConvertErrorBadCaseNestedConstructors (annAnnot $ annotOfExp x) x
   mkVars (PatLit _ _)
    = convertError $ ConvertErrorBadCaseNestedConstructors (annAnnot $ annotOfExp x) x
+
+
+convertAccess
+  :: Annot a n
+  -> C.Exp () n
+  -> T.ValType
+  -> StructField
+  -> ConvertM a n (C.Exp () n)
+convertAccess ann xpression' xpressionT field =
+  case xpressionT of
+    T.StructT st@(T.StructType struct'map)
+      | Just fieldType <- Map.lookup field struct'map
+      -> return
+          (CE.xPrim (C.PrimMinimal $ Min.PrimStruct $ Min.PrimStructGet field fieldType st)
+            CE.@~ xpression')
+
+    T.TimeT
+      | field == T.StructField "year"
+      -> return
+          (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeProjectYear)
+            CE.@~ xpression')
+
+    T.TimeT
+      | field == T.StructField "month"
+      -> return
+          (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeProjectMonth)
+            CE.@~ xpression')
+
+    T.TimeT
+      | field == T.StructField "day"
+      -> return
+          (CE.xPrim (C.PrimMinimal $ Min.PrimTime Min.PrimTimeProjectDay)
+            CE.@~ xpression')
+
+    _ -> convertError
+        $ ConvertErrorCannotConvertAccessor (annAnnot ann) xpressionT field
+
 
 
 isAnnotPossibly :: Annot a n -> Bool

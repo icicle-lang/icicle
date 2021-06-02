@@ -77,6 +77,7 @@ data QueryWithFeature
  = QueryWithFeature
  { qwfQuery     :: Query () T.Variable
  , qwfNow       :: Maybe (CB.Name T.Variable)
+ , qwfPureNow   :: Bool
  , qwfOutput    :: OutputId
  , qwfFeatureT  :: CT.ValType
  , qwfFeatureN  :: CB.Name T.Variable
@@ -86,10 +87,11 @@ data QueryWithFeature
  }
 
 instance Show QueryWithFeature where
-  show (QueryWithFeature q now out ty name iid time key)
+  show (QueryWithFeature q now nowIsPure out ty name iid time key)
     =  "QueryWithFeature:"
     <> "\n  Query: " <> show (pretty q)
     <> "\n  Now: " <> show (pretty now)
+    <> "\n  Now is Pure: " <> show (pretty nowIsPure)
     <> "\n  Output: " <> show (pretty out)
     <> "\n  Type: " <> show (pretty ty)
     <> "\n  Name: " <> show (pretty name)
@@ -147,6 +149,7 @@ genQueryWithFeatureTypedGen tableflipPercent
               , tgiTableflipPercent = tableflipPercent }
       q   <- genQuery tgi
       o   <- arbitrary
+      p   <- arbitrary
       -- Note: Convert to Source type and back in generator
       -- Convert to Source type and back, because this filters out Bufs.
       -- (It actually converts them to Arrays)
@@ -157,7 +160,7 @@ genQueryWithFeatureTypedGen tableflipPercent
       -- part was using the Source-converted type with Arrays.
       t      <- (Maybe.fromJust . valTypeOfType . typeOfValType) <$> Qc.hedgehog CoreGen.genValType
       k      <- genQueryKey t
-      return $ QueryWithFeature q (Just now) o t nm iid tm k
+      return $ QueryWithFeature q (Just now) p o t nm iid tm k
 
 -- | Use arbitrary instance to generate query.
 -- Less likely to typecheck, but more likely to cover crazy corner cases.
@@ -171,10 +174,11 @@ genQueryWithFeatureArbitrary
       let tm  = make "timename"
       q   <- arbitrary
       o   <- arbitrary
+      p   <- arbitrary
       -- See "Note: Convert to Source type and back in generator" above
       t      <- (Maybe.fromJust . valTypeOfType . typeOfValType) <$> Qc.hedgehog CoreGen.genValType
       k      <- genQueryKey t
-      return $ QueryWithFeature q (Just now) o t nm iid tm k
+      return $ QueryWithFeature q (Just now) p o t nm iid tm k
 
 
 -- | Pretty-print the query and stuff
@@ -201,7 +205,7 @@ qwfCheckKey qwf = case unInputKey (qwfFeatureK qwf) of
                   . freshtest "core_key"
                   . runEitherT $ do
                       q' <- hoistEither $ first CheckErrDS $ runDesugar (freshNamer "dummy_desugar") (desugarQT q)
-                      firstEitherT CheckErrTC $ checkQT defaultCheckOptions (qwfFeatureMap qwf) q'
+                      firstEitherT CheckErrTC $ checkQT defaultCheckOptions { checkOptionNowPure = qwfPureNow qwf } (qwfFeatureMap qwf) q'
 
     case contexts . query $ checked of
       Distinct _ xx' : _
@@ -326,6 +330,13 @@ genExp tgi
       -- case statements
       , Case   () <$> genExp tgi
                   <*> listOf1 (genCase tgi)
+      -- if then else expression
+      , If     () <$> genExp tgi
+                  <*> genExp tgi
+                  <*> genExp tgi
+      -- struct field accessor
+      , Access () <$> genExp tgi
+                  <*> (CB.StructField <$> elements (["year", "month", "day"] <> colours))
       -- well-formed applications to primitives
       , primApps
       ]
