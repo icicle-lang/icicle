@@ -290,6 +290,8 @@ evalP ann p xs vs env
              -> return $ VRight va
              | otherwise
              -> err
+            ConUnit
+             -> return VUnit
             ConError ex
              -> return $ VError ex
 

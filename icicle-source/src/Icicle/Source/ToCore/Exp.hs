@@ -204,6 +204,10 @@ convertCase x scrut pats scrutT resT
                      CE.@~ (CE.xLam nr tb xr)
                      CE.@~ scrut)
 
+         T.UnitT
+          | Just ([],unit) <- Map.lookup ConUnit     m
+          -> return unit
+
          _
           -> convertError $ ConvertErrorBadCaseNoDefault (annAnnot $ annotOfExp x) x
  where

@@ -104,6 +104,8 @@ convertPrim p ann resT xts = go p
    | otherwise
    = convertError
    $ ConvertErrorPrimNoArguments ann 1 p
+  go (PrimCon ConUnit)
+   = flip (CE.XValue ()) V.VUnit <$> convertValType ann resT
   go (PrimCon (ConError err))
    = return $ CE.XValue () T.ErrorT $ V.VError err
 

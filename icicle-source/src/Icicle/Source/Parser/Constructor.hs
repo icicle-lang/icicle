@@ -37,6 +37,7 @@ constructors
    ,("False",Q.ConFalse)
    ,("Left", Q.ConLeft)
    ,("Right",Q.ConRight)
+   ,("Unit",Q.ConUnit)
    ,("ExceptTombstone",         Q.ConError ExceptTombstone)
    ,("ExceptFold1NoValue",      Q.ConError ExceptFold1NoValue)
    ,("ExceptCannotCompute",     Q.ConError ExceptCannotCompute)

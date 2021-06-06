@@ -455,7 +455,6 @@ primitives
  <|> second Fun                                <$> parseRegex
  <|> timePrimitives
  <?> "primitive"
-  where
 
 
 parseRegex :: Parser s m => m (Range, BuiltinFun)
@@ -464,8 +463,8 @@ parseRegex
        o         <- Mega.getOffset
        (_,s)     <- pString
        let mRegex = Mega.parseMaybe Regex.parser s
-       regex     <- maybe (failAtOffset o "Not a valid regular expression") (return) mRegex
-       return $ (p, BuiltinRegex (Grepl s regex))
+       regex     <- maybe (failAtOffset o "Not a valid regular expression") pure mRegex
+       return (p, BuiltinRegex (Grepl s regex))
 
 
 pConstructor :: Parser s m => m (Range, Constructor)
@@ -493,7 +492,7 @@ pWindowSizeUnit
 
  where
   unit kw q
-   = pToken kw *> return q
+   = q <$ pToken kw
 
 
 simpNested :: Query a n -> Exp a n

@@ -859,6 +859,9 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
         (r,c,e') <- goPat p e
         return ( SumT l r , c, e' )
 
+  goPat (PatCon ConUnit []) e
+   = return (UnitT, [], e)
+
   goPat (PatLit l _) e
    = do (_fErr, resT, cons) <- primLookup ann (Lit l)
         return (resT, cons, e)

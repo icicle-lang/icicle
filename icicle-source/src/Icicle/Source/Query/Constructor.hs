@@ -51,6 +51,9 @@ data Constructor
  | ConLeft
  | ConRight
 
+ -- Unit
+ | ConUnit
+
  -- Error
  | ConError ExceptionInfo
  deriving (Eq, Ord, Show, Generic)
@@ -153,6 +156,13 @@ substOfPattern (PatCon ConRight pats) val
  | otherwise
  = Nothing
 
+substOfPattern (PatCon ConUnit pats) val
+ | []           <- pats
+ , VUnit        <- val
+ = return Map.empty
+ | otherwise
+ = Nothing
+
 substOfPattern (PatCon (ConError ex) pats) val
  | []             <- pats
  , VError ex'     <- val
@@ -175,6 +185,8 @@ arityOfConstructor cc
 
     ConLeft  -> 1
     ConRight -> 1
+
+    ConUnit  -> 0
 
     ConError _ -> 0
 
@@ -210,6 +222,10 @@ instance Pretty Constructor where
       prettyConstructor "Left"
     ConRight ->
       prettyConstructor "Right"
+
+    ConUnit ->
+      prettyConstructor "Unit"
+
     ConError e ->
       prettyConstructor $ show e
 
