@@ -387,6 +387,7 @@ pExp = do
 pExp1 :: Parser s m => m (Exp Range Var)
 pExp1
  =   ((uncurry Var       <$> var       ) >>= accessor)
+ <|> parseRecord
  <|> (uncurry Prim       <$> primitives)
  <|> (simpNested         <$> inParens)
  <|> parseIf
@@ -395,6 +396,14 @@ pExp1
  where
   var
    = pVariable
+
+  field =
+    tryToken $ \_ -> \case
+      Tok_VarId prjId ->
+        Just $ StructField prjId
+      _ ->
+        Nothing
+
 
   accessor v
     = (accessor1 v >>= accessor)
@@ -433,6 +442,18 @@ pExp1
         _   <- pToken Tok_Then
         xx  <- pQuery
         return (pat, simpNested xx)
+
+  parseRecord
+   = do pos   <- pToken Tok_LBrace
+        flds  <- parseField `Mega.sepEndBy` pToken Tok_Semi
+        _     <- pToken Tok_RBrace
+        return $ Record pos flds
+
+  parseField
+   = do fld <- field
+        _   <- pToken Tok_Equals
+        xx  <- pQuery
+        return (fld, simpNested xx)
 
 
 pUnresolvedInputId :: Parser s m => m UnresolvedInputId

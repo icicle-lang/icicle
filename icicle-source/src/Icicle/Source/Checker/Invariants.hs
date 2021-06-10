@@ -120,6 +120,8 @@ invariantX ctx x
      -> invariantX ctx s >> invariantX ctx t >> invariantX ctx f
     Access _ e _
      -> invariantX ctx e
+    Record _ fs
+     -> mapM_ (mapM_ (invariantX ctx)) fs
 
 
  where

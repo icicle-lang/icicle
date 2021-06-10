@@ -127,3 +127,6 @@ checkPat exp =
 
     Q.Access {}
       -> fail "unable to parse record access as a pattern"
+
+    Q.Record {}
+      -> fail "unable to parse record constructor as a pattern"

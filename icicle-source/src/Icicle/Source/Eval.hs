@@ -223,6 +223,10 @@ evalX x vs env
              _ ->
                Left $ EvalErrorBadMapLookup ann x
 
+    Record _ fields
+     -> do fields' <- traverse (traverse (\e -> evalX e vs env)) fields
+           return $ VStruct (Map.fromList fields')
+
  where
   goPats v []
    = Left

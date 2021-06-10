@@ -80,6 +80,10 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
         Access _ expression field ->
           pretty expression <> "." <> pretty field
 
+        Record _ fields ->
+          prettyPunctuation "{" <>
+            vsep (with fields $ \(p, x) -> pretty p <> ":" <> pretty (PrettyAnnot x)) <>
+          prettyPunctuation "}"
    where
     (inner_prec, assoc) = precedenceOfX (getPrettyAnnot xx)
 

@@ -68,6 +68,8 @@ substX' s x
      -> Case a <$> substX' s scrut <*> mapM goPat pats
     Access a e f
      -> Access a <$> substX' s e <*> pure f
+    Record a fs
+     -> Record a <$> traverse (traverse (substX' s)) fs
 
 
  where

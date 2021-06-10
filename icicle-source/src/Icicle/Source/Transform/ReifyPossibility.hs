@@ -194,6 +194,11 @@ reifyPossibilityX' wrap x
               alts'  <- mapM (\(p,xx) -> (,) p <$> (wrapRightIfAnnot a <$> reifyPossibilityX' wrap xx)) alts
               return $ Case  (wrapAnnot a) scrut' alts'
 
+      -- Wrap the record construction up if required
+      Record a fs
+       -> do  fs' <- mapM (mapM (reifyPossibilityX' wrap)) fs
+              makeRecord a (Record a) fs' False
+
 
 reifyPossibilityQ
         :: (Hashable n, Eq n)
@@ -377,6 +382,47 @@ makeApps a fun (arg:rest) doWrap
  -- If argument is a definitely, just apply it as usual
  | otherwise
  =  makeApps a (App a fun arg) rest doWrap
+
+makeRecord
+        :: Hashable n
+        => Annot a n
+        -> ([(StructField, Exp (Annot a n) n)] -> Exp (Annot a n) n)
+        -> [(StructField, Exp (Annot a n) n)]
+        -> Bool
+        -> Fresh n (Exp (Annot a n) n)
+makeRecord _ fun [] doWrap
+ -- After everything is handled, if any unwrapped a right, rewrap the
+ -- final possibility in a right.
+ = if   doWrap
+   then return (conRight (fun []))
+   else return (fun [])
+
+makeRecord a fun (field@(nm,fExp) : rest) doWrap
+ -- Check if the field expression is a possibly.
+ -- If so, we need to unwrap it before applying
+ | arga                <- annotOfExp fExp
+ , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult arga
+ =  do  nError <- fresh
+        nValue <- fresh
+        let a'    = wrapAnnot a
+            err   = con1 a' ConLeft $ Var (definiteAnnot a) nError
+
+            -- Bare value. Note that this is now definite, but with same (bare) type
+            bare  = Var (extractValueAnnot arga) nValue
+
+        fun' <- makeRecord a (fun . ((nm, bare):)) rest True
+
+        let app'  = Case a' fExp
+                  [ ( PatCon ConLeft  [ PatVariable nError ]
+                    , err )
+                  , ( PatCon ConRight [ PatVariable nValue ]
+                    , fun') ]
+
+        return app'
+
+ -- If argument is a definitely, just apply it as usual
+ | otherwise
+ =  makeRecord a (fun . (field:)) rest doWrap
 
 
 con0 :: Annot a n -> Constructor -> Exp (Annot a n) n

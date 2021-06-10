@@ -154,3 +154,6 @@ transformX t xx
        Access a x f
         -> do x' <- goX x
               return $ Access a x' f
+       Record a fs
+        -> do fs' <- traverse (traverse goX) fs
+              return $ Record a fs'

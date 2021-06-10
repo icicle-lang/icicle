@@ -93,9 +93,14 @@ simpDumbCases xx
     Lam a n x
      -> Lam a n (simpX x)
 
+    Access a x f
+      -> Access a (simpX x) f
+
+    Record a fs ->
+      Record a (simpX <$$> fs)
+
     Var{}  -> xx
     Prim{} -> xx
-    Access{} -> xx
 
  where
   simpX
@@ -166,6 +171,8 @@ simpDumbLets xx
         -> bd
       Access a e f
         -> Access a (substX x y e) f
+      Record a fs
+        -> Record a (substX x y <$$> fs)
 
   substA x y (pat, e)
    | x `elem` varsIn pat = (pat, e)

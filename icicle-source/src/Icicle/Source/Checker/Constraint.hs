@@ -28,7 +28,7 @@ import           P hiding (with)
 import           Control.Monad.Trans.Either
 
 import           Data.Hashable                (Hashable)
-import           Data.List                    (unzip3)
+import           Data.List                    (unzip3, zip)
 import qualified Data.Map                     as Map
 
 
@@ -124,6 +124,7 @@ defaults topq
            Prim{} -> fa
            Lam{} -> fa
            Access _ p _ -> fa <> defaultOfAllX p
+           Record _ fs -> fa <> (Map.unions $ fmap (defaultOfAllX . snd) fs)
            If _ p t f -> fa <> defaultOfAllX p <> defaultOfAllX t <> defaultOfAllX f
            Case _ s pats
             ->  fa <> defaultOfAllX s <>
@@ -619,6 +620,22 @@ generateX x env
                    $ \a' -> Access a' q f
 
             return (x', subs, cons <> cons'complete)
+
+    -- Struct fields require that the expression have a struct type
+    -- with the a right field type. We enforce this with a CHasField
+    -- constraint.
+    Record _ fs
+      -> do (args, subs, cons)     <- fmap unzip3 $ traverse (flip generateX env) $ snd <$> fs
+            let argsT               = annResult . annotOfExp <$> args
+            let subs'               = foldl compose Map.empty subs
+            let cons'               = fold cons
+            let resT                = StructT $ Map.fromList (zip (fst <$> fs) argsT)
+            let namedArgs           = zip (fst <$> fs) args
+
+            let x' = annotate cons' resT
+                   $ \a' -> Record a' namedArgs
+
+            return (x', subs', cons')
 
     -- Quick hack so that dollar works, we just inline it as
     -- soon as we start type checking.

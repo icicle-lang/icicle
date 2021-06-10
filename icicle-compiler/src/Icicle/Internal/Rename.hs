@@ -55,6 +55,9 @@ renameX f e = case e of
     $ fmap (renamePat f *** renameX f) pats
   SQ.Access a e1 n
    -> SQ.Access a (renameX f e1) n
+  SQ.Record a fields
+   -> SQ.Record a
+    $ fmap (second (renameX f)) fields
 
 renamePat :: Hashable m => (n -> m) -> SQ.Pattern n -> SQ.Pattern m
 renamePat f (SQ.PatCon c ps)   = SQ.PatCon c $ fmap (renamePat f) ps

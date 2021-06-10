@@ -143,6 +143,10 @@ simplifyNestedX xx
     Access a x f
      -> Access a (simplifyNestedX x) f
 
+    Record a fields
+     -> Record a
+      $ fmap (\(p,x) -> (p, simplifyNestedX x)) fields
+
 instance TraverseAnnot Query  where
   traverseAnnot f q =
     Query <$> traverse (traverseAnnot f) (contexts q)
@@ -263,6 +267,9 @@ allvarsX x
     Access a e f
      -> let e' = allvarsX e
          in Access (a, annX e') e' f
+    Record a fs
+     -> let fs'       = second allvarsX <$> fs
+         in Record (a, Set.unions (annX . snd <$> fs')) fs'
 
  where
   annX = snd . annotOfExp

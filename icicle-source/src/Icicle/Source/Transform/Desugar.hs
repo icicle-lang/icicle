@@ -222,6 +222,9 @@ desugarX xx
     Access a x f
       -> do x' <- desugarX x
             return $ Access a x' f
+    Record a fs
+      -> do fs' <- traverse (traverse desugarX) fs
+            return $ Record a fs'
 
 --------------------------------------------------------------------------------
 
