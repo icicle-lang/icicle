@@ -621,21 +621,41 @@ generateX x env
 
             return (x', subs, cons <> cons'complete)
 
-    -- Struct fields require that the expression have a struct type
-    -- with the a right field type. We enforce this with a CHasField
-    -- constraint.
-    Record _ fs
+    -- This is wrong. We can't just box the fields into the StructT, as
+    -- we should only be doing that with the data component; everything
+    -- else has to join.
+    Record ann fs
       -> do (args, subs, cons)     <- fmap unzip3 $ traverse (flip generateX env) $ snd <$> fs
             let argsT               = annResult . annotOfExp <$> args
+            let (tmpsT, pssT, dtsT) = unzip3 $ fmap decomposeT argsT
+            (tmpT, t'cons)          <- foldM checkTemp (Nothing, []) tmpsT
+            (fpsT, f'cons)         <- foldM checkPoss (Nothing, []) pssT
+
+            let datT                = StructT $ Map.fromList (zip (fst <$> fs) dtsT)
+            let resT                = recomposeT (tmpT, fpsT, datT)
             let subs'               = foldl compose Map.empty subs
-            let cons'               = fold cons
-            let resT                = StructT $ Map.fromList (zip (fst <$> fs) argsT)
+            let cons'               = t'cons <> f'cons <> fold cons
             let namedArgs           = zip (fst <$> fs) args
 
             let x' = annotate cons' resT
                    $ \a' -> Record a' namedArgs
 
             return (x', subs', cons')
+
+          where
+            checkTemp = check' CTemporalityJoin
+            checkPoss = check' CPossibilityJoin
+            check' _ (Nothing, cons) Nothing =
+              return (Nothing, cons)
+            check' _ (Just a, cons) Nothing =
+              return (Just a, cons)
+            check' _ (Nothing, cons) (Just a) =
+              return (Just a, cons)
+            check' joinMode (Just a, cons) (Just b) = do
+              r''  <- TypeVar <$> fresh
+              let j = joinMode  r'' a b
+              return (Just r'', require ann j <> cons)
+
 
     -- Quick hack so that dollar works, we just inline it as
     -- soon as we start type checking.

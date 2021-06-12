@@ -326,7 +326,7 @@ genExp tgi
       -- literal primitives only
       , Prim   () <$> genLitPrim ]
       -- sub-queries
-      [ (simplifyNestedX . Nested ()) <$> genQuery tgi
+      [ simplifyNestedX . Nested () <$> genQuery tgi
       -- case statements
       , Case   () <$> genExp tgi
                   <*> listOf1 (genCase tgi)
@@ -337,6 +337,10 @@ genExp tgi
       -- struct field accessor
       , Access () <$> genExp tgi
                   <*> (CB.StructField <$> elements (["year", "month", "day"] <> colours))
+      -- struct creation
+      , Record () <$> vectorOf 2
+                     ((,) <$> (CB.StructField <$> elements colours)
+                          <*> genExp tgi)
       -- well-formed applications to primitives
       , primApps
       ]
