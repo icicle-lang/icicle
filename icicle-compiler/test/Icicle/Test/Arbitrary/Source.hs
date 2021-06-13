@@ -338,7 +338,7 @@ genExp tgi
       , Access () <$> genExp tgi
                   <*> (CB.StructField <$> elements (["year", "month", "day"] <> colours))
       -- struct creation
-      , Record () <$> vectorOf 2
+      , Record () <$> listOf1
                      ((,) <$> (CB.StructField <$> elements colours)
                           <*> genExp tgi)
       -- well-formed applications to primitives
@@ -489,7 +489,7 @@ genLitPrim
  = oneof
        [ Lit . LitInt    <$> pos
        , Lit . LitDouble <$> pos'
-       , Lit . LitString <$> (elements southpark)
+       , Lit . LitString <$> elements southpark
        , Lit . LitTime   <$> arbitrary ]
    where
      -- Negative literals get parsed into negative, then a positive literal.

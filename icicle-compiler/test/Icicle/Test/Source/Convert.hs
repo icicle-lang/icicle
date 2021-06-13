@@ -13,35 +13,34 @@ import           P
 
 import           System.IO
 
-import           Test.QuickCheck
+import           Hedgehog
+import qualified Hedgehog.Gen.QuickCheck as QuickCheck
 
 
-prop_convert_ok :: QueryWithFeature -> Property
-prop_convert_ok qwf
- = counterexample (qwfPretty qwf)
- $ case (qwfCheck qwf, qwfCheckKey qwf) of
-    (Right qt', Right k')
-     -> let conv = qwfConvertToCore qwf k' qt'
-        in  counterexample (show $ pretty conv) $ isRight conv
-    _
-     -> property Discard
+prop_convert_ok :: Property
+prop_convert_ok
+ = withTests 1000 . withDiscards 50000 . property $ do
+    qwf <- forAllWith qwfPretty QuickCheck.arbitrary
+    case (qwfCheck qwf, qwfCheckKey qwf) of
+      (Right qt', Right k')
+        -> void $ evalEither $ first pretty $ qwfConvertToCore qwf k' qt'
+      _
+        -> discard
 
 
-prop_convert_is_well_typed :: QueryWithFeature -> Property
-prop_convert_is_well_typed qwf
- = counterexample (qwfPretty qwf)
- $ case (qwfCheck qwf, qwfCheckKey qwf) of
-    (Right qt', Right k')
-     | Right c' <- qwfConvertToCore qwf k' qt'
-     , check    <- CCheck.checkProgram c'
-     -> counterexample (show $ pretty c')
-      $ counterexample (show $ pretty check)
-      $ isRight check
-    _
-     -> property Discard
+prop_convert_is_well_typed :: Property
+prop_convert_is_well_typed
+ = withTests 1000 . withDiscards 50000 . property $ do
+    qwf <- forAllWith qwfPretty QuickCheck.arbitrary
+    case (qwfCheck qwf, qwfCheckKey qwf) of
+      (Right qt', Right k')
+        | Right conv <- qwfConvertToCore qwf k' qt'
+        -> do Hedgehog.annotateShow $ pretty conv
+              void $ evalEither $ first pretty $ CCheck.checkProgram conv
+      _
+        -> discard
 
 
-
-return []
 tests :: IO Bool
-tests = $checkAllWith TestRunMore (checkArgsSized 100)
+tests =
+  checkParallel $$(discover)

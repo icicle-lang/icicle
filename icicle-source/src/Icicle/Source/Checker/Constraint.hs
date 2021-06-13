@@ -28,7 +28,7 @@ import           P hiding (with)
 import           Control.Monad.Trans.Either
 
 import           Data.Hashable                (Hashable)
-import           Data.List                    (unzip3, zip)
+import           Data.List                    (unzip, unzip3, zip)
 import qualified Data.Map                     as Map
 
 
@@ -621,21 +621,28 @@ generateX x env
 
             return (x', subs, cons <> cons'complete)
 
-    -- This is wrong. We can't just box the fields into the StructT, as
-    -- we should only be doing that with the data component; everything
-    -- else has to join.
+    -- Build up a record application.
+    -- This shares a bit too much code with `App`, and is a bit
+    -- subtle because of it.
     Record ann fs
-      -> do (args, subs, cons)     <- fmap unzip3 $ traverse (flip generateX env) $ snd <$> fs
+      -> do let (names, args0)      = unzip fs
+            let genXs [] _          = return []
+                genXs (xx:xs) env'  = do (xx',s,c) <- generateX xx env'
+                                         rs        <- genXs xs (substE s env')
+                                         return ((xx',s,c) : rs)
+
+            (args, subs, cons)     <- unzip3 <$> genXs args0 env
+            let namedArgs           = zip names args
+
             let argsT               = annResult . annotOfExp <$> args
             let (tmpsT, pssT, dtsT) = unzip3 $ fmap decomposeT argsT
-            (tmpT, t'cons)          <- foldM checkTemp (Nothing, []) tmpsT
+            (tmpT, t'cons)         <- foldM checkTemp (Nothing, []) tmpsT
             (fpsT, f'cons)         <- foldM checkPoss (Nothing, []) pssT
 
-            let datT                = StructT $ Map.fromList (zip (fst <$> fs) dtsT)
+            let datT                = StructT $ Map.fromList (zip names dtsT)
             let resT                = recomposeT (tmpT, fpsT, datT)
-            let subs'               = foldl compose Map.empty subs
-            let cons'               = t'cons <> f'cons <> fold cons
-            let namedArgs           = zip (fst <$> fs) args
+            let subs'               = foldl' compose Map.empty subs
+            let cons'               = t'cons <> f'cons <> join cons
 
             let x' = annotate cons' resT
                    $ \a' -> Record a' namedArgs
@@ -645,6 +652,7 @@ generateX x env
           where
             checkTemp = check' CTemporalityJoin
             checkPoss = check' CPossibilityJoin
+
             check' _ (Nothing, cons) Nothing =
               return (Nothing, cons)
             check' _ (Just a, cons) Nothing =
