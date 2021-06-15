@@ -33,7 +33,6 @@ module Icicle.Sorbet.Abstract.Parser (
 
 import qualified Data.Char as Char
 import qualified Data.List as List
-import qualified Data.Foldable as Foldable
 import qualified Data.Text as Text
 import           Data.Scientific (toRealFloat)
 
@@ -422,11 +421,11 @@ pExp1
 
   tuples r =
     let
-      build [] = Prim r (PrimCon ConUnit)
-      build (x:xs) =
-        foldl (\a b -> mkApp (mkApp (Prim (annotOfExp a) $ PrimCon ConTuple) a) b) x xs
+      build Nothing = Prim r (PrimCon ConUnit)
+      build (Just (x,xs)) =
+        foldl (\a (com, b) -> mkApp (mkApp (Prim com $ PrimCon ConTuple) a) b) x xs
     in
-      build <$> Mega.sepBy simpQuery (pToken Tok_Comma)
+      build <$> optional ((,) <$> simpQuery <*> many ((,) <$> pToken Tok_Comma <*> simpQuery))
 
   inParens
    = (pToken Tok_LParen >>= tuples) <* pToken Tok_RParen <?> "sub-expression or nested query"
