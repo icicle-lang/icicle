@@ -37,7 +37,6 @@ constructors
    ,("False",Q.ConFalse)
    ,("Left", Q.ConLeft)
    ,("Right",Q.ConRight)
-   ,("Unit",Q.ConUnit)
    ,("ExceptTombstone",         Q.ConError ExceptTombstone)
    ,("ExceptFold1NoValue",      Q.ConError ExceptFold1NoValue)
    ,("ExceptCannotCompute",     Q.ConError ExceptCannotCompute)
@@ -101,7 +100,7 @@ checkPat exp =
            _ -> fail "unable to parse pattern, non numeric literals can't be negative"
 
       | otherwise
-      -> fail "unable to parse application as a pattern"
+      -> fail $ "unable to parse application as a pattern" <> show (Q.reannot (const ()) exp)
 
     -- Primitives can be empty constructors
     -- and literals.

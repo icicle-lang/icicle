@@ -224,7 +224,7 @@ instance Pretty Constructor where
       prettyConstructor "Right"
 
     ConUnit ->
-      prettyConstructor "Unit"
+      prettyConstructor "()"
 
     ConError e ->
       prettyConstructor $ show e

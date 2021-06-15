@@ -550,12 +550,12 @@ instance Arbitrary Prim where
 
    cons
     = fmap PrimCon
-    [ ConSome, ConNone, ConTrue, ConFalse, ConLeft, ConRight ]
+    [ ConSome, ConNone, ConTrue, ConFalse, ConLeft, ConRight, ConUnit ]
 
 
 instance Arbitrary Constructor where
  arbitrary
-  = oneof_vals [ ConSome, ConNone, ConTuple, ConTrue, ConFalse, ConLeft, ConRight ]
+  = oneof_vals [ ConSome, ConNone, ConTuple, ConTrue, ConFalse, ConLeft, ConRight, ConUnit ]
 
 instance Arbitrary FoldType where
  arbitrary

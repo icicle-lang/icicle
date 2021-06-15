@@ -33,6 +33,7 @@ module Icicle.Sorbet.Abstract.Parser (
 
 import qualified Data.Char as Char
 import qualified Data.List as List
+import qualified Data.Foldable as Foldable
 import qualified Data.Text as Text
 import           Data.Scientific (toRealFloat)
 
@@ -381,15 +382,15 @@ pExp = do
   either (failAtOffset o . renderDefixError) return (defix xs)
 
  where
-  pOp = do (p, o) <- pVarOp <|> (, Operator ",") <$> pToken Tok_Comma
+  pOp = do (p, o) <- pVarOp
            return (Right (o,p))
 
 pExp1 :: Parser s m => m (Exp Range Var)
 pExp1
- =   ((uncurry Var       <$> var       ) >>= accessor)
+ =   ((uncurry Var <$> var       ) >>= accessor)
  <|> parseRecord
- <|> (uncurry Prim       <$> primitives)
- <|> (simpNested         <$> inParens)
+ <|> (uncurry Prim <$> primitives)
+ <|> inParens
  <|> parseIf
  <|> parseCase
  <?> "expression"
@@ -416,17 +417,28 @@ pExp1
       _ ->
         Nothing
 
+  simpQuery =
+    simpNested <$> pQuery
+
+  tuples r =
+    let
+      build [] = Prim r (PrimCon ConUnit)
+      build (x:xs) =
+        foldl (\a b -> mkApp (mkApp (Prim (annotOfExp a) $ PrimCon ConTuple) a) b) x xs
+    in
+      build <$> Mega.sepBy simpQuery (pToken Tok_Comma)
+
   inParens
-   = pToken Tok_LParen *> pQuery <* pToken Tok_RParen  <?> "sub-expression or nested query"
+   = (pToken Tok_LParen >>= tuples) <* pToken Tok_RParen <?> "sub-expression or nested query"
 
   parseIf
    = do pos   <- pToken Tok_If
         scrut <- pExp
         _     <- pToken Tok_Then
-        true  <- pQuery
+        true  <- simpQuery
         _     <- pToken Tok_Else
-        false <- pQuery
-        return $ If pos scrut (simpNested true) (simpNested false)
+        false <- simpQuery
+        return $ If pos scrut true false
 
   parseCase
    = do pos   <- pToken Tok_Case
@@ -440,20 +452,20 @@ pExp1
   parseAlt
    = do pat <- pPattern
         _   <- pToken Tok_Then
-        xx  <- pQuery
-        return (pat, simpNested xx)
+        xx  <- simpQuery
+        return (pat, xx)
 
   parseRecord
    = do pos   <- pToken Tok_LBrace
-        flds  <- parseField `Mega.sepEndBy` pToken Tok_Semi
+        flds  <- parseField `Mega.sepEndBy` pToken Tok_Comma
         _     <- pToken Tok_RBrace
         return $ Record pos flds
 
   parseField
    = do fld <- field
         _   <- pToken Tok_Equals
-        xx  <- pQuery
-        return (fld, simpNested xx)
+        xx  <- simpQuery
+        return (fld, xx)
 
 
 pUnresolvedInputId :: Parser s m => m UnresolvedInputId
