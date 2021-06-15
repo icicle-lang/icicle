@@ -461,7 +461,7 @@ pExp1
         return $ Record pos flds
 
   parseField
-   = do fld <- field
+   = do fld <- field <?> "field name"
         _   <- pToken Tok_Equals
         xx  <- simpQuery
         return (fld, xx)

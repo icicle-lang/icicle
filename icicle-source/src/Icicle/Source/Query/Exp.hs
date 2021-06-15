@@ -272,7 +272,7 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
 
         Record _ fields ->
           prettyPunctuation "{" <>
-            vsep (with fields $ \(p, x) -> pretty p <> ":" <> pretty x) <>
+            cat (punctuate (prettyPunctuation ",") (with fields $ \(p, x) -> pretty p <> "=" <+> pretty x)) <>
           prettyPunctuation "}"
    where
     (inner_prec, assoc) = precedenceOfX xx
