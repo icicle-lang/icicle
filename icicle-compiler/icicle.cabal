@@ -135,7 +135,6 @@ library
                        Icicle.Compiler.Sea
 
                        Icicle.Internal.Aeson
-                       Icicle.Internal.Rename
                        Icicle.Internal.WrappedResourceT
 
                        Icicle.LSP.Driver

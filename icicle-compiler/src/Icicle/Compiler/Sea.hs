@@ -34,7 +34,6 @@ import           Icicle.Compiler
 import qualified Icicle.Compiler.Source as Source
 import           Icicle.Data
 import           Icicle.Data.Time
-import           Icicle.Internal.Rename
 import qualified Icicle.Runtime.Data as Runtime
 import qualified Icicle.Runtime.Data.Logical as Logical
 import qualified Icicle.Runtime.Data.Schema as Schema
@@ -162,7 +161,7 @@ seaEvalWith ::
   -> Source.QueryTyped Source.Var
   -> AvalProgramTyped  Source.Var Flat.Prim
   -> EitherT CompilerSeaError IO [Result]
-seaEvalWith options ctx facts0 (renameQT unVar -> query) program = do
+seaEvalWith options ctx facts0 query program = do
   let
     iid =
       case Query.queryInput query of
