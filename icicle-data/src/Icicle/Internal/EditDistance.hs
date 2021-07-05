@@ -1,65 +1,86 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Internal.EditDistance (
     editDistance
-    ) where
+  ) where
 
-import           P
-import qualified Data.Vector.Unboxed.Mutable as Vector
+import           P hiding (head)
 import           Icicle.Internal.Pretty
-
-import           Control.Monad.ST (runST, ST)
-import qualified Data.Map as Map
-import           Data.List ((!!))
+import           Data.List ((!!), head, tail, last)
 
 editDistance :: Doc -> Doc -> Int
-editDistance a b =
-  let pretty_comp = (flip displayS "") . renderCompact . pretty
-      a' = pretty_comp a
-      b' = pretty_comp b
-  in damerauLevenshtein a' b'
+editDistance =
+  let pretty_comp = display . renderCompact
+  in  damerauLevenshtein `on` pretty_comp
 
--- This function it from the library language-spelling, but it has dependencies on
--- ListLike, listlike instances and a version of Data.Text which clashes with what
--- we're using. For just one function, it's not too terrible to just bring it into
--- this file.
 
-damerauLevenshtein :: (Ord a) => [a] -> [a] -> Int
-damerauLevenshtein s1 s2
-    | s1 == [] = length s2
-    | s2 == [] = length s1
-    | otherwise = runST $ do v <- Vector.replicate ((len1 + 2) * (len2 + 2)) 0
-                             let inf = (len1 + len2)
-                             Vector.write v 0 inf
-                             mapM_ (\r -> Vector.write v (ix (r + 1) 0) inf >>
-                                          Vector.write v (ix (r + 1) 1) r) [0..len1]
-                             mapM_ (\c -> Vector.write v (ix 0 (c + 1)) inf >>
-                                          Vector.write v (ix 1 (c + 1)) c) [0..len2]
-                             foldM_ (go1 v) chPos' [1..len1]
-                             vlast v
-  where
-    len1 = length s1
-    len2 = length s2
-    ix r c = r * (len2 + 2) + c
-    chPos' = foldr (\ch -> Map.insert ch 0) Map.empty (s1 <> s2)
-    go1 v chPos r = do foldM_ (go2 v chPos r) 0 [1..len2]
-                       return (Map.insert (s1 !! (r - 1)) r chPos)
-    go2 v chPos r db c =
-        let ch1 = s1 !! (r - 1)
-            ch2 = s2 !! (c - 1)
-            r1 = chPos Map.! ch2
-            c1 = db
-        in do d1 <- Vector.read v (ix r c)
-              (d2, db') <- if ch1 == ch2 then return (d1, c)
-                           else do d3 <- Vector.read v (ix (r + 1) c)
-                                   d4 <- Vector.read v (ix r (c + 1))
-                                   return (min3 d1 d3 d4 + 1, db)
-              d5 <- (\n -> n + (r - r1 - 1) + 1 + (c - c1 - 1)) <$>
-                    Vector.read v (ix r1 c1)
-              Vector.write v (ix (r + 1) (c + 1)) (min d2 d5)
-              return db'
+-- | Calculate the Damerau-Levenshtein edit distance
+--   between two lists (strings).
+--
+--   This function it from the optparse-applicative.
+--   which was in turn modified from
+--   https://wiki.haskell.org/Edit_distance
+--   and is originally from Lloyd Allison's paper
+--   "Lazy Dynamic-Programming can be Eager"
+--
+--   Complexity
+--     O(|a|*(1 + editDistance a b))
+damerauLevenshtein :: Eq a => [a] -> [a] -> Int
+damerauLevenshtein a b =
+  let
+    mainDiag =
+      oneDiag a b (head uppers) (-1 : head lowers)
+    uppers =
+      eachDiag a b (mainDiag : uppers) -- upper diagonals
+    lowers =
+      eachDiag b a (mainDiag : lowers) -- lower diagonals
 
-    min3 :: Ord a => a -> a -> a -> a
-    min3 x y z = min x (min y z)
+    oneDiag a' b' diagAbove diagBelow = thisdiag
+      where
+        doDiag [] _ _ _ _ = []
+        doDiag _ [] _ _ _ = []
+        -- Check for a transposition
+        -- We don't add anything to nw here, the next character
+        -- will be different however and the transposition
+        -- will have an edit distance of 1.
+        doDiag (ach:ach':as) (bch:bch':bs) nw n w
+          | ach' == bch && ach == bch'
+          = nw : doDiag (ach' : as) (bch' : bs) nw (tail n) (tail w)
+        -- Standard case
+        doDiag (ach:as) (bch:bs) nw n w =
+          let
+            me =
+              if ach == bch then
+                nw
+              else
+                1 + min3 (head w) nw (head n)
+          in
+            me : doDiag as bs me (tail n) (tail w)
 
-    vlast :: Vector.Unbox a => Vector.STVector s a -> ST s a
-    vlast v = Vector.read v (Vector.length v - 1)
+        firstelt = 1 + head diagBelow
+        thisdiag = firstelt : doDiag a' b' firstelt diagAbove (tail diagBelow)
+
+    eachDiag _ [] _ = []
+    eachDiag _ _ [] = []
+    eachDiag a' (_:bs) (lastDiag:diags) =
+      let
+        nextDiag = head (tail diags)
+      in
+        oneDiag a' bs nextDiag lastDiag : eachDiag a' bs diags
+
+    lab =
+      length a - length b
+
+    min3 x y z =
+      if x < y then
+        x
+      else
+        min y z
+
+  in
+    last $
+      if lab == 0 then
+        mainDiag
+      else if lab > 0 then
+        lowers !! (lab - 1)
+      else
+        uppers !! (-1 - lab)
