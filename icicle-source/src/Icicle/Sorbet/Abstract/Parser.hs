@@ -423,7 +423,7 @@ pExp1
     let
       build Nothing = Prim r (PrimCon ConUnit)
       build (Just (x,xs)) =
-        foldl (\a (com, b) -> mkApp (mkApp (Prim com $ PrimCon ConTuple) a) b) x xs
+        foldl (\a (com, b) -> mkApp (mkApp (Prim com $ Op TupleComma) a) b) x xs
     in
       build <$> optional ((,) <$> simpQuery <*> many ((,) <$> pToken Tok_Comma <*> simpQuery))
 
