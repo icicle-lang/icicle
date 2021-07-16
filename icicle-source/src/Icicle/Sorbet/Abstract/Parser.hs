@@ -386,10 +386,10 @@ pExp = do
 
 pExp1 :: Parser s m => m (Exp Range Var)
 pExp1
- =   ((uncurry Var <$> var       ) >>= accessor)
- <|> parseRecord
+ =   ((uncurry Var <$> var )       >>= accessor)
+ <|> (parseRecord                  >>= accessor)
  <|> (uncurry Prim <$> primitives)
- <|> inParens
+ <|> (inParens                     >>= accessor)
  <|> parseIf
  <|> parseCase
  <?> "expression"
