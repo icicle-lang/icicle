@@ -271,9 +271,9 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
           pretty expression <> "." <> pretty field
 
         Record _ fields ->
-          prettyPunctuation "{" <>
-            cat (punctuate (prettyPunctuation ",") (with fields $ \(p, x) -> pretty p <> "=" <+> pretty x)) <>
-          prettyPunctuation "}"
+          prettyStruct prettyFieldFlat hcat $
+            fmap (bimap pretty pretty) fields
+
    where
     (inner_prec, assoc) = precedenceOfX xx
 
@@ -307,6 +307,11 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
     --
     wrap =
       parensWhen (inner_prec < outer_prec)
+
+
+    prettyFieldFlat name typ =
+      name <+> prettyPunctuation "=" <+> align typ
+
 
 -- | Find the pretty-printing precedence of an expression.
 precedenceOfX :: Exp' q a n -> (Int, Assoc)
