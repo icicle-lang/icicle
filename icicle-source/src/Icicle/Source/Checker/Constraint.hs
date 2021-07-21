@@ -28,7 +28,7 @@ import           P hiding (with)
 import           Control.Monad.Trans.Either
 
 import           Data.Hashable                (Hashable)
-import           Data.List                    (unzip3)
+import           Data.List                    (unzip, unzip3, zip)
 import qualified Data.Map                     as Map
 
 
@@ -124,6 +124,7 @@ defaults topq
            Prim{} -> fa
            Lam{} -> fa
            Access _ p _ -> fa <> defaultOfAllX p
+           Record _ fs -> fa <> (Map.unions $ fmap (defaultOfAllX . snd) fs)
            If _ p t f -> fa <> defaultOfAllX p <> defaultOfAllX t <> defaultOfAllX f
            Case _ s pats
             ->  fa <> defaultOfAllX s <>
@@ -620,6 +621,50 @@ generateX x env
 
             return (x', subs, cons <> cons'complete)
 
+    -- Build up a record application.
+    -- This shares a bit too much code with `App`, and is a bit
+    -- subtle because of it.
+    Record ann fs
+      -> do let (names, args0)      = unzip fs
+            let genXs [] _          = return []
+                genXs (xx:xs) env'  = do (xx',s,c) <- generateX xx env'
+                                         rs        <- genXs xs (substE s env')
+                                         return ((xx',s,c) : rs)
+
+            (args, subs, cons)     <- unzip3 <$> genXs args0 env
+            let namedArgs           = zip names args
+
+            let argsT               = annResult . annotOfExp <$> args
+            let (tmpsT, pssT, dtsT) = unzip3 $ fmap decomposeT argsT
+            (tmpT, t'cons)         <- foldM checkTemp (Nothing, []) tmpsT
+            (fpsT, f'cons)         <- foldM checkPoss (Nothing, []) pssT
+
+            let datT                = StructT $ Map.fromList (zip names dtsT)
+            let resT                = recomposeT (tmpT, fpsT, datT)
+            let subs'               = foldl' compose Map.empty subs
+            let cons'               = t'cons <> f'cons <> join cons
+
+            let x' = annotate cons' resT
+                   $ \a' -> Record a' namedArgs
+
+            return (x', subs', cons')
+
+          where
+            checkTemp = check' CTemporalityJoin
+            checkPoss = check' CPossibilityJoin
+
+            check' _ (Nothing, cons) Nothing =
+              return (Nothing, cons)
+            check' _ (Just a, cons) Nothing =
+              return (Just a, cons)
+            check' _ (Nothing, cons) (Just a) =
+              return (Just a, cons)
+            check' joinMode (Just a, cons) (Just b) = do
+              r''  <- TypeVar <$> fresh
+              let j = joinMode  r'' a b
+              return (Just r'', require ann j <> cons)
+
+
     -- Quick hack so that dollar works, we just inline it as
     -- soon as we start type checking.
     App _ (App _ (Prim _ (Op Dollar)) f) arg
@@ -858,6 +903,9 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
    = do l        <- TypeVar <$> fresh
         (r,c,e') <- goPat p e
         return ( SumT l r , c, e' )
+
+  goPat (PatCon ConUnit []) e
+   = return (UnitT, [], e)
 
   goPat (PatLit l _) e
    = do (_fErr, resT, cons) <- primLookup ann (Lit l)

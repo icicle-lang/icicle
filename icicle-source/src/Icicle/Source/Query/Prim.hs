@@ -191,6 +191,9 @@ primLookup' prim
     PrimCon ConRight
      -> f2 $ \a at b bt -> functionType [a, b] [] [bt] (SumT at bt)
 
+    PrimCon ConUnit
+     -> f0 [] UnitT
+
     PrimCon (ConError _)
      -> f0 [] ErrorT
 

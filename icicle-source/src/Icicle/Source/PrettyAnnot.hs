@@ -60,13 +60,11 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
         Case _ scrut pats ->
           vsep [
               prettyKeyword "case" <+> pretty (PrettyAnnot scrut) <+> prettyKeyword "of"
-            , prettyPunctuation "{"
             , vcat . with pats $ \(p, x) ->
                 vsep [
                     indent 2 $ pretty p <+> prettyPunctuation "then"
                   , indent 4 $ pretty (PrettyAnnot x)
-                  ] <+> prettyPunctuation ";"
-            , prettyPunctuation "}"
+                  ]
             ]
 
         If _ scrut true false ->
@@ -79,6 +77,11 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
 
         Access _ expression field ->
           pretty expression <> "." <> pretty field
+
+
+        Record _ fields ->
+          prettyStruct prettyFieldFlat hcat $
+            fmap (bimap pretty (pretty . PrettyAnnot)) fields
 
    where
     (inner_prec, assoc) = precedenceOfX (getPrettyAnnot xx)
@@ -113,6 +116,10 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
     --
     wrap =
       parensWhen (inner_prec < outer_prec)
+
+    prettyFieldFlat name typ =
+      name <+> prettyPunctuation "=" <+> align typ
+
 
 instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
   pretty cc =

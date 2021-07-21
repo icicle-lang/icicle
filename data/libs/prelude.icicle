@@ -294,7 +294,7 @@ pi : Double
 pi = 3.141592653589793
 
 
-circular_stats : Element Double -> Aggregate (Possibly (Double, Double, Double))
+circular_stats : Element Double -> Aggregate (Possibly { mean : Double, sd : Double, z_test : Double })
 circular_stats theta =
   fold
     (x_loc, y_loc, n) =
@@ -315,7 +315,7 @@ circular_stats theta =
       sd     = 1 - radius
       z_test = n * radius * radius
     in
-      (mean, sd, z_test)
+      { mean = mean, sd = sd, z_test = z_test }
 
 
 --------------------------------------------------------------------------------

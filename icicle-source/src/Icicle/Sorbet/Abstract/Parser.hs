@@ -381,20 +381,29 @@ pExp = do
   either (failAtOffset o . renderDefixError) return (defix xs)
 
  where
-  pOp = do (p, o) <- pVarOp <|> (, Operator ",") <$> pToken Tok_Comma
+  pOp = do (p, o) <- pVarOp
            return (Right (o,p))
 
 pExp1 :: Parser s m => m (Exp Range Var)
 pExp1
- =   ((uncurry Var       <$> var       ) >>= accessor)
- <|> (uncurry Prim       <$> primitives)
- <|> (simpNested         <$> inParens)
+ =   ((uncurry Var <$> var )       >>= accessor)
+ <|> (parseRecord                  >>= accessor)
+ <|> (uncurry Prim <$> primitives)
+ <|> (inParens                     >>= accessor)
  <|> parseIf
  <|> parseCase
  <?> "expression"
  where
   var
    = pVariable
+
+  field =
+    tryToken $ \_ -> \case
+      Tok_VarId prjId ->
+        Just $ StructField prjId
+      _ ->
+        Nothing
+
 
   accessor v
     = (accessor1 v >>= accessor)
@@ -407,17 +416,28 @@ pExp1
       _ ->
         Nothing
 
+  simpQuery =
+    simpNested <$> pQuery
+
+  tuples r =
+    let
+      build Nothing = Prim r (PrimCon ConUnit)
+      build (Just (x,xs)) =
+        foldl (\a (com, b) -> mkApp (mkApp (Prim com $ Op TupleComma) a) b) x xs
+    in
+      build <$> optional ((,) <$> simpQuery <*> many ((,) <$> pToken Tok_Comma <*> simpQuery))
+
   inParens
-   = pToken Tok_LParen *> pQuery <* pToken Tok_RParen  <?> "sub-expression or nested query"
+   = (pToken Tok_LParen >>= tuples) <* pToken Tok_RParen <?> "sub-expression or nested query"
 
   parseIf
    = do pos   <- pToken Tok_If
         scrut <- pExp
         _     <- pToken Tok_Then
-        true  <- pQuery
+        true  <- simpQuery
         _     <- pToken Tok_Else
-        false <- pQuery
-        return $ If pos scrut (simpNested true) (simpNested false)
+        false <- simpQuery
+        return $ If pos scrut true false
 
   parseCase
    = do pos   <- pToken Tok_Case
@@ -431,8 +451,20 @@ pExp1
   parseAlt
    = do pat <- pPattern
         _   <- pToken Tok_Then
-        xx  <- pQuery
-        return (pat, simpNested xx)
+        xx  <- simpQuery
+        return (pat, xx)
+
+  parseRecord
+   = do pos   <- pToken Tok_LBrace
+        flds  <- parseField `Mega.sepBy1` pToken Tok_Comma
+        _     <- pToken Tok_RBrace
+        return $ Record pos flds
+
+  parseField
+   = do fld <- field <?> "field name"
+        _   <- pToken Tok_Equals
+        xx  <- simpQuery
+        return (fld, xx)
 
 
 pUnresolvedInputId :: Parser s m => m UnresolvedInputId
@@ -455,7 +487,6 @@ primitives
  <|> second Fun                                <$> parseRegex
  <|> timePrimitives
  <?> "primitive"
-  where
 
 
 parseRegex :: Parser s m => m (Range, BuiltinFun)
@@ -464,8 +495,8 @@ parseRegex
        o         <- Mega.getOffset
        (_,s)     <- pString
        let mRegex = Mega.parseMaybe Regex.parser s
-       regex     <- maybe (failAtOffset o "Not a valid regular expression") (return) mRegex
-       return $ (p, BuiltinRegex (Grepl s regex))
+       regex     <- maybe (failAtOffset o "Not a valid regular expression") pure mRegex
+       return (p, BuiltinRegex (Grepl s regex))
 
 
 pConstructor :: Parser s m => m (Range, Constructor)
@@ -493,7 +524,7 @@ pWindowSizeUnit
 
  where
   unit kw q
-   = pToken kw *> return q
+   = q <$ pToken kw
 
 
 simpNested :: Query a n -> Exp a n

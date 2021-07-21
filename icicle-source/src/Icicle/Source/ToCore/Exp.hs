@@ -113,6 +113,17 @@ convertExp x
             xpressionT <- convertValType (annAnnot ann) $ annResult $ annotOfExp xpression
             convertAccess ann xpression' xpressionT field
 
+    Record ann fields
+     -> do  fields'    <- Map.fromList <$> traverse (traverse convertExp) fields
+            fieldsT    <- convertValType (annAnnot ann) $ annResult ann
+            structT    <- case fieldsT of
+                            T.StructT st ->
+                              return st
+                            _ ->
+                              convertError
+                                $ ConvertErrorInputTypeNotMap (annAnnot ann) fieldsT
+            return $ CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimStruct $ Min.PrimStructConstruct structT) (Map.elems fields')
+
 
  where
   goPat (p,alt)
@@ -203,6 +214,10 @@ convertCase x scrut pats scrutT resT
                      CE.@~ (CE.xLam nl ta xl)
                      CE.@~ (CE.xLam nr tb xr)
                      CE.@~ scrut)
+
+         T.UnitT
+          | Just ([],unit) <- Map.lookup ConUnit     m
+          -> return unit
 
          _
           -> convertError $ ConvertErrorBadCaseNoDefault (annAnnot $ annotOfExp x) x

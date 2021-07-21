@@ -19,6 +19,7 @@ import qualified Icicle.Common.Type             as T
 
 import qualified Icicle.Core                    as C
 import qualified Icicle.Core.Exp.Combinators    as CE
+import           Icicle.Common.Exp.Compounds    (makeApps)
 
 import           Icicle.Source.Query
 import           Icicle.Source.ToCore.Base
@@ -231,6 +232,35 @@ convertFold q
             let xx  = CE.xLam n'unit T.UnitT access
 
             return $ res { mapExtract = xx, typeExtract = retty' }
+
+     | Record (Annot { annAnnot = ann, annResult = retty }) fields <- final q
+      -> do fields'    <- Map.fromList <$> traverse (traverse (convertFold . Query [])) fields
+            let fs      = Map.elems fields'
+            retty'     <- convertValType' retty
+
+            -- Create pairs for zeros
+            let ts      = fmap typeFold fs
+            (zz, tt)   <- pairConstruct (fmap foldZero fs) ts
+
+            structT    <- case retty' of
+                            T.StructT st ->
+                              return st
+                            _ ->
+                              convertError
+                                $ ConvertErrorInputTypeNotMap ann retty'
+            n'unit     <- lift fresh
+
+            let xx      = CE.xLam n'unit T.UnitT $
+                            makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimStruct $ Min.PrimStructConstruct structT) $
+                              fmap (`CE.xApp` CE.xVar n'unit) (fmap mapExtract fs)
+
+            -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
+            -- then box it up again in pairs.
+            let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.xApp) (fmap foldKons fs `zip` ns)) ts
+            kk         <- pairDestruct applyKs ts
+
+            return $ ConvertFoldResult kk zz xx tt retty'
+
 
      -- It must be a non-primitive application
      | otherwise

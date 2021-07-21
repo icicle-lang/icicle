@@ -81,6 +81,9 @@ data Exp' q a n
   -- | Struct field access
   | Access a (Exp' q a n) StructField
 
+  -- | Struct construction
+  | Record a [(StructField, Exp' q a n)]
+
   deriving (Show, Eq, Ord, Generic)
 
 instance (NFData (q a n), NFData a, NFData n) => NFData (Exp' q a n)
@@ -149,6 +152,10 @@ instance TraverseAnnot q => TraverseAnnot (Exp' q) where
           <*> traverse (\(p, x) -> (p,) <$> traverseAnnot f x) pats
       Access a x n ->
         Access <$> f a <*> traverseAnnot f x <*> pure n
+      Record a fs ->
+        Record
+          <$> f a
+          <*> traverse (\(p, x) -> (p,) <$> traverseAnnot f x) fs
 
 takeLams :: Exp' q a n -> ([(a, Name n)], Exp' q a n)
 takeLams (Lam a n x) =
@@ -192,6 +199,7 @@ annotOfExp x
    If     a _ _ _ -> a
    Case   a _ _   -> a
    Access a _ _   -> a
+   Record a _     -> a
 
 mkApp :: Exp' q a n -> Exp' q a n -> Exp' q a n
 mkApp x y
@@ -262,6 +270,10 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
         Access _ expression field ->
           pretty expression <> "." <> pretty field
 
+        Record _ fields ->
+          prettyStruct prettyFieldFlat hcat $
+            fmap (bimap pretty pretty) fields
+
    where
     (inner_prec, assoc) = precedenceOfX xx
 
@@ -295,6 +307,11 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
     --
     wrap =
       parensWhen (inner_prec < outer_prec)
+
+
+    prettyFieldFlat name typ =
+      name <+> prettyPunctuation "=" <+> align typ
+
 
 -- | Find the pretty-printing precedence of an expression.
 precedenceOfX :: Exp' q a n -> (Int, Assoc)
@@ -330,6 +347,8 @@ precedenceOfX xx
      -> precedenceAlwaysParens
     Case{}
      -> precedenceAlwaysParens
+    Record{}
+     -> precedenceNeverParens
     Access{}
      -> precedenceNeverParens
 

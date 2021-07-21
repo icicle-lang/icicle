@@ -487,6 +487,31 @@ convertReduce xx
         return (bs <> b', nm)
 
 
+ | Record (Annot { annAnnot = ann, annResult = retty }) fields <- xx
+ = do   fields'    <- Map.fromList <$> traverse (traverse convertReduce) fields
+        fieldsT    <- convertValType ann retty
+
+        let bs      = foldMap fst $ Map.elems fields'
+        let acc     = CE.xVar . snd <$> Map.elems fields'
+        nm         <- lift fresh
+
+        structT    <- case fieldsT of
+                        T.StructT st ->
+                          return st
+                        _ ->
+                          convertError
+                            $ ConvertErrorInputTypeNotMap ann fieldsT
+
+        let fin = CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimStruct $ Min.PrimStructConstruct structT) acc
+
+
+        let b'  | TemporalityPure <- getTemporalityOrPure retty
+                = pre nm fin
+                | otherwise
+                = post nm fin
+
+        return (bs <> b', nm)
+
  -- It's not a variable or a nested query,
  -- so it must be an application of a non-primitive
  | otherwise

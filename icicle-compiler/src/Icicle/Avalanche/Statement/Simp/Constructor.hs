@@ -272,6 +272,10 @@ constructor a_fresh statements
    | (PrimMinimal (Min.PrimConst (Min.PrimConstRight ta tb)), [n]) <- prima
    = Just $ primPack env (SumT ta tb) [xTrue, xDefault ta, n]
 
+   | (PrimMinimal (Min.PrimStruct (Min.PrimStructConstruct (StructType fs))), xs) <- prima
+   , Map.size fs == length xs
+   = Just $ primPack env (StructT (StructType fs)) xs
+
 
    -- buffers
    | (PrimBuf (PrimBufPush i tx), [nb, nx]) <- prima

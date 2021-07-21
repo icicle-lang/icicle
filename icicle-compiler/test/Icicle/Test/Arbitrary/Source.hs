@@ -326,7 +326,7 @@ genExp tgi
       -- literal primitives only
       , Prim   () <$> genLitPrim ]
       -- sub-queries
-      [ (simplifyNestedX . Nested ()) <$> genQuery tgi
+      [ simplifyNestedX . Nested () <$> genQuery tgi
       -- case statements
       , Case   () <$> genExp tgi
                   <*> listOf1 (genCase tgi)
@@ -337,6 +337,10 @@ genExp tgi
       -- struct field accessor
       , Access () <$> genExp tgi
                   <*> (CB.StructField <$> elements (["year", "month", "day"] <> colours))
+      -- struct creation
+      , Record () <$> listOf1
+                     ((,) <$> (CB.StructField <$> elements colours)
+                          <*> genExp tgi)
       -- well-formed applications to primitives
       , primApps
       ]
@@ -485,7 +489,7 @@ genLitPrim
  = oneof
        [ Lit . LitInt    <$> pos
        , Lit . LitDouble <$> pos'
-       , Lit . LitString <$> (elements southpark)
+       , Lit . LitString <$> elements southpark
        , Lit . LitTime   <$> arbitrary ]
    where
      -- Negative literals get parsed into negative, then a positive literal.
@@ -546,12 +550,12 @@ instance Arbitrary Prim where
 
    cons
     = fmap PrimCon
-    [ ConSome, ConNone, ConTrue, ConFalse, ConLeft, ConRight ]
+    [ ConSome, ConNone, ConTrue, ConFalse, ConLeft, ConRight, ConUnit ]
 
 
 instance Arbitrary Constructor where
  arbitrary
-  = oneof_vals [ ConSome, ConNone, ConTuple, ConTrue, ConFalse, ConLeft, ConRight ]
+  = oneof_vals [ ConSome, ConNone, ConTuple, ConTrue, ConFalse, ConLeft, ConRight, ConUnit ]
 
 instance Arbitrary FoldType where
  arbitrary

@@ -424,3 +424,10 @@ evalPrim p originalP vs
       -> return $ VBase v'
       | otherwise
       -> primError
+
+     PrimStruct (PrimStructConstruct (StructType st))
+      | Right baseValues <- getBaseValue () `traverse` vs
+      , and $ List.zipWith valueMatchesType baseValues (Map.elems st)
+      -> return $ VBase (VStruct $ Map.fromList (List.zip (Map.keys st) baseValues))
+      | otherwise
+      -> primError

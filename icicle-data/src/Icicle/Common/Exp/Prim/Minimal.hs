@@ -119,6 +119,7 @@ data PrimPair
 
 data PrimStruct
  = PrimStructGet !StructField !ValType !StructType
+ | PrimStructConstruct StructType
  deriving (Eq, Ord, Show, Generic, NanEq)
 
 instance NFData PrimPair
@@ -264,6 +265,9 @@ typeOfPrim p
 
     PrimStruct (PrimStructGet f t (StructType fs))
      -> FunT [funOfVal (StructT $ StructType $ Map.insert f t fs)] t
+    PrimStruct (PrimStructConstruct (StructType fs))
+     -> let args = funOfVal <$> Map.elems fs
+         in FunT args (StructT $ StructType fs)
 
 -- Pretty -------------
 
@@ -319,6 +323,7 @@ instance Pretty PrimPair where
 
 instance Pretty PrimStruct where
  pretty (PrimStructGet f _t _fs) = "get_" <> pretty f <> "#"
+ pretty (PrimStructConstruct _fs) = "make_struct#"
 
 instance Pretty Prim where
  pretty (PrimArithUnary  p _t) = pretty p

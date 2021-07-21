@@ -100,7 +100,7 @@ checkPat exp =
            _ -> fail "unable to parse pattern, non numeric literals can't be negative"
 
       | otherwise
-      -> fail "unable to parse application as a pattern"
+      -> fail $ "unable to parse application as a pattern" <> show (Q.reannot (const ()) exp)
 
     -- Primitives can be empty constructors
     -- and literals.
@@ -126,3 +126,6 @@ checkPat exp =
 
     Q.Access {}
       -> fail "unable to parse record access as a pattern"
+
+    Q.Record {}
+      -> fail "unable to parse record constructor as a pattern"

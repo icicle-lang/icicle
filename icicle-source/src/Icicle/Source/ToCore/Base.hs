@@ -156,6 +156,7 @@ data ConvertError a n
  | ConvertErrorImpossibleFold1               a
  | ConvertErrorCannotConvertAccessor         a ValType StructField
  | ConvertErrorInputTypeNotPair              a ValType
+ | ConvertErrorInputTypeNotMap               a ValType
  | ConvertErrorPatternUnconvertable          a (Pattern n)
  | ConvertErrorCannotCheckKey                a (X.Exp () n C.Prim) (X.ExpError () n C.Prim)
  deriving (Show, Eq, Ord)
@@ -199,7 +200,8 @@ annotOfError e
      -> Just a
     ConvertErrorInputTypeNotPair a _
      -> Just a
-
+    ConvertErrorInputTypeNotMap a _
+     -> Just a
 
 type ConvertM a n r
  = StateT (ConvertState n)
@@ -410,4 +412,7 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
 
      ConvertErrorInputTypeNotPair a t
       -> pretty a <> ": cannot convert, input type was expected to be a pair, got: " <> pretty t
+
+     ConvertErrorInputTypeNotMap a t
+      -> pretty a <> ": cannot convert, input type was expected to be a structure, got: " <> pretty t
 

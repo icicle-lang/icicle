@@ -121,4 +121,7 @@ checkResumableX ctx x
      -> checkResumableX ctx s >> checkResumableX ctx t >> checkResumableX ctx f
     Access _ e _
      -> checkResumableX ctx e
+    Record _ fs
+     -> mapM_ (mapM_ (checkResumableX ctx)) fs
+
 

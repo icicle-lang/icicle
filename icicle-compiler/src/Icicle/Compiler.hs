@@ -105,7 +105,6 @@ import           Icicle.Dictionary (Dictionary)
 import qualified Icicle.Dictionary as Dict
 
 import           Icicle.Internal.Pretty
-import           Icicle.Internal.Rename
 
 import qualified Icicle.Sorbet.Position as Sorbet
 import qualified Icicle.Source.Parser as Source
@@ -456,7 +455,7 @@ coreEval :: Common.EvalContext
          -> Source.QueryTyped Source.Var
          -> Source.CoreProgramUntyped  Source.Var
          -> Either SimError [Result]
-coreEval ctx fs (renameQT unVar -> query) prog
+coreEval ctx fs query prog
  = do let partitions = Sim.streams fs
       let feat       = Query.queryInput query
       let results    = fmap (evalP feat) partitions
@@ -482,7 +481,7 @@ avalancheEval :: Common.EvalContext
               -> Source.QueryTyped Source.Var
               -> AvalProgramUntyped Source.Var Flat.Prim
               -> Either SimError [Result]
-avalancheEval ctx fs (renameQT unVar -> query) prog
+avalancheEval ctx fs query prog
  = do let partitions = Sim.streams fs
       let feat       = Query.queryInput query
       let results    = fmap (evalP feat) partitions

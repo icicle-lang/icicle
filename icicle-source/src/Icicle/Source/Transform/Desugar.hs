@@ -222,6 +222,9 @@ desugarX xx
     Access a x f
       -> do x' <- desugarX x
             return $ Access a x' f
+    Record a fs
+      -> do fs' <- traverse (traverse desugarX) fs
+            return $ Record a fs'
 
 --------------------------------------------------------------------------------
 
@@ -236,6 +239,7 @@ data Ty
  | TyOpt Ty
  | TySum Ty Ty
  | TyBool
+ | TyUnit
  -- Literals such as numbers and argument-less enums:
  -- where we can, instead of doing a real case, check against "x == Con".
  -- This doesn't work for Bool because this desugaring uses Bool
@@ -321,6 +325,16 @@ addToTy err (PatCon con pats) ty
      | otherwise
      -> lift $ left err
 
+    ConUnit
+     | []               <- pats
+     , TyUnit           <- ty
+     -> return ty
+     | []               <- pats
+     , TyAny            <- ty
+     -> return TyUnit
+     | otherwise
+     -> lift $ left err
+
     ConError _
      | []               <- pats
      , TyLit cs         <- ty
@@ -396,6 +410,11 @@ casesForTy ann scrut ty
                   $ TLits   (Var ann var)
                             (fmap (\c -> (c, Done $ pFor c)) cs)
                             (Done $ PatVariable var)
+
+    -- Unit just has the unit constructor
+    TyUnit
+     -> return
+      $ TCase scrut [ (PatCon ConUnit  [], Done (PatCon ConUnit  [])) ]
 
     -- If we don't know the type of this pattern, use a fresh variable
     -- Use TLet to avoid generating variable patterns, since Core can't handle them.
