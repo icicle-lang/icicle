@@ -302,9 +302,9 @@ generateQ qq@(Query (c:_) _) env
             let q'' = with cons' q' t' $ \a' -> GroupBy a' x'
             return (q'', ss, cons')
 
-    -- >   group fold (k, v) = ( |- Q : Aggregate g'p (Group a'k a'v))
+    -- >   group fold (k, v) = ( |- Q : t' g'p (Group a'k a'v))
     -- >   ~> (k: Element a'k, v: Element a'v |- Aggregate a'p a)
-    -- >    : Aggregate (PossibilityJoin g'p a'p) a
+    -- >    : t' (PossibilityJoin g'p a'p) a
     GroupFold ann k v x
      -> do  (x', sx, consg)     <- generateX x env
             let tgroup           = annResult $ annotOfExp x'
@@ -318,15 +318,15 @@ generateQ qq@(Query (c:_) _) env
             (q', sq, t', consr) <- rest env2
 
             consT               <- requireAgg  t'
-            consgt              <- requireAgg  tgroup
+            let tmpFinal         = getTemporalityOrPure tgroup
             let consgd           = requireData tgroup (GroupT retk retv)
             (poss, consp)       <- requirePossibilityJoin tgroup t'
 
             let t'' = canonT
-                    $ Temporality TemporalityAggregate
+                    $ Temporality tmpFinal
                     $ Possibility poss t'
 
-            let cons' = concat [consg, consr, consT, consgt, consgd, consp, consv, consk]
+            let cons' = concat [consg, consr, consT, consgd, consp, consv, consk]
 
             let ss  = compose sx sq
             let q'' = with cons' q' t'' $ \a' -> GroupFold a' k v x'
