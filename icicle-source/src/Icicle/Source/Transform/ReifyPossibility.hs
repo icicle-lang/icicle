@@ -343,6 +343,31 @@ reifyPossibilityQ (Query (c:cs) final_x)
 
      | otherwise
      -> add' (GroupFold (wrapAnnot a) k v <$> reifyPossibilityX grp)
+    ArrayFold a v grp
+     | grpa                <- annotOfExp grp
+     , PossibilityPossibly <- getPossibilityOrDefinitely $ annResult grpa
+     -> do  nError <- fresh
+            nValue <- fresh
+            grp'   <- reifyPossibilityX grp
+            let a'  = wrapAnnot a
+                a'E = typeAnnot a ErrorT
+
+                vError = Var a'E nError
+                vValue = Var grpa nValue
+
+            rest'    <- rest
+            -- The inner return must be an aggregate
+            let a'R   = aggAnnot $ wrapAnnot $ annotOfQuery rest'
+                ins'  = ins (ArrayFold a'R v vValue) rest'
+
+            let xx = Case (wrapAnnot a) grp'
+                          [ ( PatCon ConLeft  [ PatVariable nError ]
+                            , con1 a' ConLeft $ vError )
+                          , ( PatCon ConRight [ PatVariable nValue ]
+                            , wrapRight $ Nested a'R ins' ) ]
+            return (Query [] xx)
+     | otherwise
+     -> add' (ArrayFold (wrapAnnot a) v <$> reifyPossibilityX grp)
 
  where
   rest

@@ -252,6 +252,7 @@ desugarC cc
     Let       a n x   -> Let       a n   <$> desugarX x
     LetScan   a n x   -> LetScan   a n   <$> desugarX x
     LetFold   a   f   -> LetFold   a     <$> desugarF f
+    ArrayFold a v x   -> ArrayFold a v   <$> desugarX x
     GroupFold a k v x -> GroupFold a k v <$> desugarX x
     Windowed{}        -> return cc
     Latest{}          -> return cc

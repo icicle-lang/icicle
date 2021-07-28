@@ -152,6 +152,7 @@ reservedIdentifiers =
     , ("fold", Tok_Fold)
     , ("fold1", Tok_Fold1)
     , ("windowed", Tok_Windowed)
+    , ("array", Tok_Array)
     , ("group", Tok_Group)
     , ("distinct", Tok_Distinct)
     , ("filter", Tok_Filter)

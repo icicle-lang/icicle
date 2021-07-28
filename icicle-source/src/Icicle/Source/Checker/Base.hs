@@ -33,7 +33,8 @@ module Icicle.Source.Checker.Base (
   , lookup
   , bindT
   , withBind
-  , removeElementBinds
+  , purifyAggregateBinds
+  , purifyElementBinds
 
   , substE
   , substTQ
@@ -280,14 +281,30 @@ withBind n t old gen
  = gen (bindT n t old)
 
 
-removeElementBinds :: Eq n => GenEnv n -> GenEnv n
-removeElementBinds env
- = let elts  = Map.keys $ Map.filter isElementTemporality env
-   in  foldr Map.delete env elts
- where
-  isElementTemporality ft
-   = getTemporalityOrPure (schemeType ft) == TemporalityElement
+-- | For map and array folds.
+purifyAggregateBinds :: Eq n => GenEnv n -> GenEnv n
+purifyAggregateBinds = purifyBinds TemporalityAggregate
 
+-- | For map and array folds.
+purifyElementBinds :: Eq n => GenEnv n -> GenEnv n
+purifyElementBinds = purifyBinds TemporalityElement
+
+-- | For map and array folds.
+--   Group and Array folds are subject to the modal type
+--   but they don't have quite as many restraints as
+--   it might seem.
+purifyBinds :: Eq n => Type n -> GenEnv n -> GenEnv n
+purifyBinds typ =
+  Map.mapMaybe purifyElements
+ where
+  purifyElements ft =
+    case getTemporalityOrPure (schemeType ft) of
+      TemporalityPure ->
+        Just ft
+      other | typ == other ->
+        Just $ ft { schemeType = canonT (Temporality TemporalityPure (schemeType ft)) }
+      _ ->
+        Nothing
 
 substE :: Eq n => SubstT n -> GenEnv n -> GenEnv n
 substE s

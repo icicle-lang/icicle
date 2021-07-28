@@ -41,6 +41,7 @@ import                  Control.Monad.Trans.Class
 import                  Data.List (zip)
 import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
+import qualified Icicle.Common.Exp.Simp.Beta as Beta
 
 -- | Convert an element-level expression.
 -- These are worker functions for folds, filters and so on.
@@ -152,10 +153,32 @@ convertExpQ q
             x' <- convertExpQ q'
             return $ CE.xLet b' d' x'
 
+
     (LetScan _ _ _:cs)
      -> do  -- NB: We can only reach here if the query is pure; in which case the element from
             -- the scan can't be used. Just ignore it.
             convertExpQ $ Query cs $ final q
+
+    (ArrayFold ann  (PatVariable v) x:_)
+     -> do  tv       <- getArrayFoldType (annAnnot ann) x
+            x'       <- convertExp x
+
+            -- The key and value will be available after the fold
+            v'       <- convertFreshenAdd v
+            nacc     <- lift fresh
+
+            res      <- convertFold q'
+            let tacc  = typeFold res
+
+            return . beta $ (
+              (mapExtract res) CE.@~
+                ( CE.xPrim
+                    (C.PrimFold (C.PrimFoldArray tv) tacc)
+                  CE.@~ ( CE.xLam nacc tacc
+                        $ CE.xLam v'   tv
+                            (beta (foldKons res CE.@~ CE.xVar nacc)))
+                  CE.@~ foldZero res
+                  CE.@~ x'))
 
     (GroupFold ann (PatVariable k) (PatVariable v) x:_)
      -> do  (tk, tv) <- getGroupFoldType (annAnnot ann) x
@@ -170,14 +193,14 @@ convertExpQ q
             res      <- convertFold q'
             let tacc  = typeFold res
 
-            return (
+            return . beta $ (
               mapExtract res CE.@~
                 ( CE.xPrim
                     (C.PrimFold (C.PrimFoldMap tk tv) tacc)
                   CE.@~ ( CE.xLam nacc tacc
                         $ CE.xLam k'   tk
                         $ CE.xLam v'   tv
-                            (foldKons res CE.@~ CE.xVar nacc))
+                            (beta (foldKons res CE.@~ CE.xVar nacc)))
                   CE.@~ foldZero res
                   CE.@~ x'))
 
@@ -189,9 +212,15 @@ convertExpQ q
   -- The remaining query after the current context is removed
   q' = q { contexts = drop 1 $ contexts q }
 
+  -- Perform beta reduction, just to simplify the output a tiny bit.
+  beta = Beta.betaToLets ()
+       . Beta.beta
+
   convertValType' = convertValType (annAnnot $ annotOfQuery q)
 
   getGroupFoldType  = groupFoldType convertValType'
+
+  getArrayFoldType = arrayFoldType convertValType'
 
 -- | Enfreshinate the variables in a case pattern and add them to the convert environment.
 --

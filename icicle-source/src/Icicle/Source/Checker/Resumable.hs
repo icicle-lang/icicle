@@ -63,6 +63,13 @@ checkResumableQ ctx q@(Query (c:cs) xfinal)
          , Suggest "In big data mode, distincts must be inside windowed or latests." 
          , Suggest "You should be able to wrap the entire distinct inside a window."]
 
+    -- For array-fold, the expression is the actual group:
+    -- this expression needs to be checked.
+    -- The remainder of the query doesn't need to be checked though,
+    -- because it is operating over the group map.
+    ArrayFold _ _ x
+     -> goX x
+
     -- For group-fold, the expression is the actual group:
     -- this expression needs to be checked.
     -- The remainder of the query doesn't need to be checked though,

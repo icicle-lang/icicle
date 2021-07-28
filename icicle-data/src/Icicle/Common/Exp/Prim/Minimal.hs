@@ -34,7 +34,7 @@ import           Icicle.Common.Exp.Prim.Builtin
 import           P
 
 
--- | Common primitives in all language fragements.
+-- | Common primitives in all language fragments.
 --
 data Prim
  = PrimArithUnary  !PrimArithUnary  !ArithType  -- ^ "Polymorphic" (double or int) unary operators

@@ -32,6 +32,7 @@ data Context' q a n
  | LetFold   a             (Fold q a n)
  | LetScan   a (Pattern n) (Exp' q a n)
  | Let       a (Pattern n) (Exp' q a n)
+ | ArrayFold a (Pattern n) (Exp' q a n)
  | GroupFold a (Pattern n) (Pattern n) (Exp' q a n)
  deriving (Show, Eq, Ord, Generic)
 
@@ -43,6 +44,7 @@ instance TraverseAnnot q => TraverseAnnot (Context' q)  where
       Windowed  a b c   -> Windowed  <$> f a <*> pure b <*> pure c
       Latest    a i     -> Latest    <$> f a <*> pure i
       GroupBy   a x     -> GroupBy   <$> f a <*> traverseAnnot f x
+      ArrayFold a v x   -> ArrayFold <$> f a <*> pure v <*> traverseAnnot f x
       GroupFold a k v x -> GroupFold <$> f a <*> pure k <*> pure v <*> traverseAnnot f x
       Distinct  a x     -> Distinct  <$> f a <*> traverseAnnot f x
       Filter    a x     -> Filter    <$> f a <*> traverseAnnot f x
@@ -81,6 +83,7 @@ annotOfContext c
     Windowed  a _ _   -> a
     Latest    a _     -> a
     GroupBy   a _     -> a
+    ArrayFold a _ _   -> a
     GroupFold a _ _ _ -> a
     Distinct  a _     -> a
     Filter    a _     -> a
@@ -105,6 +108,13 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Context' q a n) where
 
     GroupBy _ x ->
       prettyKeyword "group" <+> align (pretty x)
+
+    ArrayFold _ n1 x ->
+      vsep [
+          prettyKeyword "array fold" <+> pretty n1 <+> prettyPunctuation "="
+        , indent 2 . align $
+            pretty x
+        ]
 
     GroupFold _ n1 n2 x ->
       vsep [

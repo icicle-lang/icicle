@@ -268,6 +268,7 @@ pSingleContext =
     , pContextLatest
     , pContextFold
     , pContextScan
+    , pContextArrayFold
     ]
 
 
@@ -298,6 +299,15 @@ pContextGroupFold pos = do
              -> return (k, v)
            _ -> mzero
 
+
+pContextArrayFold :: Parser s m => m (Context Range Var)
+pContextArrayFold = do
+  pos    <- pToken Tok_Array
+  _      <- pToken Tok_Fold
+  v      <- pPattern
+  _      <- pToken Tok_Equals
+  e      <- pExp
+  pure $ ArrayFold pos v e
 
 pContextDistinct :: Parser s m => m (Context Range Var)
 pContextDistinct =

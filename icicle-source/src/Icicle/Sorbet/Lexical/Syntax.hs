@@ -75,6 +75,7 @@ data Token =
   | Tok_Fold
   | Tok_Fold1
   | Tok_Windowed
+  | Tok_Array
   | Tok_Group
   | Tok_Distinct
   | Tok_Filter
@@ -155,6 +156,7 @@ renderToken = \case
   Tok_Fold              -> "fold"
   Tok_Fold1             -> "fold1"
   Tok_Windowed          -> "windowed"
+  Tok_Array             -> "array"
   Tok_Group             -> "group"
   Tok_Distinct          -> "distinct"
   Tok_Filter            -> "filter"

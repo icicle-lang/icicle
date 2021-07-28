@@ -50,6 +50,12 @@ invariantQ ctx (Query (c:cs) xfinal)
     Distinct _ x
      -> goX x >> go
 
+    ArrayFold _ _ x
+     | allowGroupFolds inv
+     -> goX x >> goBanAll
+     | otherwise
+     -> errBanGroupFold
+
     GroupFold _ _ _ x
      | allowGroupFolds inv
      -> goX x >> goBanAll

@@ -113,6 +113,7 @@ defaults topq
           Windowed{} -> fa
           Latest{} -> fa
           GroupBy _ x -> fv x
+          ArrayFold _ _ x -> fv x
           GroupFold _ _ _ x -> fv x
           Distinct _ x -> fv x
           Filter _ x -> fv x
@@ -302,23 +303,57 @@ generateQ qq@(Query (c:_) _) env
             let q'' = with cons' q' t' $ \a' -> GroupBy a' x'
             return (q'', ss, cons')
 
+    -- >   array fold v = ( |- Q : t' g'p (Array a'v))
+    -- >   ~> (v: Element a'v |- Aggregate a'p a)
+    -- >    : t' (PossibilityJoin g'p a'p) a
+    ArrayFold ann v x
+     -> do  (x', sx, consg)     <- generateX x env
+            let tgroup           = annResult $ annotOfExp x'
+            let tmpFinal         = getTemporalityOrPure tgroup
+
+            retv                <- Temporality TemporalityElement . TypeVar <$> fresh
+
+            let env0             = if tmpFinal == TemporalityAggregate
+                                   then purifyAggregateBinds $ substE sx env
+                                   else purifyElementBinds $ substE sx env
+
+            (env1, consv)       <- goPat ann v retv env0
+            (q', sq, t', consr) <- rest env1
+
+            consT               <- requireAgg  t'
+            let consgd           = requireData tgroup (ArrayT retv)
+            (poss, consp)       <- requirePossibilityJoin tgroup t'
+
+            let t'' = canonT
+                    $ Temporality tmpFinal
+                    $ Possibility poss t'
+
+            let cons' = concat [consg, consr, consT, consgd, consp, consv]
+
+            let ss  = compose sx sq
+            let q'' = with cons' q' t'' $ \a' -> ArrayFold a' v x'
+            return (q'', ss, cons')
+
     -- >   group fold (k, v) = ( |- Q : t' g'p (Group a'k a'v))
     -- >   ~> (k: Element a'k, v: Element a'v |- Aggregate a'p a)
     -- >    : t' (PossibilityJoin g'p a'p) a
     GroupFold ann k v x
      -> do  (x', sx, consg)     <- generateX x env
             let tgroup           = annResult $ annotOfExp x'
+            let tmpFinal         = getTemporalityOrPure tgroup
 
             retk                <- Temporality TemporalityElement . TypeVar <$> fresh
             retv                <- Temporality TemporalityElement . TypeVar <$> fresh
 
-            let env0             = removeElementBinds $ substE sx env
+            let env0             = if tmpFinal == TemporalityAggregate
+                                   then purifyAggregateBinds $ substE sx env
+                                   else purifyElementBinds $ substE sx env
+
             (env1, consv)       <- goPat ann v retv env0
             (env2, consk)       <- goPat ann k retk env1
             (q', sq, t', consr) <- rest env2
 
             consT               <- requireAgg  t'
-            let tmpFinal         = getTemporalityOrPure tgroup
             let consgd           = requireData tgroup (GroupT retk retv)
             (poss, consp)       <- requirePossibilityJoin tgroup t'
 

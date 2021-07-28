@@ -198,6 +198,9 @@ convertQuery q
     (GroupBy _ _ : _)
      -> convertAsFold
 
+    (ArrayFold {} : _)
+     -> convertAsFold
+
     -- Convert a group fold using a Map. Very similar to Group By, with an additional
     -- postcomputation.
     --

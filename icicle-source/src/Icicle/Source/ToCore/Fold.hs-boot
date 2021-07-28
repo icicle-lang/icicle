@@ -9,6 +9,7 @@ module Icicle.Source.ToCore.Fold (
   , typeExtract
 
   , groupFoldType
+  , arrayFoldType
   ) where
 
 import qualified Icicle.Common.Type             as T
@@ -42,3 +43,8 @@ groupFoldType
         -> a
         -> Exp (Annot a n) n
         -> ConvertM a n (T.ValType, T.ValType)
+arrayFoldType
+        :: (Type n -> ConvertM a n T.ValType)
+        -> a
+        -> Exp (Annot a n) n
+        -> ConvertM a n T.ValType
