@@ -227,8 +227,8 @@ covariance a b =
         let
           n'  = n + 1
           d1  = (a - m1) / n'
-          m1  = m1 + d1
           d2  = (b - m2) / n'
+          m1  = m1 + d1
           m2  = m2 + d2
           m12 = m12 + n * d1 * d2 - m12 / n'
         in

@@ -52,8 +52,8 @@ beta
 
 -- | Total beta: always convert (\n. f) x to  (let n = x in f)
 betaToLets :: a -> Exp a n p -> Exp a n p
-betaToLets a_let toplevel
- = go toplevel
+betaToLets a_let =
+  go
  where
   go xx
    = case xx of

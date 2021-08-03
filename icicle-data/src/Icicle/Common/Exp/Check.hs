@@ -57,9 +57,8 @@ checkExp frag env x
         -- Check other invariants
 
         -- Primitives must be fully applied
-        case primsFullyApplied frag of
-          True  -> checkPrimsFullyApplied frag x
-          False -> return ()
+        when (primsFullyApplied frag) $
+          checkPrimsFullyApplied frag x
 
         case allowLambdas frag of
           AllowLambdas                 -> return ()

@@ -376,13 +376,13 @@ inlineLets _ xx
 -- map insert binary search logic will be elided and replaced
 -- with a constant.
 --
--- This works very well, but is brittle against source level
+-- This works, but is brittle against source level
 -- let bindings, which prevent inlining from occurring.
 ifShuffle :: (Hashable n, Eq n)
           => a -> C.Exp a n -> FixT (Fresh n) (C.Exp a n)
 ifShuffle a_fresh xx
-  | Just (PrimFold PrimFoldBool ret'typ, [XLam _ tN _ toExp, fExp@(XLam _ _ _ foExp), oScrutinee]) <- takePrimApps xx
-  , Just (PrimFold PrimFoldBool _,       [tExp,                    XLam _ _ _ fiExp , iScrutinee]) <- takePrimApps toExp
+  | Just (PrimFold PrimFoldBool ret'typ, [XLam _ tN _ toExp, foExp@XLam {}, oScrutinee]) <- takePrimApps xx
+  , Just (PrimFold PrimFoldBool _,       [tExp,              fiExp@XLam {}, iScrutinee]) <- takePrimApps toExp
   , foExp `alphaEquality` fiExp
   = do let
          n'Scrutinee =
@@ -390,7 +390,7 @@ ifShuffle a_fresh xx
 
        progress $
          xlet tN (xvalue UnitT VUnit) $
-         xprim (PrimFold PrimFoldBool ret'typ) `xapp` tExp `xapp` fExp `xapp` n'Scrutinee
+         xprim (PrimFold PrimFoldBool ret'typ) `xapp` tExp `xapp` foExp `xapp` n'Scrutinee
 
   | otherwise
   = return xx

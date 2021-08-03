@@ -103,5 +103,3 @@ instance MonadTrans FixT where
   = FixT
   $ do  v <- m
         return (v, NoProgress)
-
-
