@@ -99,6 +99,7 @@ benchmark regex-bench
     criterion,
     icicle-data,
     text,
+    these,
     transformers-either,
     ambiata-jetski
 
@@ -115,8 +116,10 @@ test-suite regex-tests
     base,
     bytestring,
     hedgehog,
+    exceptions,
     icicle-data,
     text,
+    these,
     transformers-either,
     ambiata-jetski,
     mmorph

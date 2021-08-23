@@ -12,6 +12,7 @@ module Icicle.Sorbet.Abstract.Regex (
 import            Control.Monad.Combinators.Expr
 import            Data.Void
 import            Data.These
+import            Data.List.NonEmpty (some1)
 
 import            Text.Megaparsec as Mega
 import            Text.Megaparsec.Char as Mega
@@ -51,13 +52,30 @@ term = makeExprParser atom ops  where
               , Regex.once <$ single '\\' <*> oneOf special
               , Regex.once <$> lit
               , parens term
+              , characterClass
               ]
 
-  special = ['.', '*', '+', '?', '|', '(', ')', '^', '$']
+  special = ['.', '*', '+', '?', '|', '(', ')', '[', ']','^', '$', '\\']
   lit = noneOf special
   parens = between (single '(') (single ')')
 
+  characterClass =
+    brackets $
+      Regex.acceptors <$> negator <*> (some1 acceptor)
+    where
+      negator =
+        True <$ single '^' <|> pure False
 
+      acceptor = do
+        start <- classLit
+        end   <- optional (single '-' *> classLit)
+        return $ maybe (Regex.AcceptChar start) (Regex.AcceptRange start) end
+
+      brackets = between (single '[') (single ']')
+      classSpecial = [']', '\\']
+      classSpecial2 = [']', '\\', '^']
+      classLit =
+        single '\\' *> oneOf classSpecial2 <|> noneOf classSpecial
 
   nBound :: Parser (These Int Int)
   nBound = between (single '{') (single '}') (a <|> b)

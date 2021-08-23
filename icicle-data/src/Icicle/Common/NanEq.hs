@@ -12,6 +12,7 @@ module Icicle.Common.NanEq (
   , GNanEq(..)
   ) where
 
+import           Data.List.NonEmpty (NonEmpty)
 import           Data.Map (Map)
 import qualified Data.Map.Lazy as Map
 
@@ -82,6 +83,8 @@ instance (NanEq a, NanEq b) => NanEq (a, b)
 instance NanEq a => NanEq (Maybe a)
 
 instance NanEq a => NanEq [a]
+
+instance NanEq a => NanEq (NonEmpty a)
 
 instance (NanEq k, NanEq v) => NanEq (Map k v) where
   nanEq xs ys =

@@ -8,6 +8,8 @@ module Icicle.Data.Regex (
     Regex (..)
   , Transition (..)
 
+  , Acceptor (..)
+
   , zero
   , epsilon
   , add
@@ -20,6 +22,7 @@ module Icicle.Data.Regex (
   , dot
   , bound
   , range
+  , acceptors
 
   , match
   , printC
@@ -29,6 +32,7 @@ module Icicle.Data.Regex (
 
 import           Data.Bits ((.|.), (.&.))
 import qualified Data.Bits as Bits
+import           Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List as List
 import           Data.Char (ord)
 import qualified Data.Text as Text
@@ -57,16 +61,20 @@ data Regex =
     , regexAcceptingStates        :: Integer
     } deriving (Eq, Ord, Show, Generic, NanEq)
 
+data Acceptor
+  = AcceptChar !Char
+  | AcceptRange !Char !Char
+  deriving (Eq, Ord, Show, Generic, NanEq)
 
 data Match
-  = MatchChar Char
-  | MatchRange Char Char
+  = MatchAcceptor Bool (NonEmpty Acceptor)
   | MatchAny
   deriving (Eq, Ord, Show, Generic, NanEq)
 
 
 instance NFData Transition
 instance NFData Regex
+instance NFData Acceptor
 instance NFData Match
 
 
@@ -107,8 +115,9 @@ times (Regex nL asL fL bsL) (Regex nR asR fR bsR) =
     asR' = Bits.unsafeShiftL asR nL
     as =
       if asL .&. bsL == 0 then
-        asL else
-      asL .|. asR'
+        asL
+      else
+        asL .|. asR'
 
     remapLeft =
       flip fmap fL $ \(Transition b from to) ->
@@ -168,14 +177,17 @@ plus (Regex n as f bs) = Regex n as f' bs
 range :: Char -> Char -> Regex
 range st fe = Regex 2 1 f 2
   where
-    f = [Transition (MatchRange st fe) 0 2]
+    f = [Transition (MatchAcceptor False (AcceptRange st fe:| [])) 0 2]
 
+acceptors :: Bool -> NonEmpty Acceptor -> Regex
+acceptors negation acs = Regex 2 1 f 2
+  where
+    f = [Transition (MatchAcceptor negation acs) 0 2]
 
 once :: Char -> Regex
 once c = Regex 2 1 f 2
   where
-    f = [Transition (MatchChar c) 0 2]
-
+    f = [Transition (MatchAcceptor False (AcceptChar c :| [])) 0 2]
 
 dot :: Regex
 dot = Regex 2 1 f 2
@@ -199,13 +211,17 @@ match :: Regex -> Text -> Bool
 match (Regex _ as f bs) cs =
     bs .&. Text.foldl' step as cs /= 0
   where
+    checkAcceptor c (AcceptChar c') =
+      c' == c
+    checkAcceptor c (AcceptRange s fe) =
+      c >= s && c <= fe
+    negs neg = if neg then not else id
+
+
     step s0 c =
       let
-        check (Transition (MatchChar m) start _) =
-          Bits.testBit s0 start && c == m
-
-        check (Transition (MatchRange s fe) start _) =
-          Bits.testBit s0 start && c >= s && c <= fe
+        check (Transition (MatchAcceptor neg acs) start _) =
+          Bits.testBit s0 start && negs neg (any (checkAcceptor c) acs)
 
         check (Transition MatchAny start _) =
           Bits.testBit s0 start
@@ -264,6 +280,22 @@ printC name (Regex numStates starting transitions acceptance) =
     accept = sepX (Pretty.hcat . Pretty.punctuate " || ") $ \n ->
       "current" <> pretty n <> " & " <> pretty (clip acceptance n) <> "U"
 
+    checkAcceptor (AcceptChar c) =
+      "cp == " <> pretty (ord c)
+    checkAcceptor (AcceptRange s fe) =
+      "cp >= " <> pretty (ord s) <> " && cp <= " <> pretty (ord fe)
+
+    checkAcceptors negator =
+      let
+        negOp =
+          if negator then
+            ("!" <>)
+          else
+            id
+      in
+        negOp . Pretty.parens . Pretty.hcat . Pretty.punctuate " || " . fmap checkAcceptor
+
+
     goIf (Transition MatchAny from to) =
       let
         (n, fromN) =
@@ -275,24 +307,13 @@ printC name (Regex numStates starting transitions acceptance) =
             "next" <> pretty m <> " |= " <> pretty (clip to m) <> "U;"
         , "}"
         ]
-    goIf (Transition (MatchRange s fe) from to) =
+    goIf (Transition (MatchAcceptor negator acs) from to) =
       let
         (n, fromN) =
           from `divMod` 64
       in
         vsep [
-          "if ((current" <> pretty n <> " & (one << " <> pretty fromN <> ")) && cp >= " <> pretty (ord s) <> " && cp <= " <> pretty (ord fe) <> ") {"
-        , indent 2 $ sepX vsep $ \m ->
-            "next" <> pretty m <> " |= " <> pretty (clip to m) <> "U;"
-        , "}"
-        ]
-    goIf (Transition (MatchChar c) from to) =
-      let
-        (n, fromN) =
-          from `divMod` 64
-      in
-        vsep [
-          "if ((current" <> pretty n <> " & (one << " <> pretty fromN <> ")) && cp == " <> pretty (ord c) <> ") {"
+          "if ((current" <> pretty n <> " & (one << " <> pretty fromN <> ")) && " <> checkAcceptors negator acs <> ") {"
         , indent 2 $ sepX vsep $ \m ->
             "next" <> pretty m <> " |= " <> pretty (clip to m) <> "U;"
         , "}"
