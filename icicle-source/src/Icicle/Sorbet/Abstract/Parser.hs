@@ -494,8 +494,8 @@ parseRegex
   = do p         <- pToken Tok_Grepl
        o         <- Mega.getOffset
        (_,s)     <- pString
-       let mRegex = Mega.parseMaybe Regex.parser s
-       regex     <- maybe (failAtOffset o "Not a valid regular expression") pure mRegex
+       let mRegex = Mega.parse Regex.parser "" s
+       regex     <- either (\e -> failAtOffset o ("Error parsing regular expression: " <> Mega.errorBundlePretty e)) pure mRegex
        return (p, BuiltinRegex (Grepl s regex))
 
 
