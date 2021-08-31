@@ -75,8 +75,8 @@ feature mean_day_of_week =
         2 * pi
       dow =
         tau / 7 * double (mod (days time) 7)
-      (m, _, _) =
-        circular_stats dow
+      m =
+        (circular_stats dow).mean
     in
       m / tau * 7
 
