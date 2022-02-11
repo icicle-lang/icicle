@@ -27,7 +27,7 @@ data BuiltinFun
 --   directly written in by the Parser.
 listOfWiredFuns :: [BuiltinFun]
 listOfWiredFuns = concat
-  [ fmap BuiltinTime    [ DaysJulianEpoch, SecondsBetween ]
+  [ fmap BuiltinTime    [ DaysJulianEpoch, SecondsJulianEpoch ]
   ]
 
 -- | Functions wired in through the type
@@ -41,7 +41,7 @@ listOfIntroducedFuns = concat
   , fmap BuiltinData    [minBound..maxBound]
   , fmap BuiltinArray   [minBound..maxBound]
   , fmap BuiltinMap     [minBound..maxBound]
-  , fmap BuiltinTime    [ProjectDay, ProjectMonth, ProjectYear, DaysBetween, SecondsJulianEpoch]
+  , fmap BuiltinTime    [ProjectDay, ProjectMonth, ProjectYear, DaysBetween, SecondsBetween ]
   ]
 
 data BuiltinMath
