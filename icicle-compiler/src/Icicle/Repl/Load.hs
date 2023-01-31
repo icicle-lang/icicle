@@ -22,7 +22,6 @@ import           Icicle.Repl.Monad
 import           Icicle.Repl.Pretty
 import           Icicle.Repl.Source
 import qualified Icicle.Runtime.Serial.Zebra as Runtime
-import qualified Icicle.Storage.Dictionary.Toml as Toml
 import qualified Icicle.Storage.Dictionary.Sorbet as Sorbet
 import qualified Icicle.Source.Query as Query
 
@@ -41,14 +40,9 @@ import           Zebra.X.Either (firstJoin)
 
 
 data LoadType =
-    LoadTomlDictionary
-  | LoadSorbet
+    LoadSorbet
   | LoadData
     deriving (Eq, Ord, Show)
-
-isToml :: FilePath -> Bool
-isToml =
-  (== ".toml") . FilePath.takeExtension
 
 isIcicle :: FilePath -> Bool
 isIcicle =
@@ -56,9 +50,7 @@ isIcicle =
 
 detectLoadType :: MonadIO m => FilePath -> m LoadType
 detectLoadType path =
-  if isToml path then
-    pure LoadTomlDictionary
-  else if isIcicle path then
+  if isIcicle path then
     pure LoadSorbet
   else
     pure LoadData
@@ -79,21 +71,6 @@ setDictionary dictionary = do
 
   modify $ \s ->
     s { stateDictionary = dictionary }
-
-
-loadTomlDictionary :: FilePath -> Repl ()
-loadTomlDictionary path = do
-  options <- getCheckOptions
-  edictionary <- liftIO . runEitherT $ Toml.loadDictionary options Toml.ImplicitPrelude path
-  case edictionary of
-    Left err -> do
-      putPretty $ Pretty.vsep [
-          "Dictionary load error:"
-        , Pretty.indent 2 $ Pretty.pretty err
-        ]
-
-    Right dictionary ->
-      setDictionary dictionary
 
 
 loadSorbet :: FilePath -> Repl ()
@@ -175,9 +152,6 @@ loadFile path = do
   else do
     typ <- detectLoadType path
     case typ of
-      LoadTomlDictionary ->
-        loadTomlDictionary path
-
       LoadSorbet ->
         loadSorbet path
 
