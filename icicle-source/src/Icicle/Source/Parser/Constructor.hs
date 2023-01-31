@@ -3,31 +3,17 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PatternGuards #-}
 module Icicle.Source.Parser.Constructor (
-    constructor
-  , checkPat
+    checkPat
   , constructors
   ) where
 
-import qualified        Icicle.Source.Lexer.Token  as T
-import                  Icicle.Source.Parser.Token
-import qualified        Icicle.Source.Query        as Q
+import qualified        Icicle.Source.Query    as Q
 
 import                  Icicle.Common.Base
 
+import                  Data.String (IsString)
+
 import                  P hiding (exp)
-
-import                  Data.List (lookup)
-
-import                  Text.Parsec (parserFail)
-
-
-
-constructor :: Parser Q.Constructor
-constructor
- = do T.Variable n <- pConstructor
-      case lookup n constructors of
-       Just c -> return c
-       Nothing -> parserFail ("Not a known constructor: " <> show n)
 
 constructors :: [(Text, Q.Constructor)]
 constructors
@@ -61,14 +47,14 @@ constructors
 --   handled the same in the patterns as the expressions
 --   they match, and we don't have to duplicate parser
 --   logic.
-checkPat :: MonadFail m => Q.Exp pos Var -> m (Q.Pattern Var)
+checkPat :: (IsString v, Eq v, Show v, MonadFail m) => Q.Exp pos v -> m (Q.Pattern v)
 checkPat exp =
   case exp of
     -- Variables are simple, just underscore default
     -- to a default pattern if required, and leave all
     -- the rest alone
     Q.Var _ v
-      | nameBase v == NameBase (T.Variable "_")
+      | nameBase v == NameBase "_"
       -> return Q.PatDefault
       | otherwise
       -> return $ Q.PatVariable v

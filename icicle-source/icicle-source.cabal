@@ -101,11 +101,9 @@ library
                        Icicle.Source.Query.Operators
                        Icicle.Source.Query.Prim
                        Icicle.Source.Lexer.Token
-                       Icicle.Source.Lexer.Lexer
 
                        Icicle.Source.Parser
                        Icicle.Source.Parser.Constructor
-                       Icicle.Source.Parser.Token
                        Icicle.Source.Parser.Operators
 
                        Icicle.Source.Type

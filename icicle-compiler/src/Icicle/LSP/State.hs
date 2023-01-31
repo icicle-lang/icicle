@@ -12,7 +12,7 @@ import           System.IO      (IO, FilePath)
 
 import qualified Icicle.Source.Query as Query
 import           Icicle.Sorbet.Position (Range)
-import           Icicle.Source.Lexer.Token (Variable)
+import           Icicle.Sorbet.Abstract.Type (Variable)
 
 import P
 

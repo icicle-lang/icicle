@@ -11,6 +11,8 @@
 module Icicle.Sorbet.Abstract.Type (
     pTypeScheme
   , pType
+
+  , Variable
   ) where
 
 import qualified Data.List as List
@@ -30,11 +32,7 @@ import           P
 import           Text.Megaparsec (try, choice, label)
 import qualified Text.Megaparsec as Mega
 
-
-type Var = Variable
-
-
-pTypeScheme :: Parser s m => m (Scheme Var)
+pTypeScheme :: Parser s m => m (Scheme Variable)
 pTypeScheme = do
   (_, constraints) <- List.unzip <$> many pConstraint
   (_, typ)         <- pType
@@ -48,13 +46,13 @@ pTypeScheme = do
   return ret
 
 
-pConstraint :: Parser s m => m (Range, Constraint Var)
+pConstraint :: Parser s m => m (Range, Constraint Variable)
 pConstraint =
   label "constraint" $
   pConstraintSingle <* pToken Tok_RArrowEquals
 
 
-pType :: Parser s m => m (Range, Type Var)
+pType :: Parser s m => m (Range, Type Variable)
 pType =
   label "type" $ do
     offset <- Mega.getOffset
@@ -64,7 +62,7 @@ pType =
     either (failAtOffset offset) (\t -> return (Range start end, t)) (defixType xs)
 
 
-pTypeSimple :: Parser s m => m (Range, Type Var)
+pTypeSimple :: Parser s m => m (Range, Type Variable)
 pTypeSimple =
   choice [
       pTypeSingle
@@ -91,7 +89,7 @@ pTypeOperator =
   <|> OpFunctionArrow <$ pToken Tok_RArrowDash
 
 
-pTypeSingle :: Parser s m => m (Range, Type Var)
+pTypeSingle :: Parser s m => m (Range, Type Variable)
 pTypeSingle =
   label "type constructor" $ do
     o                <- Mega.getOffset
@@ -101,20 +99,20 @@ pTypeSingle =
       Nothing -> failAtOffset o ("Not a type constructor: " <> show n)
 
 
-pTypeVar :: Parser s m => m (Range, Type Var)
+pTypeVar :: Parser s m => m (Range, Type Variable)
 pTypeVar =
   label "type variable" $
   second TypeVar
     <$> pVariable
 
 
-pTypeNested :: Parser s m => m (Range, Type Var)
+pTypeNested :: Parser s m => m (Range, Type Variable)
 pTypeNested =
   label "nested type" $
     pToken Tok_LParen *> pType <* pToken Tok_RParen
 
 
-pTypeRecord :: Parser s m => m (Range, Type Var)
+pTypeRecord :: Parser s m => m (Range, Type Variable)
 pTypeRecord =
   label "record type" $ do
     p <- pToken Tok_LBrace
@@ -134,7 +132,7 @@ pTypeRecord =
 
 
 
-simpleTypes :: Parser s m => [(Text, m (Type Var))]
+simpleTypes :: Parser s m => [(Text, m (Type Variable))]
 simpleTypes
    = [("Bool",                    pure $ BoolT)
      ,("Int",                     pure $ IntT)
@@ -157,12 +155,12 @@ simpleTypes
      ]
 
 
-pConstraintSingle :: Parser s m => m (Range, Constraint Var)
+pConstraintSingle :: Parser s m => m (Range, Constraint Variable)
 pConstraintSingle =
   pConstraintSimple <|> pEqualityConstraint
 
 
-pConstraintSimple :: Parser s m => m (Range, Constraint Var)
+pConstraintSimple :: Parser s m => m (Range, Constraint Variable)
 pConstraintSimple =
   label "type constraint" $ do
     o <- Mega.getOffset
@@ -175,12 +173,12 @@ pConstraintSimple =
     return (p, rest)
 
 
-simpleConstraints :: Parser s m => [(Text, m (Constraint Var))]
+simpleConstraints :: Parser s m => [(Text, m (Constraint Variable))]
 simpleConstraints
    = [("Num", one CIsNum)]
 
 
-pEqualityConstraint :: Parser s m => m (Range, Constraint Var)
+pEqualityConstraint :: Parser s m => m (Range, Constraint Variable)
 pEqualityConstraint =
   label "equality constraint" $ do
     (p, ret) <- try $ do
@@ -195,7 +193,7 @@ pEqualityConstraint =
       Nothing -> failAtOffset o ("Not an equality constraint: " <> show n)
 
 
-simpleEqualityConstraints :: Parser s m => [(Text, Type Var -> m (Constraint Var))]
+simpleEqualityConstraints :: Parser s m => [(Text, Type Variable -> m (Constraint Variable))]
 simpleEqualityConstraints
    = [("PossibilityOfNum",        one   . CPossibilityOfNum)
      ,("TemporalityJoin",         two   . CTemporalityJoin)
@@ -245,11 +243,11 @@ defixType = \case
   goOp OpFunctionArrow xs = List.foldr1 TypeArrow xs
 
 
-one :: Parser s m => (Type Var -> x) -> m x
+one :: Parser s m => (Type Variable -> x) -> m x
 one x = x <$> (snd <$> pTypeSimple)
 
-two :: Parser s m => (Type Var -> Type Var -> x) -> m x
+two :: Parser s m => (Type Variable -> Type Variable -> x) -> m x
 two x = one x <*> (snd <$> pTypeSimple)
 
-three :: Parser s m => (Type Var -> Type Var -> Type Var -> x) -> m x
+three :: Parser s m => (Type Variable -> Type Variable -> Type Variable -> x) -> m x
 three x = two x <*> (snd <$> pTypeSimple)
