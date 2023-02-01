@@ -23,7 +23,7 @@ import qualified Data.Vector as Boxed
 
 import           GHC.Generics (Generic)
 
-import           Icicle.Common.Type
+import           Icicle.Common.Type as CT
 import qualified Icicle.Data.Fact as Fact
 import           Icicle.Runtime.Data.Primitive
 

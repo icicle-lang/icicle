@@ -91,13 +91,15 @@ pReplZebra :: Parser FilePath
 pReplZebra =
   Options.argument Options.str $
     Options.metavar "INPUT_ZEBRA" <>
-    Options.help "Path to a Zebra binary file to load"
+    Options.help "Path to a Zebra binary file to load" <>
+    Options.action "file"
 
 pReplPSV :: Parser FilePath
 pReplPSV =
   Options.argument Options.str $
     Options.metavar "INPUT_PSV" <>
-    Options.help "Path to a PSV file to load"
+    Options.help "Path to a PSV file to load" <>
+    Options.action "file"
 
 pReplTOML :: Parser FilePath
 pReplTOML =
@@ -155,7 +157,8 @@ pInputDictionaryIcicle =
   Options.option Options.str $
     Options.long "input-icicle" <>
     Options.metavar "DICTIONARY_ICICLE" <>
-    Options.help "Path to a ICICLE dictionary to compile."
+    Options.help "Path to a ICICLE dictionary to compile." <>
+    Options.action "file"
 
 pOutputDictionarySea :: Parser OutputDictionarySea
 pOutputDictionarySea =
@@ -163,7 +166,8 @@ pOutputDictionarySea =
   Options.option Options.str $
     Options.long "output-c" <>
     Options.metavar "DICTIONARY_C" <>
-    Options.help "Path to write the compiled C dictionary."
+    Options.help "Path to write the compiled C dictionary." <>
+    Options.action "file"
 
 pQuery :: Parser Query
 pQuery =
@@ -192,7 +196,8 @@ pInputZebra =
   Options.option Options.str $
     Options.long "input-zebra" <>
     Options.metavar "INPUT_ZEBRA" <>
-    Options.help "Path to a zebra binary file."
+    Options.help "Path to a zebra binary file." <>
+    Options.action "file"
 
 pQueryOutput :: Parser QueryOutput
 pQueryOutput =
@@ -205,7 +210,8 @@ pOutputZebra =
   Options.option Options.str $
     Options.long "output-zebra" <>
     Options.metavar "OUTPUT_ZEBRA" <>
-    Options.help "Path to write the zebra binary output file."
+    Options.help "Path to write the zebra binary output file." <>
+    Options.action "file"
 
 pOutputPsv :: Parser OutputPsv
 pOutputPsv =
@@ -213,7 +219,8 @@ pOutputPsv =
   Options.option Options.str $
     Options.long "output-psv" <>
     Options.metavar "OUTPUT_PSV" <>
-    Options.help "Path to write the dense psv file."
+    Options.help "Path to write the dense psv file." <>
+    Options.action "file"
 
 pOutputPsvSchema :: Parser OutputPsvSchema
 pOutputPsvSchema =
@@ -221,7 +228,8 @@ pOutputPsvSchema =
   Options.option Options.str $
     Options.long "output-psv-schema" <>
     Options.metavar "OUTPUT_PSV_SCHEMA_JSON" <>
-    Options.help "Location to write the output schema for a dense psv output. (default: <output-path>.schema.json)"
+    Options.help "Location to write the output schema for a dense psv output. (default: <output-path>.schema.json)" <>
+    Options.action "file"
 
 pQuerySnapshot :: Parser QueryScope
 pQuerySnapshot =

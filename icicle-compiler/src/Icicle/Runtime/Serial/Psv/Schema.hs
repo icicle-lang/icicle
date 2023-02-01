@@ -43,10 +43,12 @@ import qualified Data.Map.Strict as Map
 import           Data.String (String)
 import qualified Data.Text as Text
 import qualified Data.Vector as Boxed
+import qualified X.Data.Vector.Cons as Cons
 
 import           Icicle.Data.Name
 import           Icicle.Internal.Aeson
 import qualified Icicle.Runtime.Data.Schema as Icicle
+import qualified Icicle.Runtime.Data.Primitive as Icicle
 
 import           P
 
@@ -340,10 +342,9 @@ encodePsvEncoding schema =
       Left $
         SerialPsvUnsupportedSchema schema
 
-    Icicle.Struct _ ->
-      -- FIXME
-      Left $
-        SerialPsvUnsupportedSchema schema
+    Icicle.Struct fields ->
+      PsvStruct <$>
+        traverse (\(Icicle.Field n e) -> PsvStructField n <$> encodePsvEncoding e) (Cons.toList fields)
 
     Icicle.String ->
       pure $ PsvPrimitive PsvString
