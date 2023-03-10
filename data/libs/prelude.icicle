@@ -323,7 +323,7 @@ circular_stats theta =
 --------------------------------------------------------------------------------
 
 
-map_update_add : Definitely k -> Definitely Int -> Definitely (Group k Int) -> Possibly (Group k Int)
+map_update_add : k -> Int -> Group k Int -> Possibly (Group k Int)
 map_update_add k v m =
   case map_lookup k m of
     None then

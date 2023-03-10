@@ -175,11 +175,16 @@ subsumeT inferred sig
     -- Here we have a special case for pure subsumptions.
     -- If the temporality is of the inferred site is pure,
     -- then we accept the unadorned type as the signature.
+    -- Also. If the inferred type contains a type variable,
+    -- we can also use the unadorned type, but only if we
+    -- give a substitution for the variable to be pure.
     Temporality at ar
      | Temporality bt br <- sig
      -> join $ combine <$> subsumeT at bt <*> subsumeT ar br
      | TemporalityPure <- at
      -> subsumeT ar sig
+     | TypeVar as <- at
+     -> join $ combine (Map.singleton as TemporalityPure) <$> subsumeT ar sig
      | otherwise
      -> Nothing
 
@@ -190,6 +195,8 @@ subsumeT inferred sig
      -> join $ combine <$> subsumeT at bt <*> subsumeT ar br
      | PossibilityDefinitely <- at
      -> subsumeT ar sig
+     | TypeVar as <- at
+     -> join $ combine (Map.singleton as PossibilityDefinitely) <$> subsumeT ar sig
      | otherwise
      -> Nothing
 

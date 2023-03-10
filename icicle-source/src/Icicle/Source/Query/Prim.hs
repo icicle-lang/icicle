@@ -266,5 +266,5 @@ primReturnsPossibly p ty
     Fun (BuiltinMath Tan)  -> True
     Fun (BuiltinMath Tanh) -> True
     _                      -> False
-primReturnsPossibly _ _                          = False
+primReturnsPossibly _ _ = False
 
