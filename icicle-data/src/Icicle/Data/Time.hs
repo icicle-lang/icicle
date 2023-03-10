@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE PatternSynonyms   #-}
 module Icicle.Data.Time (
     Date(..)
   , Time(..)
@@ -168,24 +169,24 @@ ivoryEpoch =
 timeOfDays :: Int -> Time
 timeOfDays d
  = Time
- $ flip Thyme.mkUTCTime 0
+ $ flip Thyme.UTCTime 0
  $ Thyme.ModifiedJulianDay d
 
 unsafeTimeOfYMD :: Int -> Int -> Int -> Time
 unsafeTimeOfYMD y m d
  = Time
- $ flip Thyme.mkUTCTime 0
+ $ flip Thyme.UTCTime 0
  $ Thyme.fromGregorian y m d
 
 timeOfYMD :: Int -> Int -> Int -> Maybe Time
 timeOfYMD y m d
  =   Time
- .   flip Thyme.mkUTCTime 0
+ .   flip Thyme.UTCTime 0
  <$> Thyme.fromGregorianValid y m d
 
 timeOfIvorySeconds :: Int64 -> Time
 timeOfIvorySeconds seconds =
-  Time $ Thyme.addUTCTime (fromIntegral seconds) (Thyme.mkUTCTime ivoryEpoch 0)
+  Time $ Thyme.addUTCTime (fromIntegral seconds) (Thyme.UTCTime ivoryEpoch 0)
 
 timeOfYMDHMS :: Int -> Int -> Int -> Int -> Int -> Int -> Time
 timeOfYMDHMS year month day hour minute sec
@@ -194,7 +195,7 @@ timeOfYMDHMS year month day hour minute sec
             $ Thyme.TimeOfDay hour minute
             $ Thyme.secondsToDiffTime
             $ fromIntegral sec
-    in Time $ Thyme.mkUTCTime ymd hms
+    in Time $ Thyme.UTCTime ymd hms
 
 -- Unpack the word into an icicle Time
 timeOfPacked :: Word64 -> Time
@@ -225,15 +226,15 @@ packedOfTime t@(gregorianDay -> d)
 
 getCurrentDate :: MonadIO m => m Date
 getCurrentDate =
- Date . Thyme.utctDay . Thyme.unUTCTime <$> liftIO Thyme.getCurrentTime
+ Date . Thyme.utctDay <$> liftIO Thyme.getCurrentTime
 
 midnight :: Date -> Time
 midnight (Date date) =
-  Time $ Thyme.mkUTCTime date 0
+  Time $ Thyme.UTCTime date 0
 
 exclusiveSnapshotTime :: Date -> Time
 exclusiveSnapshotTime (Date date) =
-  Time $ Thyme.mkUTCTime (Thyme.addDays 1 date) 0
+  Time $ Thyme.UTCTime (Thyme.addDays 1 date) 0
 
 dateOfYMD :: Int -> Int -> Int -> Maybe Date
 dateOfYMD y m d =
@@ -308,15 +309,15 @@ minusSeconds d i
 minusDays :: Time -> Int -> Time
 minusDays d i
  = Time
- $ flip Thyme.mkUTCTime (Thyme.utctDayTime view)
+ $ flip Thyme.UTCTime   (Thyme.utctDayTime view)
  $ Thyme.addDays (-i)   (Thyme.utctDay     view)
  where
-   view = getDateTime d ^. Thyme.utcTime
+   view = getDateTime d
 
 minusMonths :: Time -> Int -> Time
 minusMonths d i
  = Time
- $ flip Thyme.mkUTCTime              (Thyme.utctDayTime view)
+ $ flip Thyme.UTCTime                (Thyme.utctDayTime view)
  $ Thyme.addGregorianMonthsClip (-i) (Thyme.utctDay     view)
  where
-   view = getDateTime d ^. Thyme.utcTime
+   view = getDateTime d
