@@ -52,12 +52,23 @@ deadS :: (Hashable n, Eq n) => Usage n -> Statement a n p -> (Usage n, Kill a n 
 deadS us statements
  = case statements of
     If x ts fs
-     -> let (tU, tK, tS) = deadS  us ts
-            (fU, fK, fS) = deadS  us fs
+     -- We run usage analysis sequentially instead of applying the
+     -- accumulator each branch and then merging.
+     --
+     -- We do this because the set of used variables can be very large,
+     -- and performing a join for every small if branch means we spend
+     -- a huge amount of time doing set unions (60% of compilation).
+     --
+     -- It turns out this is fine (although less obvious), as locally
+     -- bound variables are scoped, so liveness analysis doesn't float
+     -- outside the branch, and usage of an accumulator is applicable
+     -- if it's used in both or either branch.
+     -> let (tU, tK, tS) = deadS us ts
+            (fU, fK, fS) = deadS tU fs
             xU           = usageX x
-        in (mconcat [tU, fU, xU], mconcat [tK, fK], If x tS fS)
+        in (mconcat [fU, xU], mconcat [tK, fK], If x tS fS)
     Let n x ss
-     -> let (sU, sK, sS) = deadS  us ss
+     -> let (sU, sK, sS) = deadS us ss
             xU           = usageX x
         in  if   usedX n sU
             then (deleteX n (mconcat [xU, sU]), sK, Let n x sS)
