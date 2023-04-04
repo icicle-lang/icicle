@@ -35,7 +35,7 @@ library
                      , template-haskell                >= 2.9        && < 2.16
                      , text                            >= 1.2
                      , these
-                     , thyme                           == 0.3.*
+                     , thyme                           >= 0.4        && < 0.5
                      , time                            >= 1.5        && < 1.10
                      , time-locale-compat              == 0.1.*
                      , transformers                    >= 0.3        && < 0.6
