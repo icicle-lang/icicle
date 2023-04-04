@@ -157,24 +157,46 @@ subsumeT inferred sig
      | otherwise
      -> Nothing
 
-    SumT  a1 a2
-     | SumT  b1 b2 <- sig
+    SumT a1 a2
+     | SumT b1 b2 <- sig
      -> join $ combine <$> subsumeT a1 b1 <*> subsumeT a2 b2
      | otherwise
      -> Nothing
 
     StructT as
-     | StructT bs <- sig
+     | StructT bs     <- sig
      , Map.keysSet as == Map.keysSet bs
-     , m' <- Map.intersectionWith (,) as bs
+     , m'             <- Map.intersectionWith (,) as bs
      -> do recordSubs <- traverse (uncurry subsumeT) m'
            foldM combine Map.empty recordSubs
      | otherwise
      -> Nothing
 
+    -- Here we have a special case for pure subsumptions.
+    -- If the temporality is of the inferred site is pure,
+    -- then we accept the unadorned type as the signature.
+    -- Also. If the inferred type contains a type variable,
+    -- we can also use the unadorned type, but only if we
+    -- give a substitution for the variable to be pure.
     Temporality at ar
      | Temporality bt br <- sig
      -> join $ combine <$> subsumeT at bt <*> subsumeT ar br
+     | TemporalityPure <- at
+     -> subsumeT ar sig
+     | TypeVar as <- at
+     -> join $ combine (Map.singleton as TemporalityPure) <$> subsumeT ar sig
+     | otherwise
+     -> Nothing
+
+    -- Likewise for possibilities, if the adornment is
+    -- definitely, then the unadorned type is fine.
+    Possibility at ar
+     | Possibility bt br <- sig
+     -> join $ combine <$> subsumeT at bt <*> subsumeT ar br
+     | PossibilityDefinitely <- at
+     -> subsumeT ar sig
+     | TypeVar as <- at
+     -> join $ combine (Map.singleton as PossibilityDefinitely) <$> subsumeT ar sig
      | otherwise
      -> Nothing
 
@@ -182,14 +204,8 @@ subsumeT inferred sig
     TemporalityElement      -> eq
     TemporalityAggregate    -> eq
 
-    Possibility at ar
-     | Possibility bt br <- sig
-     -> join $ combine <$> subsumeT at bt <*> subsumeT ar br
-     | otherwise
-     -> Nothing
-
-    PossibilityPossibly     -> eq
     PossibilityDefinitely   -> eq
+    PossibilityPossibly     -> eq
 
     TypeArrow at ar
      | TypeArrow bt br <- sig

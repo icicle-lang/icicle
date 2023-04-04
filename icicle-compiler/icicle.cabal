@@ -26,7 +26,6 @@ library
   build-depends:
                        base                            >= 3          && < 5
                      , ambiata-anemone
-                    --  , ambiata-disorder-corpus
                      , ambiata-jetski
                      , ambiata-p
                      , ambiata-piano
@@ -70,7 +69,7 @@ library
                      , temporary                       == 1.2.*
                      , terminal-size                   == 0.3.*
                      , text                            == 1.2.*
-                     , thyme                           == 0.3.*
+                     , thyme                           >= 0.4
                      , time                            >= 1.5        && < 1.10
                      , time-locale-compat              == 0.1.*
                      , transformers                    >= 0.3        && < 0.6

@@ -215,8 +215,8 @@ match (Regex _ as f bs) cs =
       c' == c
     checkAcceptor c (AcceptRange s fe) =
       c >= s && c <= fe
-    negs neg = if neg then not else id
-
+    negs neg =
+      if neg then not else id
 
     step s0 c =
       let

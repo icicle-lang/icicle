@@ -23,7 +23,7 @@ import                  Icicle.Source.Query
 import                  Icicle.Source.Type
 import                  Icicle.Source.Lexer.Token          (Variable (..))
 
-import                  Icicle.Common.Base
+import                  Icicle.Common.Base      (Name)
 import qualified        Icicle.Common.Fresh     as Fresh
 
 import                  Icicle.Internal.Pretty (Pretty, pretty)
