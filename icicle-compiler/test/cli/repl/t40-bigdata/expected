@@ -69,17 +69,20 @@ homer|1500
 marge|30
 
 λ λ λ -- Some obviously bad ones
-λ                     ^
+λ                  ^
 Error
 -----
 
 ## Check error
 
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 1:19
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 1:16
   
-  Fold: fold x =
-          0 : 1
-     ~> x
+  Fold: fold
+          x =
+            0
+          then
+            1
+     in x
   
   You are in 'big data mode', which restricts the queries you can perform.
   
@@ -87,17 +90,20 @@ Error
   
   For this reason, we require all folds to be in a windowed or latest
 
-λ λ           ^
+λ λ     ^
 Error
 -----
 
 ## Check error
 
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 56:9:prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 124:3:prelude.icicle
   
-  Fold: fold s =
-          0 : value + s
-     ~> s
+  Fold: fold
+          s =
+            0
+          then
+            value + s
+     in s
   
   You are in 'big data mode', which restricts the queries you can perform.
   
@@ -105,17 +111,20 @@ Error
   
   For this reason, we require all folds to be in a windowed or latest
 
-λ λ           ^
+λ λ     ^
 Error
 -----
 
 ## Check error
 
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 56:9:prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 124:3:prelude.icicle
   
-  Fold: fold s =
-          0 : value + s
-     ~> s
+  Fold: fold
+          s =
+            0
+          then
+            value + s
+     in s
   
   You are in 'big data mode', which restricts the queries you can perform.
   
@@ -124,17 +133,20 @@ Error
   For this reason, we require all folds to be in a windowed or latest
 
 λ λ -- Part good, part bad
-λ           ^
+λ     ^
 Error
 -----
 
 ## Check error
 
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 56:9:prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 124:3:prelude.icicle
   
-  Fold: fold s =
-          0 : value + s
-     ~> s
+  Fold: fold
+          s =
+            0
+          then
+            value + s
+     in s
   
   You are in 'big data mode', which restricts the queries you can perform.
   
@@ -193,17 +205,20 @@ homer|1500
 marge|30
 
 λ λ -- Some bad let bindings
-λ           ^
+λ     ^
 Error
 -----
 
 ## Check error
 
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 56:9:prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 124:3:prelude.icicle
   
-  Fold: fold s =
-          0 : value + s
-     ~> s
+  Fold: fold
+          s =
+            0
+          then
+            value + s
+     in s
   
   You are in 'big data mode', which restricts the queries you can perform.
   
@@ -211,17 +226,20 @@ Error
   
   For this reason, we require all folds to be in a windowed or latest
 
-λ λ           ^
+λ λ     ^
 Error
 -----
 
 ## Check error
 
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 56:9:prelude.icicle
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 124:3:prelude.icicle
   
-  Fold: fold s =
-          0 : x + s
-     ~> s
+  Fold: fold
+          s =
+            0
+          then
+            x + s
+     in s
   
   You are in 'big data mode', which restricts the queries you can perform.
   
@@ -230,16 +248,16 @@ Error
   For this reason, we require all folds to be in a windowed or latest
 
 λ λ -- A bad group
-λ                           ^
+λ                  ^
 Error
 -----
 
 ## Check error
 
-  For resumable queries, folds, groups and distincts must be inside windowed or latest at 1:25
+  For resumable queries, folds, groups and distincts must be inside windowed or latest at 1:16
   
   Fold: group location
-     ~> sum severity
+     in sum severity
   
   You are in 'big data mode', which restricts the queries you can perform.
   

@@ -69,7 +69,7 @@ STREAM_FILTER
                     right# reify-9-conv-17)
                 c-conv-10)
             simp-5
-STREAM_FOLD conv-25 : Buf 3 (Sum Error Int)
+STREAM_FOLD conv-32 : Buf 3 (Sum Error Int)
   INIT:
     Buf []
   KONS:
@@ -77,29 +77,36 @@ STREAM_FOLD conv-25 : Buf 3 (Sum Error Int)
       simp-6 =
         fst# conv-0
     in
-      Latest_push# conv-25 simp-6
+      Latest_push# conv-32 simp-6
 
 ## Postcomputations
 
-conv-30 =
+conv-26 =
   Sum_fold#
     (\reify-10-conv-20 ->
       left# reify-10-conv-20)
     (\reify-11-conv-22 ->
-      let
-        conv-26 =
-          Latest_read# conv-25
-        
-        conv-27 =
-          pair# reify-11-conv-22 conv-26
-      in
-        right# conv-27)
+      right# reify-11-conv-22)
     c-conv-10
+conv-37 =
+  Sum_fold#
+    (\reify-12-conv-27 ->
+      left# reify-12-conv-27)
+    (\reify-13-conv-29 ->
+      let
+        conv-33 =
+          Latest_read# conv-32
+        
+        conv-34 =
+          pair# reify-13-conv-29 conv-33
+      in
+        right# conv-34)
+    conv-26
 
 ## Returning
 
 repl:output =
-  conv-30
+  conv-37
 
 Core type
 ---------

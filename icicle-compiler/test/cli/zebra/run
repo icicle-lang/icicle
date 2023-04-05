@@ -1,6 +1,7 @@
 #!/bin/sh -eu
 
 : ${UPDATE:="0"}
+: "${ICICLE:=$(cabal list-bin icicle)}"
 
 diff_update () {
     if [ "$UPDATE" = "1" ]; then
@@ -28,8 +29,8 @@ out_schema_1=`mktemp -t icicle-out-schema-1-XXXXXX`
 drop=`mktemp -t icicle-drop-XXXXXX`
 
 echo "Zebra v3"
-cabal run --verbose=0 icicle:icicle -- compile --input-toml $dict --output-c $out_c
-cabal run --verbose=0 icicle:icicle -- query --dictionary-c $out_c --input-zebra $zebra_v3 --output-psv $out_psv_1 --output-psv-schema $out_schema_1 $common_args
+$ICICLE compile --input-toml $dict --output-c $out_c
+$ICICLE query --dictionary-c $out_c --input-zebra $zebra_v3 --output-psv $out_psv_1 --output-psv-schema $out_schema_1 $common_args
 
 diff_update $expected_psv $out_psv_1
 diff_update $expected_schema $out_schema_1

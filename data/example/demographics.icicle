@@ -1,0 +1,11 @@
+module Demographics where
+
+input age : Int
+
+feature is_adult =
+  from age
+    in newest value >= 18
+
+countfrom : Num a => Int -> Aggregate a
+countfrom v =
+  fold x = v then x + 1 in from_integer x

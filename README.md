@@ -3,7 +3,7 @@
 # Icicle
 ### The Icicle Streaming Query Language.
 
-[![Build Status](https://api.travis-ci.com/icicle-lang/icicle.svg?branch=master)](https://travis-ci.com/icicle-lang/icicle)
+[![Build Status](https://github.com/icicle-lang/icicle/actions/workflows/haskell.yml/badge.svg)](https://github.com/icicle-lang/icicle/actions/workflows/haskell.yml)
 
 </div>
 

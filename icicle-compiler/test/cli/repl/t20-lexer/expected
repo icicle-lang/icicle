@@ -40,40 +40,45 @@ marge|( ( (((3, ""), " "), "ok")
       , "\tok\t" )
 
 λ λ -- Expect a "no such variable" error rather than invalid token or parse error
-λ                      ^
+λ                   ^
 Error
 -----
 
 ## Check error
 
-  Unknown variable ea1 at 1:20
+  Unknown variable ea1 at 1:17
   
   Suggested bindings are:
   
+    exp :
+         Double
+      -> Possibly Double
+    
+    tan : Double -> Possibly Double
+    
     max :
          Element a
       -> Aggregate (Possibly a)
-    
-    tan : Double -> Possibly Double
     
     mean :
          Num a
       => Element a
       -> Aggregate (Possibly Double)
     
-    exp : Double -> Possibly Double
-    
-    fst : (b, a) -> b
+    box : Sum ErrorT a -> Possibly a
 
 λ λ -- Expect a parse error on unterminated string
-λ                  ^
-Error
+λ Error
 -----
 
 ## Parse error
 
-  (line 1, column 16):
-  unexpected (TUnexpected "\"no end",(line 1, column 19))
-  expecting query
+  1:23:
+    |
+  1 | from salary ~> "no end
+    |                       ^
+  unexpected end of input
+  expecting '"'
+  
 
 λ λ 

@@ -28,7 +28,7 @@ conv-3 : Int =
   MAX_MAP_SIZE
 
 acc-c-conv-10 =i Right 0 : Sum Error Int
-acc-conv-25 =i Buf [] : Buf 3 (Sum Error Int)
+acc-conv-32 =i Buf [] : Buf 3 (Sum Error Int)
 
 for_facts conv-1 : Time
         , conv-0 : (Sum Error Int, Time) {
@@ -56,31 +56,37 @@ for_facts conv-1 : Time
                            anf-0
     }
     
-    conv-25-aval-1 =r acc-conv-25
+    conv-32-aval-1 =r acc-conv-32
     anf-2 = anf-0
-    acc-conv-25 =w Latest_push#
-                     conv-25-aval-1
+    acc-conv-32 =w Latest_push#
+                     conv-32-aval-1
                      anf-2
 }
 
-conv-25 =r acc-conv-25
+conv-32 =r acc-conv-32
 c-conv-10 =r acc-c-conv-10
-conv-30 = Sum_fold#
+conv-26 = Sum_fold#
             (\reify-10-conv-20 ->
               left# reify-10-conv-20)
             (\reify-11-conv-22 ->
-              let
-                conv-26 =
-                  Latest_read# conv-25
-                
-                conv-27 =
-                  pair# reify-11-conv-22 conv-26
-              in
-                right# conv-27)
+              right# reify-11-conv-22)
             c-conv-10
+conv-37 = Sum_fold#
+            (\reify-12-conv-27 ->
+              left# reify-12-conv-27)
+            (\reify-13-conv-29 ->
+              let
+                conv-33 =
+                  Latest_read# conv-32
+                
+                conv-34 =
+                  pair# reify-13-conv-29 conv-33
+              in
+                right# conv-34)
+            conv-26
 
 output repl:output : Sum Error (Int, Array (Sum Error Int)) =
-  conv-30 : Sum Error (Int, Array (Sum Error Int))
+  conv-37 : Sum Error (Int, Array (Sum Error Int))
 
 Core evaluation
 ---------------

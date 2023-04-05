@@ -19,18 +19,6 @@ Selected psv file as input: test/cli/repl/data.psv
 λ λ Core evaluation
 ---------------
 
-homer|4
-marge|7324
-
-λ λ Core evaluation
----------------
-
-homer|-91
-marge|7229
-
-λ λ Core evaluation
----------------
-
 homer|1461
 marge|8781
 

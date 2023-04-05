@@ -1,6 +1,8 @@
 #!/bin/sh
 [ "$1" = "UPDATE" ]; update_expected=$?
 
+: "${ICICLE:=$(cabal list-bin icicle)}"
+
 if hash colordiff 2>/dev/null; then
   diff=colordiff
 else
@@ -14,7 +16,7 @@ do
     echo " --- Test: $dir"
     if [ $update_expected -eq 1 ]
     then
-        cabal run --verbose=0 icicle:icicle -- repl \
+        $ICICLE repl \
             --skip-dotfiles \
             --init ":set -c-eval" \
             --init ":set snapshot 2017-01-01" \
@@ -24,7 +26,7 @@ do
             | $diff -u $dir/expected -
     else
         echo " --- Updating expected "
-        cabal run --verbose=0 icicle:icicle -- repl \
+        $ICICLE repl \
             --skip-dotfiles \
             --init ":set -c-eval" \
             --init ":set snapshot 2017-01-01" \

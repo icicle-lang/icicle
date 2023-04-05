@@ -11,19 +11,19 @@ from salary ~> count value
 from salary ~> mean value
 
 -- minby / min example
-from injury ~> min_by severity location , min severity
+from injury ~> (min_by severity location , min severity)
 
 -- maxby / max example
-from injury ~> max_by severity location , max severity
+from injury ~> (max_by severity location , max severity)
 
 -- Standard deviation example
 from salary ~> sd value
 
 -- Gradient example
-from salary ~> gradient value (double (days time) / 365)
+from salary ~> gradient (double value) (double (days time) / 365)
 
 -- Pearsons correlation example
-from salary ~> correlation value (double (days time) / 365)
+from salary ~> correlation (double value) (double (days time) / 365)
 
 -- Newest example
 from injury ~> newest fields

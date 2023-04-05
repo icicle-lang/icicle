@@ -20,10 +20,7 @@ from injury ~> filter (location == "head") ~> count location
 from injury ~> max location
 
 -- Times
-from salary ~> max (days between `1980-01-06` time)
-
--- Months
-from salary ~> min (3 months after time)
+from salary ~> max (days_between 1980-01-06 time)
 
 -- Maps
 from injury ~> group location ~> max severity

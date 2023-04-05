@@ -102,19 +102,6 @@ C evaluation
 homer|10953
 marge|3633
 
-λ λ -- Months
-λ Core evaluation
----------------
-
-homer|1990-03-17
-marge|1990-03-17
-
-C evaluation
-------------
-
-homer|1990-03-17
-marge|1990-03-17
-
 λ λ -- Maps
 λ Core evaluation
 ---------------

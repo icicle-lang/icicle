@@ -14,4 +14,4 @@ from salary ~> let v = (True,1) ~> fold s2 = False then case (case v of (a,b) th
 
 -- Case matching on literals
 from salary ~> latest 10 ~> case value of 10 then "ten"; 100 then "One hundred"; 1000 then "One thousand"; _ then "Not a power of 10"
-from injury ~> latest 10 ~> case (Some location) of Some "head" then "head"; _ then "Not the head" end
+from injury ~> latest 10 ~> case (Some location) of Some "head" then "head"; _ then "Not the head"

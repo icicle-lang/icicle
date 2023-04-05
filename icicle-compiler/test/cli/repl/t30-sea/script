@@ -4,9 +4,6 @@
 -- An interesting expression with structs and strings
 from injury ~> mean (double severity) * (filter location == "torso" ~> sd severity)
 
--- Times
-from salary ~> max (days between `1980-01-06` time days after `2000-01-01`)
-
 -- Math
 :set -c -flatten
 

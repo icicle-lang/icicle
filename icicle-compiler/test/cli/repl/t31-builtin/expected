@@ -133,48 +133,6 @@ C evaluation
 homer|2016
 marge|2016
 
-λ λ -- Baked-in maps and arrays
-λ λ Core evaluation
----------------
-
-homer|( 7122.0
-      , [ 9496
-        , 8035
-        , 6209
-        , 2191
-        ] )
-
-C evaluation
-------------
-
-homer|( 7122.0
-      , [ 9496
-        , 8035
-        , 6209
-        , 2191
-        ] )
-
-λ λ -- Invaild quantile arguments
-λ Core evaluation
----------------
-
-homer|( tombstone
-      , [ 9496
-        , 8035
-        , 6209
-        , 2191
-        ] )
-
-C evaluation
-------------
-
-homer|( tombstone
-      , [ 9496
-        , 8035
-        , 6209
-        , 2191
-        ] )
-
 λ λ Loaded dictionary with 1 inputs, 0 outputs, 73 functions.
 λ Selected psv file as input: test/cli/repl/t31-builtin/data.psv
 λ λ -- NY should be 1 year, CA should be 4 years, OR should be 1 year

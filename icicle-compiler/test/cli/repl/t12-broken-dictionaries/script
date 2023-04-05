@@ -1,3 +1,0 @@
--- Load dictionary
-:load test/cli/repl/t12-broken-dictionaries/broken.toml
-:load test/cli/repl/t12-broken-dictionaries/broken2.toml

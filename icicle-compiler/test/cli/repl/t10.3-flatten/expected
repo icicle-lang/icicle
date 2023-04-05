@@ -29,23 +29,23 @@ conv-3 : Int =
 
 acc-c-conv-10-simpflat-0 =i ExceptNotAnError : Error
 acc-c-conv-10-simpflat-1 =i 0 : Int
-acc-conv-25-simpflat-2 =i Buf_make#
+acc-conv-32-simpflat-2 =i Buf_make#
                             () : Buf 3 Error
-acc-conv-25-simpflat-3 =i Buf_make#
+acc-conv-32-simpflat-3 =i Buf_make#
                             () : Buf 3 Int
 
 for_facts conv-1 : Time
-        , conv-0-simpflat-28 : Error
-        , conv-0-simpflat-29 : Int
-        , conv-0-simpflat-30 : Time {
+        , conv-0-simpflat-32 : Error
+        , conv-0-simpflat-33 : Int
+        , conv-0-simpflat-34 : Time {
     flat-0 =i False : Bool
     
     if (eq#
-          conv-0-simpflat-28
+          conv-0-simpflat-32
           ExceptNotAnError)
     {
         flat-0 =w gt#
-                    conv-0-simpflat-29
+                    conv-0-simpflat-33
                     10
     }
     else
@@ -63,7 +63,7 @@ for_facts conv-1 : Time
         flat-1-simpflat-7 =i 0 : Int
         
         if (eq#
-              conv-0-simpflat-28
+              conv-0-simpflat-32
               ExceptNotAnError)
         {
             flat-4-simpflat-8 =i ExceptNotAnError : Error
@@ -92,7 +92,7 @@ for_facts conv-1 : Time
         }
         else
         {
-            flat-1-simpflat-6 =w conv-0-simpflat-28
+            flat-1-simpflat-6 =w conv-0-simpflat-32
             flat-1-simpflat-7 =w 0
         }
         
@@ -102,26 +102,22 @@ for_facts conv-1 : Time
         acc-c-conv-10-simpflat-1 =w flat-1-simpflat-13
     }
     
-    acc-conv-25-simpflat-2 =r acc-conv-25-simpflat-2
-    acc-conv-25-simpflat-2 =w Buf_push#
-                                acc-conv-25-simpflat-2
-                                conv-0-simpflat-28
-    acc-conv-25-simpflat-3 =r acc-conv-25-simpflat-3
-    acc-conv-25-simpflat-3 =w Buf_push#
-                                acc-conv-25-simpflat-3
-                                conv-0-simpflat-29
+    acc-conv-32-simpflat-2 =r acc-conv-32-simpflat-2
+    acc-conv-32-simpflat-2 =w Buf_push#
+                                acc-conv-32-simpflat-2
+                                conv-0-simpflat-32
+    acc-conv-32-simpflat-3 =r acc-conv-32-simpflat-3
+    acc-conv-32-simpflat-3 =w Buf_push#
+                                acc-conv-32-simpflat-3
+                                conv-0-simpflat-33
 }
 
-conv-25-simpflat-16 =r acc-conv-25-simpflat-2
-conv-25-simpflat-17 =r acc-conv-25-simpflat-3
+conv-32-simpflat-16 =r acc-conv-32-simpflat-2
+conv-32-simpflat-17 =r acc-conv-32-simpflat-3
 c-conv-10-simpflat-18 =r acc-c-conv-10-simpflat-0
 c-conv-10-simpflat-19 =r acc-c-conv-10-simpflat-1
 flat-10-simpflat-20 =i ExceptNotAnError : Error
 flat-10-simpflat-21 =i 0 : Int
-flat-10-simpflat-22 =i unsafe_Array_create#
-                         0 : Array Error
-flat-10-simpflat-23 =i unsafe_Array_create#
-                         0 : Array Int
 
 if (eq#
       c-conv-10-simpflat-18
@@ -129,31 +125,53 @@ if (eq#
 {
     flat-10-simpflat-20 =w ExceptNotAnError
     flat-10-simpflat-21 =w c-conv-10-simpflat-19
-    flat-10-simpflat-22 =w Buf_read#
-                             conv-25-simpflat-16
-    flat-10-simpflat-23 =w Buf_read#
-                             conv-25-simpflat-17
 }
 else
 {
     flat-10-simpflat-20 =w c-conv-10-simpflat-18
     flat-10-simpflat-21 =w 0
-    flat-10-simpflat-22 =w unsafe_Array_create#
+}
+
+flat-10-simpflat-22 =r flat-10-simpflat-20
+flat-10-simpflat-23 =r flat-10-simpflat-21
+flat-11-simpflat-24 =i ExceptNotAnError : Error
+flat-11-simpflat-25 =i 0 : Int
+flat-11-simpflat-26 =i unsafe_Array_create#
+                         0 : Array Error
+flat-11-simpflat-27 =i unsafe_Array_create#
+                         0 : Array Int
+
+if (eq#
+      flat-10-simpflat-22
+      ExceptNotAnError)
+{
+    flat-11-simpflat-24 =w ExceptNotAnError
+    flat-11-simpflat-25 =w flat-10-simpflat-23
+    flat-11-simpflat-26 =w Buf_read#
+                             conv-32-simpflat-16
+    flat-11-simpflat-27 =w Buf_read#
+                             conv-32-simpflat-17
+}
+else
+{
+    flat-11-simpflat-24 =w flat-10-simpflat-22
+    flat-11-simpflat-25 =w 0
+    flat-11-simpflat-26 =w unsafe_Array_create#
                              0
-    flat-10-simpflat-23 =w unsafe_Array_create#
+    flat-11-simpflat-27 =w unsafe_Array_create#
                              0
 }
 
-flat-10-simpflat-24 =r flat-10-simpflat-20
-flat-10-simpflat-25 =r flat-10-simpflat-21
-flat-10-simpflat-26 =r flat-10-simpflat-22
-flat-10-simpflat-27 =r flat-10-simpflat-23
+flat-11-simpflat-28 =r flat-11-simpflat-24
+flat-11-simpflat-29 =r flat-11-simpflat-25
+flat-11-simpflat-30 =r flat-11-simpflat-26
+flat-11-simpflat-31 =r flat-11-simpflat-27
 
 output repl:output : Sum Error (Int, Array (Sum Error Int)) =
-    flat-10-simpflat-24 : Error
-  , flat-10-simpflat-25 : Int
-  , flat-10-simpflat-26 : Array Error
-  , flat-10-simpflat-27 : Array Int
+    flat-11-simpflat-28 : Error
+  , flat-11-simpflat-29 : Int
+  , flat-11-simpflat-30 : Array Error
+  , flat-11-simpflat-31 : Array Int
 
 Flattened Avalanche (simplified), typechecked
 ---------------------------------------------
@@ -165,23 +183,23 @@ conv-3 : Int =
 
 acc-c-conv-10-simpflat-0 =i ExceptNotAnError : Error
 acc-c-conv-10-simpflat-1 =i 0 : Int
-acc-conv-25-simpflat-2 =i Buf_make#
+acc-conv-32-simpflat-2 =i Buf_make#
                             () : Buf 3 Error
-acc-conv-25-simpflat-3 =i Buf_make#
+acc-conv-32-simpflat-3 =i Buf_make#
                             () : Buf 3 Int
 
 for_facts conv-1 : Time
-        , conv-0-simpflat-28 : Error
-        , conv-0-simpflat-29 : Int
-        , conv-0-simpflat-30 : Time {
+        , conv-0-simpflat-32 : Error
+        , conv-0-simpflat-33 : Int
+        , conv-0-simpflat-34 : Time {
     flat-0 =i False : Bool
     
     if (eq#
-          conv-0-simpflat-28
+          conv-0-simpflat-32
           ExceptNotAnError)
     {
         flat-0 =w gt#
-                    conv-0-simpflat-29
+                    conv-0-simpflat-33
                     10
     }
     else
@@ -199,7 +217,7 @@ for_facts conv-1 : Time
         flat-1-simpflat-7 =i 0 : Int
         
         if (eq#
-              conv-0-simpflat-28
+              conv-0-simpflat-32
               ExceptNotAnError)
         {
             flat-4-simpflat-8 =i ExceptNotAnError : Error
@@ -228,7 +246,7 @@ for_facts conv-1 : Time
         }
         else
         {
-            flat-1-simpflat-6 =w conv-0-simpflat-28
+            flat-1-simpflat-6 =w conv-0-simpflat-32
             flat-1-simpflat-7 =w 0
         }
         
@@ -238,26 +256,22 @@ for_facts conv-1 : Time
         acc-c-conv-10-simpflat-1 =w flat-1-simpflat-13
     }
     
-    acc-conv-25-simpflat-2 =r acc-conv-25-simpflat-2
-    acc-conv-25-simpflat-2 =w Buf_push#
-                                acc-conv-25-simpflat-2
-                                conv-0-simpflat-28
-    acc-conv-25-simpflat-3 =r acc-conv-25-simpflat-3
-    acc-conv-25-simpflat-3 =w Buf_push#
-                                acc-conv-25-simpflat-3
-                                conv-0-simpflat-29
+    acc-conv-32-simpflat-2 =r acc-conv-32-simpflat-2
+    acc-conv-32-simpflat-2 =w Buf_push#
+                                acc-conv-32-simpflat-2
+                                conv-0-simpflat-32
+    acc-conv-32-simpflat-3 =r acc-conv-32-simpflat-3
+    acc-conv-32-simpflat-3 =w Buf_push#
+                                acc-conv-32-simpflat-3
+                                conv-0-simpflat-33
 }
 
-conv-25-simpflat-16 =r acc-conv-25-simpflat-2
-conv-25-simpflat-17 =r acc-conv-25-simpflat-3
+conv-32-simpflat-16 =r acc-conv-32-simpflat-2
+conv-32-simpflat-17 =r acc-conv-32-simpflat-3
 c-conv-10-simpflat-18 =r acc-c-conv-10-simpflat-0
 c-conv-10-simpflat-19 =r acc-c-conv-10-simpflat-1
 flat-10-simpflat-20 =i ExceptNotAnError : Error
 flat-10-simpflat-21 =i 0 : Int
-flat-10-simpflat-22 =i unsafe_Array_create#
-                         0 : Array Error
-flat-10-simpflat-23 =i unsafe_Array_create#
-                         0 : Array Int
 
 if (eq#
       c-conv-10-simpflat-18
@@ -265,31 +279,53 @@ if (eq#
 {
     flat-10-simpflat-20 =w ExceptNotAnError
     flat-10-simpflat-21 =w c-conv-10-simpflat-19
-    flat-10-simpflat-22 =w Buf_read#
-                             conv-25-simpflat-16
-    flat-10-simpflat-23 =w Buf_read#
-                             conv-25-simpflat-17
 }
 else
 {
     flat-10-simpflat-20 =w c-conv-10-simpflat-18
     flat-10-simpflat-21 =w 0
-    flat-10-simpflat-22 =w unsafe_Array_create#
+}
+
+flat-10-simpflat-22 =r flat-10-simpflat-20
+flat-10-simpflat-23 =r flat-10-simpflat-21
+flat-11-simpflat-24 =i ExceptNotAnError : Error
+flat-11-simpflat-25 =i 0 : Int
+flat-11-simpflat-26 =i unsafe_Array_create#
+                         0 : Array Error
+flat-11-simpflat-27 =i unsafe_Array_create#
+                         0 : Array Int
+
+if (eq#
+      flat-10-simpflat-22
+      ExceptNotAnError)
+{
+    flat-11-simpflat-24 =w ExceptNotAnError
+    flat-11-simpflat-25 =w flat-10-simpflat-23
+    flat-11-simpflat-26 =w Buf_read#
+                             conv-32-simpflat-16
+    flat-11-simpflat-27 =w Buf_read#
+                             conv-32-simpflat-17
+}
+else
+{
+    flat-11-simpflat-24 =w flat-10-simpflat-22
+    flat-11-simpflat-25 =w 0
+    flat-11-simpflat-26 =w unsafe_Array_create#
                              0
-    flat-10-simpflat-23 =w unsafe_Array_create#
+    flat-11-simpflat-27 =w unsafe_Array_create#
                              0
 }
 
-flat-10-simpflat-24 =r flat-10-simpflat-20
-flat-10-simpflat-25 =r flat-10-simpflat-21
-flat-10-simpflat-26 =r flat-10-simpflat-22
-flat-10-simpflat-27 =r flat-10-simpflat-23
+flat-11-simpflat-28 =r flat-11-simpflat-24
+flat-11-simpflat-29 =r flat-11-simpflat-25
+flat-11-simpflat-30 =r flat-11-simpflat-26
+flat-11-simpflat-31 =r flat-11-simpflat-27
 
 output repl:output : Sum Error (Int, Array (Sum Error Int)) =
-    flat-10-simpflat-24 : Error
-  , flat-10-simpflat-25 : Int
-  , flat-10-simpflat-26 : Array Error
-  , flat-10-simpflat-27 : Array Int
+    flat-11-simpflat-28 : Error
+  , flat-11-simpflat-29 : Int
+  , flat-11-simpflat-30 : Array Error
+  , flat-11-simpflat-31 : Array Int
 
 Core evaluation
 ---------------

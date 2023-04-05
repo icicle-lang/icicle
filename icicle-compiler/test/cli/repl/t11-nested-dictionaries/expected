@@ -16,5 +16,5 @@ Selected psv file as input: test/cli/repl/data.psv
                   ░     :help for help
 
 λ -- Load dictionary
-λ Loaded dictionary with 4 inputs, 4 outputs, 73 functions.
+λ Loaded dictionary with 2 inputs, 15 outputs, 77 functions.
 λ 

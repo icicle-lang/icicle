@@ -1,2 +1,2 @@
 -- Load dictionary
-:load data/example/DictionaryTrial.toml
+:load data/example/dictionary.icicle
