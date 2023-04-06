@@ -15,6 +15,7 @@ module Icicle.Runtime.Serial.Psv.Data (
 import qualified Anemone.Pretty as Anemone
 
 import qualified Data.Aeson as Aeson
+import qualified Data.ByteString as ByteString
 import           Data.ByteString.Builder (Builder)
 import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Char8 as Char8
@@ -215,7 +216,9 @@ encodeColumn column =
         SerialPsvDataUnsupportedSchema (Striped.schema column)
 
     Striped.String ns bs ->
-      bimap (SerialPsvDataSegmentError Schema.String) (fmap Builder.byteString) $
+      bimap
+        (SerialPsvDataSegmentError Schema.String)
+        (fmap encodeQuotedString) $
         Segment.reify ns bs
 
     Striped.Struct {} ->
@@ -227,6 +230,22 @@ encodeColumn column =
     Striped.Map {} ->
       encodeAsJson column
 
+-- Encode strings which contain delimiter characters
+-- as quoted json, otherwise, just leave them alone.
+encodeQuotedString :: ByteString.ByteString -> Builder
+encodeQuotedString fld =
+  if ByteString.any (\b -> b == dquote || b == pipe || b == nl) fld then
+    Aeson.fromEncoding . Aeson.toEncoding . Text.decodeUtf8 $ fld
+  else
+    Builder.byteString fld
+
+  where
+    dquote =
+      34
+    pipe =
+      124
+    nl =
+      10
 
 encodeAsJson :: Column -> Either SerialPsvDataError (Boxed.Vector Builder)
 encodeAsJson column = do
