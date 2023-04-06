@@ -20,7 +20,7 @@ do
             --skip-dotfiles \
             --init ":set -c-eval" \
             --init ":set snapshot 2017-01-01" \
-            --init ":load test/cli/repl/dictionary.toml" \
+            --init ":load test/cli/repl/dictionary.icicle" \
             --init ":load test/cli/repl/data.psv" \
             < $dir/script \
             | $diff -u $dir/expected -
@@ -30,7 +30,7 @@ do
             --skip-dotfiles \
             --init ":set -c-eval" \
             --init ":set snapshot 2017-01-01" \
-            --init ":load test/cli/repl/dictionary.toml" \
+            --init ":load test/cli/repl/dictionary.icicle" \
             --init ":load test/cli/repl/data.psv" \
             < $dir/script \
             | tee $dir/expected

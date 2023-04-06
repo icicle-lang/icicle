@@ -1,4 +1,4 @@
-:load test/cli/repl/t02.1-group-groups/dictionary.toml
+:load test/cli/repl/t02.1-group-groups/dictionary.icicle
 :load test/cli/repl/t02.1-group-groups/data.psv
 :set snapshot 2016-07-14
 :set +core-eval

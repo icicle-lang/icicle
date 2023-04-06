@@ -1,0 +1,19 @@
+module Default where
+
+input nested : Array String
+
+feature newest_strings =
+   from nested ~> newest value
+
+feature latest_couple =
+   from nested ~> latest 5 ~> value
+
+feature length =
+   from nested ~> length (newest value)
+
+feature length_outer =
+   from nested ~> let l = (latest 5 ~> value) ~> length l
+
+feature sorted =
+   from nested ~> sort (newest value)
+

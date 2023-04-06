@@ -1,11 +1,9 @@
-:load data/example/DictionaryTrial.toml
-:load data/example/demographics.psv
 :set +core-eval
 :set +c-eval
 
 from injury ~> keys (group location in 1)
 
-from injury ~> days_between (newest (get admitted)) now
+from injury ~> days_between (newest time) now
 
 -- These were errors picked up by QuickCheck
 from injury ~> box (Right now)
@@ -21,7 +19,7 @@ from salary ~> year_of now
 
 from salary ~> year_of now
 
-:load test/cli/repl/t31-builtin/dict.toml
+:load test/cli/repl/t31-builtin/dict.icicle
 :load test/cli/repl/t31-builtin/data.psv
 
 -- NY should be 1 year, CA should be 4 years, OR should be 1 year

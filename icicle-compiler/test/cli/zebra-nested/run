@@ -18,7 +18,7 @@ echo "\nSeparate compilation + Zebra"
 echo "============================"
 
 common_args="--snapshot 2017-02-01"
-dict=test/cli/zebra-nested/dictionary.toml
+dict=test/cli/zebra-nested/dictionary.icicle
 zebra_v2=test/cli/zebra-nested/input.zbin2
 zebra_v3=test/cli/zebra-nested/input.zbin3
 
@@ -30,7 +30,7 @@ out_schema_1=`mktemp -t icicle-out-schema-1-XXXXXX`
 drop=`mktemp -t icicle-drop-XXXXXX`
 
 echo "Zebra v3"
-$ICICLE compile --input-toml $dict --output-c $out_c
+$ICICLE compile --input-icicle $dict --output-c $out_c
 $ICICLE query --dictionary-c $out_c --input-zebra $zebra_v3 --output-psv $out_psv_1 --output-psv-schema $out_schema_1 $common_args
 
 diff_update $expected_psv $out_psv_1

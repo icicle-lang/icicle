@@ -47,7 +47,7 @@ getUnmangleIdempotent =
       fmap (filter (/= 'z')) .
       listOf .
       fmap chr $
-      choose (0, 255) -- only need latin1 characters to really excercise this
+      choose (0, 255) -- only need latin1 characters to really exercise this
   in
     fmap fromJust $
       gen `suchThat` isJust

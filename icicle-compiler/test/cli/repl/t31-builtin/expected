@@ -15,16 +15,12 @@ Selected psv file as input: test/cli/repl/data.psv
      ░            ░
                   ░     :help for help
 
-λ Loaded dictionary with 4 inputs, 4 outputs, 73 functions.
-λ Selected psv file as input: data/example/demographics.psv
 λ Queries will be evaluated using the core evaluator.
 λ Queries will be evaluated using the C evaluator.
 λ λ Core evaluation
 ---------------
 
-homer|[ "TORSO"
-      , "aRm"
-      , "heAd"
+homer|[ "arm"
       , "head"
       , "torso"
       ]
@@ -32,9 +28,7 @@ homer|[ "TORSO"
 C evaluation
 ------------
 
-homer|[ "TORSO"
-      , "aRm"
-      , "heAd"
+homer|[ "arm"
       , "head"
       , "torso"
       ]
@@ -42,12 +36,12 @@ homer|[ "TORSO"
 λ λ Core evaluation
 ---------------
 
-homer|2557
+homer|2558
 
 C evaluation
 ------------
 
-homer|2557
+homer|2558
 
 λ λ -- These were errors picked up by QuickCheck
 λ Core evaluation
@@ -73,27 +67,31 @@ homer|tombstone
 λ λ Core evaluation
 ---------------
 
-homer|[ 70000
-      , 81000
-      , 90100
+homer|[ 300
+      , 400
+      , 500
       ]
-marge|[ 0 ]
+marge|[ 0
+      , 10
+      , 20
+      ]
 
 C evaluation
 ------------
 
-homer|[ 70000
-      , 81000
-      , 90100
+homer|[ 300
+      , 400
+      , 500
       ]
-marge|[ 0 ]
+marge|[ 0
+      , 10
+      , 20
+      ]
 
 λ λ Core evaluation
 ---------------
 
-homer|[ "TORSO"
-      , "aRm"
-      , "heAd"
+homer|[ "arm"
       , "head"
       , "torso"
       ]
@@ -101,9 +99,7 @@ homer|[ "TORSO"
 C evaluation
 ------------
 
-homer|[ "TORSO"
-      , "aRm"
-      , "heAd"
+homer|[ "arm"
       , "head"
       , "torso"
       ]

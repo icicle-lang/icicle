@@ -1,6 +1,3 @@
-:load test/cli/repl/dictionary.toml
-:load test/cli/repl/data.psv
-
 -- Valid indices
 from salary ~> let arr = (latest 3 ~> value) ~> index arr 0
 from salary ~> let arr = (latest 3 ~> value) ~> index arr 2

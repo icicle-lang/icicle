@@ -1,7 +1,7 @@
 :set +core-eval
 :set +c-eval
 
-:load test/cli/repl/t18-nested-structs/dict.toml
+:load test/cli/repl/t18-nested-structs/dict.icicle
 :load test/cli/repl/t18-nested-structs/data.psv
 
 from person ~> group injury.severity ~> mean misery
