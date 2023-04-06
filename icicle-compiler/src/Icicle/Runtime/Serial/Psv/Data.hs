@@ -2,6 +2,8 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE TupleSections #-}
 module Icicle.Runtime.Serial.Psv.Data (
     SerialPsvDataError(..)
   , renderSerialPsvDataError
@@ -13,6 +15,7 @@ module Icicle.Runtime.Serial.Psv.Data (
 import qualified Anemone.Pretty as Anemone
 
 import qualified Data.Aeson as Aeson
+import qualified Data.ByteString as ByteString
 import           Data.ByteString.Builder (Builder)
 import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Char8 as Char8
@@ -36,6 +39,7 @@ import           Text.Show.Pretty (ppShow)
 import           Text.Printf (printf)
 
 import qualified X.Data.Vector as Boxed
+import qualified X.Data.Vector.Cons as Cons
 
 import qualified Zebra.X.Vector.Segment as Segment
 
@@ -102,70 +106,73 @@ encodeMissing missing tag_ok tag value =
     missing
 {-# INLINE encodeMissing #-}
 
-ppValue :: Value -> Either SerialPsvDataError Aeson.Value
-ppValue value =
+ppValue :: Schema -> Value -> Either SerialPsvDataError Aeson.Value
+ppValue schema value =
   case value of
-    Logical.Unit ->
-      pure $ Aeson.object []
-    Logical.Bool False64 ->
-      pure $ Aeson.toJSON False
-    Logical.Bool _ ->
-      pure $ Aeson.toJSON True
-    Logical.Int x ->
-      pure $ Aeson.toJSON x
-    Logical.Double x ->
-      pure $ Aeson.toJSON x
-    Logical.Time x ->
-      pure . Aeson.toJSON $ encodeDateString x
+    Logical.Unit
+      | Schema.Unit <- schema
+      -> pure $ Aeson.object []
+    Logical.Bool False64
+      | Schema.Bool <- schema
+      -> pure $ Aeson.toJSON False
+    Logical.Bool _
+      | Schema.Bool <- schema
+      -> pure $ Aeson.toJSON True
+    Logical.Int x
+      | Schema.Int <- schema
+      -> pure $ Aeson.toJSON x
+    Logical.Double x
+      | Schema.Double <- schema
+      -> pure $ Aeson.toJSON x
+    Logical.Time x
+      | Schema.Time <- schema
+      -> pure . Aeson.toJSON $ encodeDateString x
     Logical.Left _ ->
       Left $
         SerialPsvDataUnsupportedValue value
     Logical.Right _ ->
       Left $
         SerialPsvDataUnsupportedValue value
-    Logical.None ->
-      -- FIXME should we really treat option like result?
-      Left $
-        SerialPsvDataMissingValue Tombstone64
-    Logical.Some x ->
-      ppValue x
+    Logical.None
+      | Schema.Option _ <- schema
+      -> pure Aeson.Null
+    Logical.Some x
+      | Schema.Option s <- schema
+      -> ppValue s x
     Logical.Error x ->
       Left $
         SerialPsvDataMissingValue x
-    Logical.Success x ->
-      ppValue x
-    Logical.Pair x0 y0 -> do
-      x <- ppValue x0
-      y <- ppValue y0
-      pure $
-        Aeson.toJSON [x, y]
-    Logical.Struct _ ->
+    Logical.Success x
+      | Schema.Result s <- schema
+      -> ppValue s x
+    Logical.Pair x0 y0
+      | Schema.Pair sx sy <- schema
+      -> do x <- ppValue sx x0
+            y <- ppValue sy y0
+            pure $ Aeson.toJSON [x, y]
+    Logical.Struct xs0
+      | Schema.Struct sxs0 <- schema
+      , Cons.length xs0 == Cons.length sxs0
+      -> let takeField (Field name s) x = (name,) <$> ppValue s x
+         in  Aeson.object . Cons.toList <$> Cons.zipWithM takeField sxs0 xs0
+
+    Logical.String x
+      | Schema.String <- schema
+      -> pure . Aeson.toJSON $ Text.decodeUtf8 x
+    Logical.Array xs
+      | Schema.Array s <- schema
+      -> Aeson.toJSON <$> traverse (ppValue s) xs
+    Logical.Map kvs
+      | Schema.Map sk sv <- schema
+      -> Aeson.toJSON <$> traverse (bitraverse (ppValue sk) (ppValue sv)) (Map.toList kvs)
+
+    _ ->
       Left $
         SerialPsvDataUnsupportedValue value
-    Logical.String x ->
-      pure . Aeson.toJSON $ Text.decodeUtf8 x
-    Logical.Array xs ->
-      Aeson.toJSON <$> traverse ppValue xs
-    Logical.Map kvs ->
-      Aeson.toJSON <$> traverse (bitraverse ppValue ppValue) (Map.toList kvs)
 
-encodeValues :: Either SerialPsvDataError (Boxed.Vector Aeson.Value) -> Either SerialPsvDataError Builder
-encodeValues xs0 =
-  case xs0 of
-    Right xs ->
-      pure . Builder.lazyByteString $ encodeCompactJson' [] (Aeson.Array xs)
-    Left (SerialPsvDataMissingValue _) ->
-      pure "NA"
-    Left x ->
-      Left x
-
-encodeArray :: Boxed.Vector Value -> Either SerialPsvDataError Builder
-encodeArray =
-  encodeValues . traverse ppValue
-
-encodeMap :: Boxed.Vector (Value, Value) -> Either SerialPsvDataError Builder
-encodeMap =
-  encodeValues . fmap (fmap Aeson.toJSON) . traverse (bitraverse ppValue ppValue)
+encodeValues :: Aeson.Value -> Builder
+encodeValues =
+  Builder.lazyByteString . encodeCompactJson' []
 
 encodeColumn :: Column -> Either SerialPsvDataError (Boxed.Vector Builder)
 encodeColumn column =
@@ -195,7 +202,6 @@ encodeColumn column =
         SerialPsvDataUnsupportedSchema (Striped.schema column)
 
     Striped.Option tags x -> do
-      -- FIXME should we treat option like result?
       values <- encodeColumn x
       pure $
         Boxed.zipWith (encodeMissing "NA" True64) (Storable.convert tags) values
@@ -205,28 +211,46 @@ encodeColumn column =
       pure $
         Boxed.zipWith (encodeMissing "NA" NotAnError64) (Storable.convert tags) values
 
-    Striped.Pair _ _ ->
-      Left $
-        SerialPsvDataUnsupportedSchema (Striped.schema column)
-
-    Striped.Struct _ ->
-      -- FIXME
-      Left $
-        SerialPsvDataUnsupportedSchema (Striped.schema column)
-
     Striped.String ns bs ->
-      bimap (SerialPsvDataSegmentError Schema.String) (fmap Builder.byteString) $
+      bimap
+        (SerialPsvDataSegmentError Schema.String)
+        (fmap encodeQuotedString) $
         Segment.reify ns bs
 
-    Striped.Array ns c -> do
-      xs <- first SerialPsvDataStripedError $ Striped.toLogical c
-      xss <- first (SerialPsvDataSegmentError (Striped.schema column)) $ Segment.reify ns xs
-      traverse encodeArray xss
+    Striped.Pair {} ->
+      encodeAsJson column
 
-    Striped.Map ns k v -> do
-      kvs <- first SerialPsvDataStripedError $ Boxed.zip <$> Striped.toLogical k <*> Striped.toLogical v
-      kvss <- first (SerialPsvDataSegmentError (Striped.schema column)) $ Segment.reify ns kvs
-      traverse encodeMap kvss
+    Striped.Struct {} ->
+      encodeAsJson column
+
+    Striped.Array {} ->
+      encodeAsJson column
+
+    Striped.Map {} ->
+      encodeAsJson column
+
+-- Encode strings which contain delimiter characters
+-- as quoted json, otherwise, just leave them alone.
+encodeQuotedString :: ByteString.ByteString -> Builder
+encodeQuotedString fld =
+  if ByteString.any (\b -> b == dquote || b == pipe || b == nl) fld then
+    Aeson.fromEncoding . Aeson.toEncoding . Text.decodeUtf8 $ fld
+  else
+    Builder.byteString fld
+
+  where
+    dquote =
+      34
+    pipe =
+      124
+    nl =
+      10
+
+encodeAsJson :: Column -> Either SerialPsvDataError (Boxed.Vector Builder)
+encodeAsJson column = do
+  values <- first SerialPsvDataStripedError $ Striped.toLogical column
+  traverse (fmap encodeValues . (ppValue $ Striped.schema column)) values
+
 
 encodeSnapshotKey :: SnapshotKey -> Builder
 encodeSnapshotKey =
