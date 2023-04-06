@@ -211,15 +211,14 @@ encodeColumn column =
       pure $
         Boxed.zipWith (encodeMissing "NA" NotAnError64) (Storable.convert tags) values
 
-    Striped.Pair _ _ ->
-      Left $
-        SerialPsvDataUnsupportedSchema (Striped.schema column)
-
     Striped.String ns bs ->
       bimap
         (SerialPsvDataSegmentError Schema.String)
         (fmap encodeQuotedString) $
         Segment.reify ns bs
+
+    Striped.Pair {} ->
+      encodeAsJson column
 
     Striped.Struct {} ->
       encodeAsJson column

@@ -338,9 +338,8 @@ encodePsvEncoding schema =
     Icicle.Result x ->
       encodePsvEncoding x
 
-    Icicle.Pair _ _ ->
-      Left $
-        SerialPsvUnsupportedSchema schema
+    Icicle.Pair a b ->
+      PsvPair <$> encodePsvEncoding a <*> encodePsvEncoding b
 
     Icicle.Struct fields ->
       PsvStruct <$>
