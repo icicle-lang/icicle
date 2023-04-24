@@ -320,7 +320,12 @@ allvarsP
     case p of
      PatCon c ps
        -> let (ps',ns') = goPats ps
-         in  (PatCon c ps', ns')
+          in  (PatCon c ps', ns')
+     PatRecord rs
+       -> let work = fmap (fmap goPat) rs
+              rs'  = (\(a,(b,_)) -> (a, b)) <$> work
+              ns'  = Set.unions $ (\(_, (_, n)) -> n) <$> work
+          in  (PatRecord rs', ns')
      PatDefault
        -> (PatDefault, Set.empty)
      PatVariable n

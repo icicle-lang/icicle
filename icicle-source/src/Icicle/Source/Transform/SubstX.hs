@@ -12,6 +12,7 @@ import Icicle.Common.Fresh
 import P
 
 import qualified Data.Map as Map
+import qualified Data.List as List
 import qualified Data.Set as Set
 import           Data.Hashable (Hashable)
 
@@ -89,6 +90,9 @@ substX' s x
       PatCon c ps
        -> do (m',ps') <- rempatbinds m ps []
              return (m', PatCon c ps')
+      PatRecord rs
+       -> do (m',rs') <- rempatbinds m (snd <$> rs) []
+             return (m', PatRecord $ List.zip (fst <$> rs) rs')
       PatDefault
        -> return (m, p)
       PatLit _ _ -- Check
@@ -163,6 +167,9 @@ substQ' s (Query (c:rest_cs) rest_x)
       PatCon con ps
        -> do (m',ps') <- rempatbinds m ps []
              return (m', PatCon con ps')
+      PatRecord rs
+       -> do (m',rs') <- rempatbinds m (snd <$> rs) []
+             return (m', PatRecord $ List.zip (fst <$> rs) rs')
       PatDefault
        -> return (m, p)
       PatLit _ _

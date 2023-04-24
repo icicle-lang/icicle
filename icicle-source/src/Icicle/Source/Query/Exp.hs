@@ -305,10 +305,6 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
       parensWhen (inner_prec < outer_prec)
 
 
-    prettyFieldFlat name typ =
-      name <+> prettyPunctuation "=" <+> align typ
-
-
 -- | Find the pretty-printing precedence of an expression.
 precedenceOfX :: Exp' q a n -> (Int, Assoc)
 precedenceOfX xx

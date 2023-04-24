@@ -35,6 +35,7 @@ import           Icicle.Source.Transform.SubstX
 import           Icicle.Internal.Pretty
 
 import           P
+import qualified Data.List as List
 
 
 
@@ -112,6 +113,14 @@ desugarLets cc
                 tup   = PatCon ConTuple [PatVariable i, PatVariable j]
                 varn  = (Var a n)
               return $ Case a varn [(tup, Var a (which b))]
+
+    Let a (PatRecord fields) x
+      -> do n        <- fresh
+            let nbind = Let a (PatVariable n) x
+            let bound = flip fmap fields $ \(field, pat) ->
+                          Let a pat (Access a (Var a n) field)
+            ccs      <- mapM desugarLets (nbind : bound)
+            return $ concat ccs
 
     LetFold a f
       | PatDefault <- foldBind f
@@ -216,6 +225,14 @@ desugarLets cc
                 tup   = PatCon ConTuple [PatVariable i, PatVariable j]
                 varn  = (Var ann n)
               return $ Case ann varn [(tup, Var ann (which b))]
+
+    FilterLet a (PatRecord fields) x
+      -> do n        <- fresh
+            let nbind = Let a (PatVariable n) x
+            let bound = flip fmap fields $ \(field, pat) ->
+                          FilterLet a pat (Access a (Var a n) field)
+            ccs      <- mapM desugarLets (nbind : bound)
+            return $ concat ccs
 
     FilterLet a simpleBinding x
       -> do desugarLets $ Let a simpleBinding x
@@ -322,6 +339,8 @@ data Ty
  -- where we can, instead of doing a real case, check against "x == Con".
  -- This doesn't work for Bool because this desugaring uses Bool
  | TyLit [TyLit]
+
+ | TyRecord [(StructField, Ty)]
  | TyAny
  deriving (Show)
 
@@ -434,6 +453,17 @@ addToTy err (PatLit l n) ty = case ty of
 addToTy _ PatDefault      ty    = return ty
 addToTy _ (PatVariable _) ty    = return ty
 
+addToTy err r@(PatRecord fields) TyAny =
+  let a = fmap (fmap (const TyAny)) fields
+  in addToTy err r $ TyRecord a
+
+addToTy err (PatRecord fields) (TyRecord tys) =
+  let goer (n, p) (_, ty) = (n,) <$> addToTy err p ty
+  in  TyRecord <$> zipWithM goer fields tys
+
+addToTy err (PatRecord _) _ =
+  lift $ left err
+
 casesForTy
   :: (Hashable n)
   => a
@@ -493,6 +523,15 @@ casesForTy ann scrut ty
     TyUnit
      -> return
       $ TCase scrut [ (PatCon ConUnit  [], Done (PatCon ConUnit  [])) ]
+
+    TyRecord fields
+     -> do let (names, tys) = List.unzip fields
+           args     <- traverse (\n -> (n,) <$> fresh) names
+           let pat'  = PatRecord  (second PatVariable <$> args)
+           let vars  = fmap (Var ann . snd) args
+           bds      <- zipWithM (casesForTy ann) vars tys
+           let bd    = fmap (PatRecord . List.zip names) $ sequence bds
+           return $ TCase scrut [ (pat', bd) ]
 
     -- If we don't know the type of this pattern, use a fresh variable
     -- Use TLet to avoid generating variable patterns, since Core can't handle them.
@@ -585,15 +624,16 @@ treeToCase ann patalts tree
 
    patternToExp (PatCon c as)
     = do xs <- mapM patternToExp as
-         right $ foldl (App ann) (Prim ann (PrimCon c)) xs
+         right $ foldl' (App ann) (Prim ann (PrimCon c)) xs
+   patternToExp (PatRecord fields)
+    = Record ann <$> traverse (traverse patternToExp) fields
    patternToExp (PatVariable v)
     = right $ Var ann v
    patternToExp (PatLit l True)
     = right $ Prim ann (Lit l)
    patternToExp (PatLit l False)
-    = let
-        neg = Prim ann $ Op $ ArithUnary Negate
-      in right $ App ann neg $ Prim ann (Lit l)
+    = let neg = Prim ann $ Op $ ArithUnary Negate
+      in  right $ App ann neg $ Prim ann (Lit l)
    patternToExp PatDefault
     = left $ DesugarErrorImpossible ann -- we never generate default patterns.
 
@@ -617,6 +657,9 @@ matcher (PatLit l n) (PatLit l' n')
  | l == l'
  , n == n'
  = return []
+matcher (PatRecord as) (PatRecord bs)
+ = do substs <- sequence $ Map.elems $ Map.intersectionWith matcher (Map.fromList as) (Map.fromList bs)
+      return (concat substs)
 matcher _ _
  = Nothing
 

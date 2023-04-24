@@ -194,7 +194,6 @@ library
                        Icicle.Sea.Name
                        Icicle.Sea.Preamble
 
-
 executable icicle
     main-is:           icicle.hs
 

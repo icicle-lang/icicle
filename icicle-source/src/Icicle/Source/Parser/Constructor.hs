@@ -92,6 +92,9 @@ checkPat exp =
       | otherwise
       -> fail "unable to parse pattern"
 
+    Q.Record _ fields
+      -> Q.PatRecord <$> traverse (traverse checkPat) fields
+
     Q.Lam {}
       -> fail "unable to parse lambda function as a pattern"
 
@@ -106,6 +109,3 @@ checkPat exp =
 
     Q.Access {}
       -> fail "unable to parse record access as a pattern"
-
-    Q.Record {}
-      -> fail "unable to parse record constructor as a pattern"

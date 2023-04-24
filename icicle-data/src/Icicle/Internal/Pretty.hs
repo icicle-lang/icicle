@@ -41,6 +41,7 @@ module Icicle.Internal.Pretty (
     , prettyH1
     , prettyH2
 
+    , prettyFieldFlat
     , prettyTypedFlat
     , prettyTypedHang
     , prettyTypedBest
@@ -242,6 +243,10 @@ prettySep xsep bra ket = \case
       [bra <+> x] <>
       fmap ("," <+>) xs <>
       [prettySepGap xsep <> ket]
+
+prettyFieldFlat :: Doc -> Doc -> Doc
+prettyFieldFlat name typ =
+  name <+> prettyPunctuation "=" <+> align typ
 
 prettyTypedFlat :: Doc -> Doc -> Doc
 prettyTypedFlat name typ =

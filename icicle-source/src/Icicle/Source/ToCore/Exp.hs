@@ -34,6 +34,7 @@ import                  Icicle.Common.Fresh
 
 import                  P
 
+import                  Control.Lens (_1)
 import                  Control.Monad.Trans.Class
 
 import                  Data.List (zip)
@@ -165,6 +166,8 @@ convertCaseFreshenPat p
  = case p of
     PatCon c ps
       -> PatCon c <$> mapM convertCaseFreshenPat ps
+    PatRecord rs
+      -> PatRecord <$> traverse (traverse convertCaseFreshenPat) rs
     PatDefault
       -> return PatDefault
     PatLit l n
@@ -181,7 +184,17 @@ convertCase
         -> T.ValType
         -> T.ValType
         -> ConvertM a n (C.Exp () n)
+
 convertCase x scrut pats scrutT resT
+ | [(PatRecord fields0, expr)] <- pats
+ = do   sn     <- lift fresh
+        fields <- traverse (traverse mkVars) fields0
+
+        let mk f = convertAccess (annotOfExp x) (CE.xVar sn) scrutT f
+        prjs    <- traverse (_1 mk) fields
+        return ( CE.xLet sn scrut
+               $ foldr (uncurry $ flip (CE.xLet)) expr prjs)
+ | otherwise
  = do   sn <- lift fresh
         m <- convertConstructorMap
         case scrutT of
@@ -203,8 +216,8 @@ convertCase x scrut pats scrutT resT
 
          T.PairT ta tb
           | Just ([na,nb],tup) <- Map.lookup ConTuple   m
-          , xfst <- CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst ta tb) CE.@~ CE.xVar sn
-          , xsnd <- CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd ta tb) CE.@~ CE.xVar sn
+          , let xfst = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst ta tb) CE.@~ CE.xVar sn
+          , let xsnd = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd ta tb) CE.@~ CE.xVar sn
           -> return ( CE.xLet sn scrut
                     $ CE.xLet na xfst
                     $ CE.xLet nb xsnd
@@ -237,6 +250,8 @@ convertCase x scrut pats scrutT resT
 
   mkVars PatDefault
    = lift fresh
+  mkVars (PatRecord _)
+   = convertError $ ConvertErrorBadCaseNestedConstructors (annAnnot $ annotOfExp x) x
   mkVars (PatVariable n)
    = return n
   mkVars (PatCon _ _)

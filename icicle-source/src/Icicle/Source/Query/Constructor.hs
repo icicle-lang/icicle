@@ -4,6 +4,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE TupleSections #-}
 module Icicle.Source.Query.Constructor (
     Constructor (..)
   , Pattern (..)
@@ -62,6 +63,7 @@ instance NFData Constructor
 
 data Pattern n
  = PatCon Constructor [Pattern n]
+ | PatRecord [(StructField, Pattern n)]
  | PatLit Lit Bool -- Negation marker
  | PatDefault
  | PatVariable (Name n)
@@ -72,6 +74,7 @@ instance NFData n => NFData (Pattern n)
 boundOfPattern :: Eq n => Pattern n -> Set.Set (Name n)
 boundOfPattern p = case p of
  PatCon _ ps   -> Set.unions $ fmap boundOfPattern ps
+ PatRecord rs  -> Set.unions $ fmap (boundOfPattern . snd) rs
  PatLit _ _    -> Set.empty
  PatDefault    -> Set.empty
  PatVariable n -> Set.singleton n
@@ -105,6 +108,13 @@ substOfPattern (PatLit (LitTime t) _) val
  , t == t'
  = return Map.empty
 substOfPattern (PatLit _ _) _
+ = Nothing
+
+substOfPattern (PatRecord pats)  val
+ | VStruct fs   <- val
+ , Just matched <- for pats $ \(k,pat) -> (pat,) <$> Map.lookup k fs
+ = Map.unions <$> traverse (uncurry substOfPattern) matched
+ | otherwise
  = Nothing
 
 substOfPattern (PatCon ConSome pats) val
@@ -171,7 +181,6 @@ substOfPattern (PatCon (ConError ex) pats) val
  | otherwise
  = Nothing
 
-
 arityOfConstructor :: Constructor -> Int
 arityOfConstructor cc
  = case cc of
@@ -189,7 +198,6 @@ arityOfConstructor cc
     ConUnit  -> 0
 
     ConError _ -> 0
-
 
 instance Pretty Lit where
   pretty = \case
@@ -233,6 +241,9 @@ instance Pretty n => Pretty (Pattern n) where
   prettyPrec p = \case
     PatCon ConTuple [a,b] ->
       prettyPrec p (a, b)
+    PatRecord fields ->
+      prettyStruct prettyFieldFlat hcat $
+        fmap (bimap pretty pretty) fields
     PatCon c [] ->
       prettyPrec p c
     PatCon c vs ->

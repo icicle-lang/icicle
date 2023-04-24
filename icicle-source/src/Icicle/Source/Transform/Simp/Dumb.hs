@@ -185,6 +185,7 @@ simpDumbLets xx
    | otherwise           = (pat, substX x y e)
 
   varsIn (PatCon _ as)   = concatMap varsIn as
+  varsIn (PatRecord rs)  = concatMap (varsIn . snd) rs
   varsIn (PatVariable v) = [ v ]
   varsIn (PatLit _ _)      = []
   varsIn (PatDefault)    = []

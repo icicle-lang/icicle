@@ -117,10 +117,6 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
     wrap =
       parensWhen (inner_prec < outer_prec)
 
-    prettyFieldFlat name typ =
-      name <+> prettyPunctuation "=" <+> align typ
-
-
 instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
   pretty cc =
     case getPrettyAnnot cc of

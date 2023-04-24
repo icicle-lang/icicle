@@ -249,6 +249,12 @@ gradient a b =
   covariance a b / variance b
 
 
+-- y intercept of the regression line.
+intercept : Num a => Element a -> Element a -> Aggregate (Possibly Double)
+intercept a b =
+  mean a - gradient a b * mean b
+
+
 -- Count the number of times a state changes.
 -- This version uses concrete values, and will
 -- emit an error if a tombstone value is used.

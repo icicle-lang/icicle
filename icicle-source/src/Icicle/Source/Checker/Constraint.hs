@@ -30,6 +30,7 @@ import           Control.Monad.Trans.Either
 import           Data.Hashable                (Hashable)
 import           Data.List                    (unzip, unzip3, zip)
 import qualified Data.Map                     as Map
+import qualified Control.Monad.Trans.State as State
 
 
 -- | Defaulting any polymorphic Nums to Ints.
@@ -550,6 +551,10 @@ generateQ qq@(Query (c:_) _) env
          (env', consr) <- goPat' True ann p (recomposeT (mt, mp, p1)) e
          return (env', cons <> consr)
 
+  goPat' True _ (PatCon ConNone []) typ e
+    = do p1       <- TypeVar <$> fresh
+         return (e, requireData typ (OptionT p1))
+
   goPat' True ann (PatCon ConLeft [p]) typ e
     | (mt,mp,canon) <- decomposeT typ
     = do p1            <- TypeVar <$> fresh
@@ -566,13 +571,21 @@ generateQ qq@(Query (c:_) _) env
          (env', consr) <- goPat' True ann p (recomposeT (mt, mp, p2)) e
          return (env', cons <> consr)
 
-  goPat' True _ (PatCon ConNone []) typ e
-    = do p1       <- TypeVar <$> fresh
-         return (e, requireData typ (OptionT p1))
-
   goPat' True ann (PatLit lit _) typ e
     = do (_, resT, cons) <- primLookup ann (Lit lit)
          return (e, cons <> requireData resT typ)
+
+
+  goPat' cc ann (PatRecord namedBinds) typ e
+    | (mt,mp,canon) <- decomposeT $ canonT typ
+    = let
+        go (nm, pat) e' = do
+          fieldType   <- TypeVar <$> fresh
+          (e'', cons) <- goPat' cc ann pat (recomposeT (mt, mp, fieldType)) e'
+          let hasField = require a $ CHasField fieldType canon nm
+          pure (hasField <> cons, e'')
+      in do (cons, ee)  <- mapAccumLM go e namedBinds
+            return $ (ee, join cons)
 
   goPat' _ ann pat typ _
     -- It's not a pair, default or variable. All other
@@ -963,9 +976,22 @@ generatePattern ann =
    = do (_fErr, resT, cons) <- primLookup ann (Lit l)
         return (resT, cons, e)
 
+  goPat (PatRecord fields) e
+   = do resultT        <- TypeVar <$> fresh
+        let work (s, p) e' = do (tx, cons, e'') <- goPat p e'
+                                return (((s, tx), cons), e'')
+        (checked, e')  <- mapAccumLM work e fields
+        let (ts,cs)     = unzip checked
+        let fieldReqs   = concatMap (\(s,t) -> require ann $ CHasField t resultT s) ts
+        return (resultT, concat cs <> fieldReqs, e')
+
   goPat pat _
    = genHoistEither
    $ errorNoSuggestions (ErrorCaseBadPattern ann pat)
+
+
+mapAccumLM :: (Traversable t, Monad m) => (a -> s -> m (b, s)) -> s -> t a -> m (t b, s)
+mapAccumLM f a xs = State.runStateT (mapM (State.StateT . f) xs) a
 
 
 appType
