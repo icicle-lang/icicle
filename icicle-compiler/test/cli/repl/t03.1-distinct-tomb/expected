@@ -15,7 +15,6 @@ Selected psv file as input: test/cli/repl/data.psv
      ░            ░
                   ░     :help for help
 
-λ Selected psv file as input: data/example/DictionaryTrial.toml
 λ Selected psv file as input: test/cli/repl/data-tomb.psv
 λ λ -- Try all combinations of Possibly: 'time' is definitely, while 'location' is possibly.
 λ Core evaluation
