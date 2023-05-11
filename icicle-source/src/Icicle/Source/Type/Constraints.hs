@@ -122,8 +122,8 @@ dischargeC c
     CTemporalityJoin atemp TemporalityPure ctemp
      -> dischargeC $ CEquals atemp ctemp
 
-    -- Likewise if the two are unknown but equal,
-    -- the result must be equal
+    -- If the expected and actual are unknown
+    -- but equal, the result must be equal to them.
     CTemporalityJoin atemp btemp ctemp
      | btemp == ctemp
      -> dischargeC $ CEquals atemp btemp
@@ -132,13 +132,8 @@ dischargeC c
      -> return $ DischargeLeftover c
     CTemporalityJoin _ (TypeVar _) _
      -> return $ DischargeLeftover c
-    CTemporalityJoin (TypeVar v) atemp btemp
-     -> do temp <- lub atemp btemp
-           return $ DischargeSubst $ Map.fromList [(v, temp)]
-
-    CTemporalityJoin a b d
-     -> do temp <- lub b d
-           dischargeC $ CEquals a temp
+    CTemporalityJoin _ x y
+     -> Left $ ConflictingJoinTemporalities x y
 
     -- Still variables, so can't discharge
     CReturnOfLetTemporalities ret def body
@@ -192,10 +187,6 @@ dischargeC c
      -> return $ DischargeLeftover c
 
  where
-  lub (TemporalityPure) x = return x
-  lub x (TemporalityPure) = return x
-  lub x y | x == y = return x
-          | otherwise = Left $ ConflictingJoinTemporalities x y
 
   returnOfLet def body
    = case (def,body) of
