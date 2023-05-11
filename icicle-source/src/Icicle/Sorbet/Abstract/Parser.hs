@@ -456,7 +456,7 @@ pExp1
 
   parseRecord
    = do pos   <- pToken Tok_LBrace
-        flds  <- parseField `Mega.sepBy1` pToken Tok_Comma
+        flds  <- parseField `Mega.sepEndBy1` pToken Tok_Comma
         _     <- pToken Tok_RBrace
         return $ Record pos flds
 
