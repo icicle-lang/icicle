@@ -1,0 +1,5 @@
+module Default where
+
+input mackerel : { common_name: String, size: Double }
+
+input days_catch : Array String

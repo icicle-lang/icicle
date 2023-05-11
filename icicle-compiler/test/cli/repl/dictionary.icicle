@@ -1,0 +1,11 @@
+module Default where
+
+input gender : String
+
+input age : Int
+
+input state_of_residence : String
+
+input salary : Int
+
+input injury : { location: String, severity: Int }

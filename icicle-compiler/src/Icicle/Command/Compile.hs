@@ -42,7 +42,6 @@ import           Icicle.Runtime.Data
 import qualified Icicle.Runtime.Evaluator as Runtime
 import           Icicle.Sea.Header
 import qualified Icicle.Storage.Dictionary.Sorbet as Sorbet
-import qualified Icicle.Storage.Dictionary.Toml   as Toml
 
 import           P
 
@@ -64,8 +63,7 @@ data Check =
     } deriving (Eq, Ord, Show)
 
 data InputDictionary
-  = InputDictionaryToml FilePath
-  | InputDictionarySorbet FilePath
+  = InputDictionarySorbet FilePath
   deriving (Eq, Ord, Show)
 
 newtype OutputDictionarySea =
@@ -79,15 +77,12 @@ newtype MaximumQueriesPerKernel =
     } deriving (Eq, Ord, Show)
 
 data CompileError =
-    CompileLoadDictionaryError !Toml.DictionaryImportError
-  | CompileDictionaryError !(Compiler.ErrorCompile Source.Var)
+    CompileDictionaryError !(Compiler.ErrorCompile Source.Var)
   | CompileAvalancheError !Runtime.RuntimeError
     deriving (Show)
 
 renderCompileError :: CompileError -> Text
 renderCompileError = \case
-  CompileLoadDictionaryError x ->
-    "Failed to load dictionary: " <> Text.pack (show (Pretty.pretty x))
   CompileDictionaryError x ->
     "Failed to compile dictionary: " <> Text.pack (show (Pretty.pretty x))
   CompileAvalancheError x ->
@@ -95,10 +90,8 @@ renderCompileError = \case
 
 loadDictionary :: InputDictionary -> EitherT CompileError IO Dictionary
 loadDictionary input =
-  firstT CompileLoadDictionaryError $
+  firstT (CompileDictionaryError . Compiler.ErrorSource) $
     case input of
-      InputDictionaryToml path ->
-        Toml.loadDictionary Source.defaultCheckOptions Toml.ImplicitPrelude path
       InputDictionarySorbet path ->
         let rootDir = FilePath.takeDirectory path
          in Sorbet.loadDictionary Source.defaultCheckOptions rootDir path

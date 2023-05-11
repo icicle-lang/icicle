@@ -1,0 +1,30 @@
+module Default where
+
+input injury : { location: String, severity: Double, action: Option String }
+
+feature latest_four =
+   from injury ~> filter is_some action ~> latest 4 ~> action
+
+feature newest =
+   from injury ~> newest action
+
+feature test_map =
+   from injury ~> group location ~> filter is_some action ~> latest 2 ~> action
+
+feature test_map_delete =
+   from injury ~>
+     fold x = map_create then
+       case map_lookup (Some location) x of
+         None then
+            map_insert (Some location) (Some severity) x
+         Some _ then
+            map_delete (Some location) x
+     in x
+
+feature test_map_delete_end =
+   from injury ~>
+     let g = (group time ~> 1) ~>
+     map_delete 1600-03-01 g
+
+feature test_map_double =
+   from injury ~> group location ~> Some (mean (double severity / 100.0))

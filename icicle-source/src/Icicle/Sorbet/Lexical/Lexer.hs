@@ -13,6 +13,8 @@ module Icicle.Sorbet.Lexical.Lexer (
   , LexerError(..)
   , LexerBundle
   , renderLexerError
+
+  , reservedIdentifiers
   ) where
 
 import qualified Data.Char as Char
@@ -30,12 +32,10 @@ import           Icicle.Sorbet.Position
 
 import           P hiding (exp)
 
-import           Text.Megaparsec (try, manyTill)
-import           Text.Megaparsec (ShowErrorComponent(..), ParseErrorBundle)
+import           Text.Megaparsec (try, manyTill, ShowErrorComponent(..), ParseErrorBundle, MonadParsec)
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Mega
 import qualified Text.Megaparsec.Char.Lexer as Lexer
-import           Text.Megaparsec (MonadParsec)
 import           Text.Printf (printf)
 
 type Lexer s m =

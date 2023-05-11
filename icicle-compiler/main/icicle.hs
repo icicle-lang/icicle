@@ -79,7 +79,7 @@ pRepl =
   ReplOptions
     <$> pUseDotfiles
     <*> many pReplCommand
-    <*> many (pReplZebra <|> pReplPSV <|> pReplTOML)
+    <*> many (pReplZebra <|> pReplPSV)
 
 pUseDotfiles :: Parser UseDotfiles
 pUseDotfiles =
@@ -100,12 +100,6 @@ pReplPSV =
     Options.metavar "INPUT_PSV" <>
     Options.help "Path to a PSV file to load" <>
     Options.action "file"
-
-pReplTOML :: Parser FilePath
-pReplTOML =
-  Options.argument Options.str $
-    Options.metavar "DICTIONARY_TOML" <>
-    Options.help "Path to a TOML dictionary to load"
 
 pReplCommand :: Parser String
 pReplCommand =
@@ -141,15 +135,7 @@ pMaximumQueriesPerKernel =
 
 pInputDictionary :: Parser InputDictionary
 pInputDictionary =
-  pInputDictionaryToml <|> pInputDictionaryIcicle
-
-pInputDictionaryToml :: Parser InputDictionary
-pInputDictionaryToml =
-  fmap InputDictionaryToml .
-  Options.option Options.str $
-    Options.long "input-toml" <>
-    Options.metavar "DICTIONARY_TOML" <>
-    Options.help "(deprecated) Path to a TOML dictionary to compile."
+  pInputDictionaryIcicle
 
 pInputDictionaryIcicle :: Parser InputDictionary
 pInputDictionaryIcicle =

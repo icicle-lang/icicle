@@ -64,7 +64,6 @@ pModule :: Parser s m => m (Module Range Var)
 pModule = do
   name    <- pModuleName <|> pure (ModuleName "Default")
 
-
   let
     namespaceText = do
       (c,cs) <- Text.uncons (getModuleName name)

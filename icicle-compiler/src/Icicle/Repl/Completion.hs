@@ -7,7 +7,6 @@
 {-# LANGUAGE MultiWayIf #-}
 module Icicle.Repl.Completion (
     completion
-  , completeExpression
   ) where
 
 import           Control.Monad.IO.Class (MonadIO(..))
@@ -27,13 +26,14 @@ import           Icicle.Data
 import           Icicle.Repl.Data
 import           Icicle.Repl.Flag
 import qualified Icicle.Source.Query as STC
-import           Icicle.Source.Lexer.Token (keywords, Variable)
-import           Icicle.Source.Lexer.Lexer (lexerString)
-import           Icicle.Source.Parser.Token (pUnresolvedInputId)
+import           Icicle.Source.Lexer.Token (Variable)
+import           Icicle.Sorbet.Lexical.Lexer (lexProgram, reservedIdentifiers)
+import           Icicle.Sorbet.Abstract.Parser (pUnresolvedInputId)
+import           Icicle.Sorbet.Position (PositionedStream (..))
 import           P
-import           Text.Parsec (runParser)
 
 import qualified System.Console.Haskeline as Haskeline
+import qualified Text.Megaparsec as Mega
 
 -- Tab completion system for the icicle repl.
 --
@@ -63,7 +63,8 @@ completionCommands =
 completion :: (MonadState State m, MonadIO m) => Haskeline.CompletionFunc m
 completion (prefix0, suffix) =
   let
-    ccs = completionCommands
+    ccs =
+      completionCommands
 
     (prefix, rest) =
       List.break Char.isSpace (List.reverse prefix0)
@@ -72,9 +73,10 @@ completion (prefix0, suffix) =
     -- offer the keys of the assoc list; otherwise,
     -- the action it points to.
     action =
-      if null rest
-        then wrapPure " " $ fst <$> ccs
-        else fromMaybe Haskeline.noCompletion $ List.lookup prefix ccs
+      if null rest then
+        wrapPure " " $ fst <$> ccs
+      else
+        fromMaybe Haskeline.noCompletion $ List.lookup prefix ccs
 
     in
       action (prefix0, suffix)
@@ -106,7 +108,7 @@ completeFeatureExpression (prefix0, suffix) = do
     new      = if head prefix0 == Just ' ' then 1 else 0
     -- Lex the input based on the user input.
     -- This is probably overkill
-    lexed    = lexerString "repl" (List.reverse prefix0)
+    lexed    = fromRight [] $ Mega.runParser lexProgram "" (List.reverse prefix0)
     -- The number of words we're up to.
     words    = length lexed + new
   case words of
@@ -126,12 +128,12 @@ completeFeatureExpression (prefix0, suffix) = do
     -- with. We also gather `time` here.
     _inQuery
       | _ : tok : _ <- lexed
-      , Right unresolvedInputId <- runParser pUnresolvedInputId () "" [tok]
-      , let concretes  = STC.featuresConcretes $ featureMapOfDictionary dict
-      , Just concrete <- lookupInputId unresolvedInputId concretes
+      , Right unresolvedInputId <- Mega.runParser pUnresolvedInputId "" (PositionedStream "" [tok])
+      , let concretes            = STC.featuresConcretes $ featureMapOfDictionary dict
+      , Just concrete           <- lookupInputId unresolvedInputId concretes
       -> let context = STC.featureConcreteContext concrete
-             names = Map.keys $ STC.featureContextVariables context
-             time  = STC.featureContextFactTime context
+             names   = Map.keys $ STC.featureContextVariables context
+             time    = STC.featureContextFactTime context
              -- Call completeExpression to actually do the
              -- work, including the new names we're providing.
          in  completeExpression (time : names) (prefix0, suffix)
@@ -154,13 +156,13 @@ completeExpression extraNames =
   -- Completing expression components.
   -- We can break on all sorts of break chars here,
   -- as, e.g., `value+value` is legal icicle syntax.
-  wrapCompleter word_break_chars $ \w -> do
+  wrapCompleter wordBreakChars $ \w -> do
     features <- State.gets (featureMapOfDictionary . stateDictionary)
     let
       env  = STC.featuresFunctions features
       now  = maybeToList $ STC.featureNow features
       dfun = fmap (show . pretty . nameBase) $ Map.keys env <> now <> extraNames
-      kfun = fmap (Text.unpack . fst) $ keywords
+      kfun = Map.keys reservedIdentifiers
       candidates = dfun <> kfun
 
     return $ filter (w `isPrefixOf`) candidates
@@ -175,8 +177,8 @@ wrapCompleter :: MonadIO m => String -> (String -> m [String]) -> Haskeline.Comp
 wrapCompleter breakChars fun = Haskeline.completeWord Nothing breakChars
     $ fmap (fmap Haskeline.simpleCompletion . ordNub) . fun
 
-word_break_chars :: String
-word_break_chars = spaces <> specials <> symbols
+wordBreakChars :: String
+wordBreakChars = spaces <> specials <> symbols
 
 symbols, specials, spaces :: String
 symbols = "*+/<=>^|-"

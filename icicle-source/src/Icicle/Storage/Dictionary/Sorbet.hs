@@ -6,17 +6,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
 module Icicle.Storage.Dictionary.Sorbet (
-    DictionaryImportError (..)
-  , ImplicitPrelude (..)
-  , loadDictionary
+    loadDictionary
   , prelude
   ) where
 
 import           Icicle.Compiler.Source
 import           Icicle.Dictionary.Data
 import qualified Icicle.Source.Query                           as Q
-
-import           Icicle.Storage.Dictionary.Common
 
 import           Control.Monad.Trans.Either
 import           Control.Monad.IO.Class
@@ -32,10 +28,10 @@ import qualified Data.Text.Encoding                            as Text
 import           P
 
 -- Top level IO function which loads all dictionaries and imports
-loadDictionary :: CheckOptions -> FilePath -> FilePath -> EitherT DictionaryImportError IO Dictionary
+loadDictionary :: CheckOptions -> FilePath -> FilePath -> EitherT (ErrorSource Var) IO Dictionary
 loadDictionary checkOpts rootdir fname = do
   input   <- Text.decodeUtf8 <$> liftIO (ByteString.readFile fname)
-  natural <- firstEitherT DictionaryErrorCompilation $ readIcicleLibrary checkOpts rootdir fname input
+  natural <- readIcicleLibrary checkOpts rootdir fname input
 
   let
     tombstones =
@@ -50,6 +46,6 @@ loadDictionary checkOpts rootdir fname = do
 
   pure $
     Dictionary
-      (inputs      $ Q.resolvedInputs natural)
-      (outputs     $ Q.resolvedOutputs natural)
+      (inputs  $ Q.resolvedInputs natural)
+      (outputs $ Q.resolvedOutputs natural)
       (builtinFunctions <> Q.resolvedEntries natural)

@@ -1,4 +1,4 @@
-:load test/cli/repl/t15-tombstones/test-dictionary.toml
+:load test/cli/repl/t15-tombstones/test-dictionary.icicle
 :load test/cli/repl/t15-tombstones/data.psv
 
 from a ~> latest 5 ~> (value, tombstone)

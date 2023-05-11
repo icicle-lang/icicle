@@ -1,3 +1,0 @@
-
-integral a d n
- = fold1 x = ((a,d),0) : case x | ((a0,d0),v) -> ((a, d), v + a0 * days_between d0 d) end ~> case x | ((a0,d0),v) -> v + a0 * days_between d0 n end.

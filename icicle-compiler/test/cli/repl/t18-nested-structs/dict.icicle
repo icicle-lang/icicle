@@ -1,0 +1,3 @@
+module Default where
+
+input person : { age: Int, misery: Double, injury : { location : { area: String, depth: Double }, severity: Int } }
