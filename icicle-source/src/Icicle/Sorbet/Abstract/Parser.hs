@@ -385,25 +385,14 @@ pExp = do
 
 pExp1 :: Parser s m => m (Exp Range Var)
 pExp1
- =   ((uncurry Var <$> var )       >>= accessor)
- <|> (parseRecord                  >>= accessor)
- <|> (uncurry Prim <$> primitives)
- <|> (inParens                     >>= accessor)
- <|> parseIf
- <|> parseCase
- <?> "expression"
+ =   ((uncurry Var <$> pVariable)  >>= accessor)
+ <|> (pRecord                      >>= accessor)         <?> "record literal"
+ <|> (uncurry Prim <$> primitives)                       <?> "primitive"
+ <|> (inParens                     >>= accessor)         <?> "sub-expression or nested query"
+ <|> Mega.hidden pIf
+ <|> Mega.hidden pCase
+
  where
-  var
-   = pVariable
-
-  field =
-    tryToken $ \_ -> \case
-      Tok_VarId prjId ->
-        Just $ StructField prjId
-      _ ->
-        Nothing
-
-
   accessor v
     = (accessor1 v >>= accessor)
    <|> pure v
@@ -415,56 +404,66 @@ pExp1
       _ ->
         Nothing
 
-  simpQuery =
-    simpNested <$> pQuery
-
   tuples r =
     let
       build Nothing = Prim r (PrimCon ConUnit)
       build (Just (x,xs)) =
-        foldl (\a (com, b) -> mkApp (mkApp (Prim com $ Op TupleComma) a) b) x xs
+        foldl (\a (com, b) -> mkApp (mkApp (Prim com $ PrimCon ConTuple) a) b) x xs
     in
       build <$> optional ((,) <$> simpQuery <*> many ((,) <$> pToken Tok_Comma <*> simpQuery))
 
   inParens
-   = (pToken Tok_LParen >>= tuples) <* pToken Tok_RParen <?> "sub-expression or nested query"
+   = (pToken Tok_LParen >>= tuples) <* pToken Tok_RParen
 
-  parseIf
-   = do pos   <- pToken Tok_If
-        scrut <- pExp
-        _     <- pToken Tok_Then
-        true  <- simpQuery
-        _     <- pToken Tok_Else
-        false <- simpQuery
-        return $ If pos scrut true false
+pIf :: Parser s m => m (Exp Range Var)
+pIf
+ = do pos   <- pToken Tok_If
+      scrut <- pExp                                           <?> "scrutinee"
+      _     <- pToken Tok_Then                                <?> "then"
+      true  <- simpQuery                                      <?> "true branch"
+      _     <- pToken Tok_Else                                <?> "else"
+      false <- simpQuery                                      <?> "false branch"
+      return $ If pos scrut true false
 
-  parseCase
-   = do pos   <- pToken Tok_Case
-        scrut <- pExp
-        _     <- pToken Tok_Of
-        _     <- pToken Tok_LBrace
-        alts  <- parseAlt `Mega.sepEndBy` pToken Tok_Semi
-        _     <- pToken Tok_RBrace
-        return $ Case pos scrut alts
-
+pCase :: Parser s m => m (Exp Range Var)
+pCase
+ = do pos   <- pToken Tok_Case
+      scrut <- pExp
+      _     <- pToken Tok_Of
+      _     <- pToken Tok_LBrace
+      alts  <- parseAlt `Mega.sepEndBy` pToken Tok_Semi
+      _     <- pToken Tok_RBrace
+      return $ Case pos scrut alts
+ where
   parseAlt
    = do pat <- pPattern
         _   <- pToken Tok_Then
         xx  <- simpQuery
         return (pat, xx)
 
-  parseRecord
-   = do pos   <- pToken Tok_LBrace
-        flds  <- parseField `Mega.sepEndBy1` pToken Tok_Comma
-        _     <- pToken Tok_RBrace
-        return $ Record pos flds
-
+pRecord :: Parser s m => m (Exp Range Var)
+pRecord
+ = do pos   <- pToken Tok_LBrace
+      flds  <- parseField `Mega.sepEndBy1` pToken Tok_Comma
+      _     <- pToken Tok_RBrace
+      return $ Record pos flds
+ where
   parseField
    = do fld <- field <?> "field name"
         _   <- pToken Tok_Equals
         xx  <- simpQuery
         return (fld, xx)
 
+  field =
+    tryToken $ \_ -> \case
+      Tok_VarId prjId ->
+        Just $ StructField prjId
+      _ ->
+        Nothing
+
+simpQuery :: Parser s m => m (Exp Range Var)
+simpQuery =
+  simpNested <$> pQuery
 
 pUnresolvedInputId :: Parser s m => m UnresolvedInputId
 pUnresolvedInputId
