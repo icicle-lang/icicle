@@ -23,7 +23,7 @@ import qualified Icicle.Core.Eval.Exp           as CE
 
 import           P
 
-import           Control.Lens.Plated            (transformM)
+import           Control.Lens.Plated            (transformM, plate)
 import           Control.Monad.Trans.Class      (lift)
 
 import           Data.Monoid                    (Sum (..))
@@ -280,16 +280,16 @@ caseOfScrutinisedCase :: (Monad m, Hashable n, Eq n) => a -> C.Exp a n -> FixT m
 caseOfScrutinisedCase a_fresh = go []
   where
     go seen x = case x of
-      XApp a p q
-        | Just (fld@(PrimFold _ _), [XLam la lname ltyp lexp, XLam lb rname rtyp rexp, scrut]) <- takePrimApps x
+      XApp {}
+        | Just (fld@PrimFold {}, [XLam la lname ltyp lexp, XLam lb rname rtyp rexp, scrut]) <- takePrimApps x
         -> do lexp'  <- go ((scrut, Left lname) : seen) lexp
               rexp'  <- go ((scrut, Right rname) : seen) rexp
               case find (\(e,_) -> e `simpleEquality` scrut) seen of
                 Just (_,replacement) ->
                   progress
                   $ either
-                    (\n -> subsNameInExp lname n lexp')
-                    (\n -> subsNameInExp rname n rexp')
+                    (\n -> xlet lname (xvar n) lexp')
+                    (\n -> xlet rname (xvar n) rexp')
                     replacement
 
                 Nothing -> do
@@ -300,20 +300,12 @@ caseOfScrutinisedCase a_fresh = go []
                      `xapp` XLam lb rname rtyp rexp'
                      `xapp` scrut'
 
-        | otherwise
-        -> XApp a <$> go seen p <*> go seen q
+      _ ->
+        plate (go seen) x
 
-      XLam a n t p
-        -> XLam a n t <$> go seen p
-
-      XLet a n p q ->
-        XLet a n <$> go seen p <*> go seen q
-
-      XVar {}   -> pure x
-      XPrim {}  -> pure x
-      XValue {} -> pure x
-
+    xvar = XVar a_fresh
     xapp = XApp a_fresh
+    xlet = XLet a_fresh
     xprim = XPrim a_fresh
 
 -- | Inline let bindings which only have
