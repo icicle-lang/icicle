@@ -66,12 +66,6 @@ checkPat exp =
       , Q.PrimCon con  <- p
       -> Q.PatCon con <$> traverse checkPat xs
 
-      -- Tuple commas are parsed as the operator,
-      -- need to change it to the constructor.
-      | Just (p, _, xs@[_,_]) <- Q.takePrimApps exp
-      , Q.Op Q.TupleComma <- p
-      -> Q.PatCon Q.ConTuple <$> traverse checkPat xs
-
       -- Negative literals are trickier.
       -- We need to ensure that the rest of the
       -- pattern is a number literal.

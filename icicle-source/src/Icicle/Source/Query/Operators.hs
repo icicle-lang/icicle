@@ -37,8 +37,6 @@ data Op
  | LogicalUnary  LogicalUnary
  | LogicalBinary LogicalBinary
  | TimeBinary    TimeBinary
-
- | TupleComma
  | Dollar
  deriving (Show, Eq, Ord, Generic)
 
@@ -150,8 +148,6 @@ fixity o
     TimeBinary _
      -> FInfix $ Infix AssocLeft 6
 
-    TupleComma
-        -> FInfix $ Infix AssocLeft 0
     Dollar
         -> FInfix $ Infix AssocRight 0
 
@@ -190,7 +186,6 @@ symbol s
     "months before" -> inf $ TimeBinary MonthsBefore
     "months after"  -> inf $ TimeBinary MonthsAfter
 
-    "," -> inf TupleComma
     "$" -> inf Dollar
 
     _   -> OpsOfSymbol  Nothing    Nothing
@@ -241,6 +236,5 @@ instance Pretty Op where
  pretty (TimeBinary MonthsAfter)  = "months after"
  pretty (TimeBinary MonthsBefore) = "months before"
 
- pretty TupleComma              = ","
  pretty Dollar                  = "$"
 

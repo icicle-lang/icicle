@@ -542,7 +542,6 @@ instance Arbitrary Prim where
         , TimeBinary WeeksAfter
         , TimeBinary MonthsBefore
         , TimeBinary MonthsAfter
-        , TupleComma
         ]
 
    funs
@@ -550,7 +549,7 @@ instance Arbitrary Prim where
 
    cons
     = fmap PrimCon
-    [ ConSome, ConNone, ConTrue, ConFalse, ConLeft, ConRight, ConUnit ]
+    [ ConSome, ConNone, ConTuple, ConTrue, ConFalse, ConLeft, ConRight, ConUnit ]
 
 
 instance Arbitrary Constructor where

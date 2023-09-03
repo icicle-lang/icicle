@@ -83,7 +83,13 @@ convertPrim p ann resT xts = go p
   go (PrimCon ConNone)
    = flip (CE.XValue ()) V.VNone <$> convertValType ann resT
   go (PrimCon ConTuple)
-   = go $ Op TupleComma
+   | [(_,a),(_,b)] <- xts
+   = do a' <- convertValType ann a
+        b' <- convertValType ann b
+        return $ primmin $ Min.PrimConst $ Min.PrimConstPair a' b'
+   | otherwise
+   = convertError
+   $ ConvertErrorPrimNoArguments ann 2 p
   go (PrimCon ConTrue)
    = return $ CE.XValue () T.BoolT $ V.VBool True
   go (PrimCon ConFalse)
@@ -209,15 +215,6 @@ convertPrim p ann resT xts = go p
    = primmin <$> (Min.PrimRelation Min.PrimRelationEq <$> t1 2)
   goop (Relation Ne)
    = primmin <$> (Min.PrimRelation Min.PrimRelationNe <$> t1 2)
-
-  goop TupleComma
-   | [(_,a),(_,b)] <- xts
-   = do a' <- convertValType ann a
-        b' <- convertValType ann b
-        return $ primmin $ Min.PrimConst $ Min.PrimConstPair a' b'
-   | otherwise
-   = convertError
-   $ ConvertErrorPrimNoArguments ann 2 p
 
   goop Dollar
    | [(a,_),(b,_)] <- xts

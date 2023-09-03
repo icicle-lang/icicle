@@ -220,11 +220,6 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
            | Just (Op o, _, [x]) <- takePrimApps xx
            , FPrefix <- fixity o
            -> hang 2 $ pretty o <+> prettyPrec inner_prec x
-           | Just (Op TupleComma, _, [x,y]) <- takePrimApps xx
-           ->  parens $
-               prettyPrec inner_prec_1 x
-           <+> pretty TupleComma
-           <+> prettyPrec inner_prec_2 y
            | Just (Op o, _, [x,y]) <- takePrimApps xx
            , FInfix _ <- fixity o
            ->  hang 2 $
@@ -232,9 +227,10 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
            <+> pretty o
            <+> prettyPrec inner_prec_2 y
 
-        App _ x y ->
-          hang 2 $
-            prettyPrec inner_prec_1 x <+> prettyPrec inner_prec_2 y
+        App _ x y
+          | Just (PrimCon ConTuple, _, [l,r]) <- takePrimApps xx -> tupled [prettyPrec inner_prec_1 l, prettyPrec inner_prec_2 r]
+          | otherwise -> hang 2 $
+              prettyPrec inner_prec_1 x <+> prettyPrec inner_prec_2 y
 
         Prim _ (Lit (LitTime t)) ->
           hang 2 $

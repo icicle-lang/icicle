@@ -633,12 +633,6 @@ evalP ann p xs vs env
              | otherwise
              -> err
 
-            TupleComma
-             | [a, b] <- args
-             -> return $ VPair a b
-             | otherwise
-             -> err
-
             Dollar
              -> err
 

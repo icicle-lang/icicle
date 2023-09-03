@@ -52,13 +52,6 @@ primLookup' prim
     Op (TimeBinary _)
      -> f0 [IntT, TimeT] TimeT
 
-    Op  TupleComma
-     -> do a <- Fresh.fresh
-           b <- Fresh.fresh
-           let at = TypeVar a
-           let bt = TypeVar b
-           return $ functionType [a,b] [] [at, bt] (PairT at bt)
-
     Op  Dollar
      -> do a <- Fresh.fresh
            b <- Fresh.fresh
