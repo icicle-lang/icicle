@@ -463,6 +463,16 @@ generateQ qq@(Query (c:_) _) env
             let q'' = with cons' q' t' $ \a' -> Let a' n x'
             return (q'', ss, cons')
 
+    -- Let Scans turn an aggregate back into an element. This allows for one to get
+    -- a running total or the like.
+    --
+    -- Similar to Lets above, we also require that the binding of the function is able
+    -- to be used in the body. So even though the binding is bound as an element, it
+    -- must be usable as an aggregate.
+    --
+    -- This stops one from putting a let scan in where it's impossible to reference
+    -- an aggregate, like in the body of a fold.
+    --
     -- >   let n = ( |- Aggregate def'p def'd )
     -- >    ~> ( n : def't Element def'd |- body't body'p body'd )
     -- > : body't body'p body'd
@@ -472,12 +482,15 @@ generateQ qq@(Query (c:_) _) env
             let (_,mp,x'can)  = decomposeT x'typ
 
             consI            <- requireAgg x'typ
-
             let x'typ'elem    = recomposeT (Just TemporalityElement, mp, x'can)
-
             (q',sq,tq,consr) <- rest =<< goPat ann n x'typ'elem (substE sx env)
 
-            let cons' = concat [consI, consd, consr]
+            retTmp           <- TypeVar <$> fresh
+            let tmpx          = getTemporalityOrPure x'typ
+            let tmpq          = getTemporalityOrPure $ tq
+            let consT         = require a (CReturnOfLetTemporalities retTmp tmpx tmpq)
+
+            let cons' = concat [consI, consd, consr, consT]
 
             let ss  = compose sx sq
             let q'' = with cons' q' tq $ \a' -> LetScan a' n x'
