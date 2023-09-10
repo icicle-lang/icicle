@@ -45,12 +45,10 @@ import                  Icicle.Data.Name
 
 import                  P
 
-import                  Control.Monad.Trans.Either (runEitherT, hoistEither)
 import                  Control.Monad.Morph
 import                  Control.Monad.Trans.State.Lazy
 
 import                  Data.List (zip, unzip)
-import                  Data.Functor.Identity (runIdentity)
 import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
 
@@ -133,6 +131,18 @@ convertQuery q
             let bs' = filt e' (streams bs) <> bs { streams = [] }
             return (bs', b)
 
+
+    -- Converting filters is probably the simplest conversion.
+    --
+    -- We create a fresh name for the "filter" binding we're creating,
+    -- as well as a fresh name for the lambda variable for the predicate.
+    --
+    -- Then we convert the filter expression into a predicate, and wrap it in the lambda.
+    --
+    -- We convert the rest of the query and pass through the fresh filter binding's name,
+    -- as that is what the data is operating on.
+    (FilterLet _ _ _ : _)
+     -> convertAsFold
 
     -- Windowing in Core is a standard filter, with precomputations for
     -- the edges of the windows.

@@ -291,6 +291,27 @@ reifyPossibilityQ (Query (c:cs) final_x)
             return $ ins (Filter (wrapAnnot a) pred') (Query [] $ wrapRight $ Nested (annotOfQuery rest') rest')
      | otherwise
      -> add' (Filter    (wrapAnnot a)     <$> reifyPossibilityX x)
+    FilterLet a pat x
+     | preda               <- annotOfExp x
+     , PatCon ConSome [n]  <- pat
+     , (temporality, Just PossibilityPossibly, OptionT innerType) <- decomposeT $ annResult preda
+     , let predb = preda { annResult = recomposeT (temporality, Just PossibilityPossibly, innerType) }
+     , let predOuter = wrapOptionAnnot (wrapAnnot predb)
+     -> do  x'     <- reifyPossibilityX x
+            nError <- fresh
+            nValue <- fresh
+            pValue <- fresh
+            let pred'   = Case predOuter x'
+                            [ ( PatCon ConLeft  [PatVariable nError], con1 predOuter ConSome $ conLeft predb (Var predb nError))
+                            , ( PatCon ConRight [PatVariable nValue],
+                                Case predOuter (Var (wrapOptionAnnot predb) nValue)
+                                [ ( PatCon ConSome [PatVariable pValue], con1 predOuter ConSome $ conRight (Var predb pValue))
+                                , ( PatCon ConNone [], con0 predOuter ConNone) ])
+                            ]
+            rest'    <- rest
+            return $ ins (FilterLet (wrapAnnot a) (PatCon ConSome [n]) pred') (Query [] $ wrapRight $ Nested (annotOfQuery rest') rest')
+     | otherwise
+     -> add' (FilterLet (wrapAnnot a) pat <$> reifyPossibilityX x)
     Let a n x
      -> add' (Let       (wrapAnnot a) n   <$> reifyPossibilityX x)
     LetScan a n x
@@ -450,6 +471,11 @@ wrapAnnotReally :: Annot a n -> Annot a n
 wrapAnnotReally ann
  = let t = annResult ann
    in  ann { annResult = canonT $ Possibility PossibilityPossibly $ SumT ErrorT t }
+
+wrapOptionAnnot :: Annot a n -> Annot a n
+wrapOptionAnnot ann
+ | (tmp, poss, dat) <- decomposeT $ annResult ann
+ = ann { annResult = recomposeT (tmp, poss, OptionT dat) }
 
 
 extractValueAnnot :: Annot a n -> Annot a n

@@ -144,6 +144,9 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
       Filter _ x ->
         prettyKeyword "filter" <+> align (pretty (PrettyAnnot x))
 
+      FilterLet _ b x ->
+        prettyKeyword "filter" <+> prettyKeyword "let" <+> annotate AnnBinding (pretty b) <+> prettyPunctuation "=" <+>  align (pretty (PrettyAnnot x))
+
       LetFold _ f ->
         vsep [
             annotate AnnKeyword (pretty $ foldType f)

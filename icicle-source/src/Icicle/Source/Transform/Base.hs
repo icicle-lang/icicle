@@ -101,6 +101,9 @@ transformC t cc
        Filter a x
         -> do x' <- goX x
               return (s, Filter a x')
+       FilterLet a n x -- TODO check
+        -> do x' <- transformX t x
+              return (s, FilterLet a n x')
        LetFold a f
         -> do  i' <- goX $ foldInit f
                w' <- goX $ foldWork f

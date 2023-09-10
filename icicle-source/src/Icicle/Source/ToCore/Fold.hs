@@ -199,7 +199,7 @@ convertFold q
                         (s:alts)
                          -> convertCase (final q) s (pats' `zip` alts) scrutT retty'
                         _
-                         -> convertError $ ConvertErrorBadCaseNoDefault ann (final q)
+                         -> convertError $ ConvertErrorBadCaseNoDefault ann scrutT (final q)
             xx       <- pairDestruct cp ts
 
             -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
@@ -281,6 +281,28 @@ convertFold q
                        ( CE.xPrim (C.PrimFold C.PrimFoldBool tt')
                          CE.@~ CE.xLam n'unit T.UnitT (foldKons res CE.@~ prev') CE.@~ CE.xLam n'unit T.UnitT prev' CE.@~ e' )
             return (res { foldKons = k' })
+
+    -- For filter let, you convert the subquery as normal,
+    -- then only apply the subquery's "k" when the filter predicate is true.
+    (FilterLet _ (PatCon ConSome [PatVariable b]) scrut : _)
+     -> do  b'         <- convertFreshenAdd b
+            res        <- convertFold q'
+            e'         <- convertExp  scrut
+            o't'e      <- convertValType' $ annResult $ annotOfExp scrut
+            let T.OptionT t'e = o't'e
+            prev       <- lift fresh
+            n'unit     <- lift fresh
+            let t'res   = typeFold res
+            let prev'   = CE.xVar prev
+            let k'      = CE.xLam prev t'res
+                        ( CE.xPrim (C.PrimFold (C.PrimFoldOption t'e) t'res)
+                            CE.@~ CE.xLam b' t'e (foldKons res CE.@~ prev')
+                            CE.@~ CE.xLam n'unit T.UnitT prev'
+                            CE.@~ e' )
+            return (res { foldKons = k' })
+
+    (FilterLet (Annot { annAnnot = ann }) pat _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
     (Latest _ i : _)
      | case getTemporalityOrPure $ annResult $ annotOfQuery q' of

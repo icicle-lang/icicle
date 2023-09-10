@@ -28,6 +28,7 @@ data Context' q a n
  | GroupBy   a             (Exp' q a n)
  | Distinct  a             (Exp' q a n)
  | Filter    a             (Exp' q a n)
+ | FilterLet a (Pattern n) (Exp' q a n)
  | LetFold   a             (Fold q a n)
  | LetScan   a (Pattern n) (Exp' q a n)
  | Let       a (Pattern n) (Exp' q a n)
@@ -45,7 +46,8 @@ instance TraverseAnnot q => TraverseAnnot (Context' q)  where
       GroupFold a k v x -> GroupFold <$> f a <*> pure k <*> pure v <*> traverseAnnot f x
       Distinct  a x     -> Distinct  <$> f a <*> traverseAnnot f x
       Filter    a x     -> Filter    <$> f a <*> traverseAnnot f x
-      LetScan  a n x    -> LetScan   <$> f a <*> pure n <*> traverseAnnot f x
+      FilterLet a p x   -> FilterLet <$> f a <*> pure p <*> traverseAnnot f x
+      LetScan   a n x   -> LetScan   <$> f a <*> pure n <*> traverseAnnot f x
       LetFold   a ff    -> LetFold   <$> f a <*> traverseAnnot f ff
       Let      a n x    -> Let       <$> f a <*> pure n <*> traverseAnnot f x
 
@@ -82,6 +84,7 @@ annotOfContext c
     GroupFold a _ _ _ -> a
     Distinct  a _     -> a
     Filter    a _     -> a
+    FilterLet a _ _   -> a
     LetScan   a _ _   -> a
     LetFold   a _     -> a
     Let       a _ _   -> a
@@ -115,6 +118,9 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Context' q a n) where
 
     Filter _ x ->
       prettyKeyword "filter" <+> align (pretty x)
+
+    FilterLet _ pat x ->
+      prettyKeyword "filter" <+> prettyKeyword "let" <+> annotate AnnBinding (pretty pat) <+> prettyPunctuation "=" <+> align (pretty x)
 
     LetScan _ b x  ->
       vsep [

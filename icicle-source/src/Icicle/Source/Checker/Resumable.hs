@@ -74,6 +74,10 @@ checkResumableQ ctx q@(Query (c:cs) xfinal)
     Filter{}
      -> go
 
+    -- Filter expressions, like groups, must be Element
+    FilterLet{}
+     -> go
+
     -- Lets can be anything, so must be checked
     Let _ _ x
      -> goX x >> go

@@ -307,10 +307,20 @@ pContextDistinct =
 
 
 pContextFilter :: Parser s m => m (Context Range Var)
-pContextFilter =
-  Filter
-    <$> pToken Tok_Filter
-    <*> pExp
+pContextFilter = do
+  range <- pToken Tok_Filter
+  filterLet range <|> Filter range <$> pExp
+
+    where
+
+  filterLet range = do
+    _   <- pToken Tok_Let
+    _   <- pToken Tok_LBrace
+    pat <- pPattern
+    _   <- pToken Tok_Equals
+    sc  <- pExp
+    _   <- pToken Tok_RBrace
+    return $ FilterLet range pat sc
 
 
 pContextLatest :: Parser s m => m (Context Range Var)

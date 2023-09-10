@@ -115,6 +115,7 @@ defaults topq
           GroupFold _ _ _ x -> fv x
           Distinct _ x -> fv x
           Filter _ x -> fv x
+          FilterLet _ _ x -> fv x
 
   defaultOfAllX x
    = let fa   = defaultOfAllA (annotOfExp x)
@@ -374,6 +375,19 @@ generateQ qq@(Query (c:_) _) env
             let q'' = with cons' q' t'' $ \a' -> Filter a' x'
             return (q'', ss, cons')
 
+    -- >   filter let (Element p'p Bool) ~> Aggregate x'p x'd
+    -- > : Aggregate (PossibilityJoin p'p x'p) x'd
+    FilterLet ann n x
+     -> do  (x', sx, consd)      <- generateX x env
+            let x'typ             = annResult $ annotOfExp x'
+            (q',sq,tq,consr)     <- rest =<< goPatPartial ann n x'typ (substE sx env)
+            consT                <- requireTemporality x'typ TemporalityElement
+            let cons'             = concat [consd, consr, consT]
+
+            let ss  = compose sx sq
+            let q'' = with cons' q' tq $ \a' -> FilterLet a' n x'
+            return (q'', ss, cons')
+
     -- >     let fold  bind = ( |- Pure z'p a'd) : ( bind : Element z'p a'd |- Element k'p a'd)
     -- >  ~> (bind : Aggregate k'p a'd |- Aggregate r'p r'd)
     -- >   :  Aggregate r'p r'd
@@ -497,18 +511,21 @@ generateQ qq@(Query (c:_) _) env
             return (q'', ss, cons')
 
  where
+
+  goPatPartial = goPat' True
+  goPat = goPat' False
   -- Create the binding environment for a pattern.
   -- We are only permitting total patterns, so PairT
   -- variables and non-binders.
-  goPat _ PatDefault _ e
+  goPat' _ _ PatDefault _ e
     -- A Default _ binding doesn't effect the rest
     -- of the program.
     = return e
-  goPat _ (PatVariable n) typ e
+  goPat' _ _ (PatVariable n) typ e
     -- A binding variable is accessible downstream
     -- so bind it and its type to the environment.
     = return $ bindT n typ e
-  goPat ann (PatCon ConTuple [a'pat,b'pat]) typ e
+  goPat' cc ann (PatCon ConTuple [a'pat,b'pat]) typ e
     -- As we can put a let at any temporality and
     -- possibility, we need to decompose the pattern
     -- and keep the possibility/temporality of the
@@ -516,11 +533,10 @@ generateQ qq@(Query (c:_) _) env
     -- bound.
     | (mt,mp,canon'typ) <- decomposeT $ canonT typ
     , PairT a'typ b'typ <- canon'typ
-    = do
-      a'env <- goPat ann a'pat (recomposeT (mt, mp, a'typ)) e
-      b'env <- goPat ann b'pat (recomposeT (mt, mp, b'typ)) a'env
-      return b'env
-  goPat ann (PatCon ConTuple _) typ _
+    = do a'env <- goPat' cc ann a'pat (recomposeT (mt, mp, a'typ)) e
+         b'env <- goPat' cc ann b'pat (recomposeT (mt, mp, b'typ)) a'env
+         return b'env
+  goPat' _ ann (PatCon ConTuple _) typ _
     -- It's a type error, as we can't bind a non-pair
     -- pattern to a pair. We don't have type variables
     -- for the what the elements of the pair should be,
@@ -533,11 +549,30 @@ generateQ qq@(Query (c:_) _) env
         $ errorNoSuggestions
         $ ErrorConstraintsNotSatisfied ann
           [(ann, CannotUnify (PairT p1 p2) canon'typ)]
-  goPat ann pat _ _
+
+  goPat' True ann (PatCon ConSome [p]) typ e
+    | (mt,mp,canon'typ) <- decomposeT $ canonT typ
+    , OptionT b'typ     <- canon'typ
+    = do goPat' True ann p (recomposeT (mt, mp, b'typ)) e
+
+  goPat' True ann (PatCon ConLeft [p]) typ e
+    | (mt,mp,canon'typ) <- decomposeT $ canonT typ
+    , SumT a'typ _      <- canon'typ
+    = do goPat' True ann p (recomposeT (mt, mp, a'typ)) e
+
+  goPat' True ann (PatCon ConRight [p]) typ e
+    | (mt,mp,canon'typ) <- decomposeT $ canonT typ
+    , SumT _ b'typ <- canon'typ
+    = do goPat' True ann p (recomposeT (mt, mp, b'typ)) e
+
+  goPat' True _ (PatCon ConNone []) _ e
+    = return e
+
+  goPat' _ ann pat typ _
     -- It's not a pair, default or variable. All other
     -- patterns are Partial, so we disallow it.
     = genHoistEither
-    $ errorNoSuggestions (ErrorPartialBinding ann pat)
+    $ errorNoSuggestions (ErrorPartialBinding ann pat typ)
 
   -- Generate a fresh set of type variables which a
   -- total pattern must match. This flow upwards into
@@ -550,11 +585,14 @@ generateQ qq@(Query (c:_) _) env
     = do a'typ <- patTy ann a'pat
          b'typ <- patTy ann b'pat
          return (PairT a'typ b'typ)
+
   patTy ann pat
     -- It's not a pair, default or variable. All other
     -- patterns are Partial, so we disallow it.
-    = genHoistEither
-    $ errorNoSuggestions (ErrorPartialBinding ann pat)
+    = do
+       typeOfPartial <- TypeVar <$> fresh
+       genHoistEither
+        $ errorNoSuggestions (ErrorPartialBinding ann pat typeOfPartial)
 
 
   a  = annotOfContext c

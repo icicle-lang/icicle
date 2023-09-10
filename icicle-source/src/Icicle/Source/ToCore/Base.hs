@@ -152,7 +152,7 @@ data ConvertError a n
  | ConvertErrorExpApplicationOfNonPrimitive  a (Exp (Annot a n) n)
  | ConvertErrorReduceAggregateBadArguments   a (Exp (Annot a n) n)
  | ConvertErrorCannotConvertType             a (Type n)
- | ConvertErrorBadCaseNoDefault              a (Exp (Annot a n) n)
+ | ConvertErrorBadCaseNoDefault              a ValType (Exp (Annot a n) n)
  | ConvertErrorBadCaseNestedConstructors     a (Exp (Annot a n) n)
  | ConvertErrorImpossibleFold1               a
  | ConvertErrorCannotConvertAccessor         a ValType StructField
@@ -189,7 +189,7 @@ annotOfError e
      -> Just a
     ConvertErrorCannotConvertType a _
      -> Just a
-    ConvertErrorBadCaseNoDefault a _
+    ConvertErrorBadCaseNoDefault a t _
      -> Just a
     ConvertErrorBadCaseNestedConstructors a _
      -> Just a
@@ -392,8 +392,8 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
      ConvertErrorCannotConvertType a t
       -> pretty a <> ": cannot convert base type: " <> pretty t
 
-     ConvertErrorBadCaseNoDefault a x
-      -> pretty a <> ": case has no default alternative: " <> pretty x
+     ConvertErrorBadCaseNoDefault a t x
+      -> pretty a <> ": case has no default alternative, type " <> pretty t <> line  <> pretty x
 
      ConvertErrorBadCaseNestedConstructors a x
       -> pretty a <> ": case has nested constructors in pattern; these should be removed by an earlier pass: " <> pretty x

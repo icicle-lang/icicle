@@ -218,8 +218,8 @@ convertCase x scrut pats scrutT resT
           | Just ([],unit) <- Map.lookup ConUnit     m
           -> return unit
 
-         _
-          -> convertError $ ConvertErrorBadCaseNoDefault (annAnnot $ annotOfExp x) x
+         other
+          -> convertError $ ConvertErrorBadCaseNoDefault (annAnnot $ annotOfExp x) other x
  where
   convertConstructorMap
    = Map.fromList <$> mapM mkPatMap pats
@@ -228,7 +228,7 @@ convertCase x scrut pats scrutT resT
    = do ps'  <- mapM mkVars ps
         return (c, (ps', alt))
   mkPatMap _
-   = convertError $ ConvertErrorBadCaseNoDefault (annAnnot $ annotOfExp x) x
+   = convertError $ ConvertErrorBadCaseNoDefault (annAnnot $ annotOfExp x) T.UnitT x
 
   mkVars PatDefault
    = lift fresh

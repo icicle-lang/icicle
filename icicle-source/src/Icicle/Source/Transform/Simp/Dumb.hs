@@ -51,6 +51,7 @@ simpDumbC cc
     GroupBy   a   x   -> GroupBy   a     $ simpDumbX x
     Distinct  a   x   -> Distinct  a     $ simpDumbX x
     Filter    a   x   -> Filter    a     $ simpDumbX x
+    FilterLet a n x   -> FilterLet a n   $ simpDumbX x
     Let       a n x   -> Let       a n   $ simpDumbX x
     LetScan   a n x   -> LetScan   a n   $ simpDumbX x
     LetFold   a   f   -> LetFold   a     $ simpDumbF f
@@ -119,6 +120,8 @@ simpDumbCases xx
        -> Distinct a (simpX x)
       Filter a x
        -> Filter a (simpX x)
+      FilterLet a n x
+       -> FilterLet a n (simpX x)
       LetFold a (Fold b i w t)
        -> LetFold a (Fold b (simpX i) (simpX w) t)
       Let a n x
@@ -212,6 +215,8 @@ simpDumbLets xx
         -> (f, Distinct a (substX x y e) : rest')
        Filter a e
         -> (f, Filter a (substX x y e) : rest')
+       FilterLet a n e
+        -> (f, FilterLet a n (substX x y e) : rest')
        GroupFold a n1 n2 e
         -> (f, GroupFold a n1 n2 (substX x y e) : rest')
 

@@ -58,6 +58,9 @@ invariantQ ctx (Query (c:cs) xfinal)
 
     Filter _ x
      -> goX x >> go
+
+    FilterLet _ _ x
+     -> goX x >> go
     LetFold _ f
      -> goF (foldInit f) >> goF (foldWork f) >> go
     Let _ _ x
