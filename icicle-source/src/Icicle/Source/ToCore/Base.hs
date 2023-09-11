@@ -189,7 +189,7 @@ annotOfError e
      -> Just a
     ConvertErrorCannotConvertType a _
      -> Just a
-    ConvertErrorBadCaseNoDefault a t _
+    ConvertErrorBadCaseNoDefault a _ _
      -> Just a
     ConvertErrorBadCaseNestedConstructors a _
      -> Just a

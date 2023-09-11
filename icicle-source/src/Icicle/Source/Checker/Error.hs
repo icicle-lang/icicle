@@ -89,7 +89,7 @@ annotOfError (CheckError e _)
      -> a
     ErrorEmptyCase          a _
      -> a
-    ErrorPartialBinding        a _ t
+    ErrorPartialBinding        a _ _
      -> a
     ErrorCaseBadPattern          a _
      -> a
