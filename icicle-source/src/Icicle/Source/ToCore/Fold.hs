@@ -199,7 +199,7 @@ convertFold q
                         (s:alts)
                          -> convertCase (final q) s (pats' `zip` alts) scrutT retty'
                         _
-                         -> convertError $ ConvertErrorBadCaseNoDefault ann (final q)
+                         -> convertError $ ConvertErrorBadCaseNoDefault ann scrutT (final q)
             xx       <- pairDestruct cp ts
 
             -- For konstrukt, we need to destruct the pairs, apply the sub-ks,
@@ -281,6 +281,28 @@ convertFold q
                        ( CE.xPrim (C.PrimFold C.PrimFoldBool tt')
                          CE.@~ CE.xLam n'unit T.UnitT (foldKons res CE.@~ prev') CE.@~ CE.xLam n'unit T.UnitT prev' CE.@~ e' )
             return (res { foldKons = k' })
+
+    -- For filter let, you convert the subquery as normal,
+    -- then only apply the subquery's "k" when the filter predicate is true.
+    (FilterLet _ (PatCon ConSome [PatVariable b]) scrut : _)
+     -> do  b'         <- convertFreshenAdd b
+            res        <- convertFold q'
+            e'         <- convertExp  scrut
+            o't'e      <- convertValType' $ annResult $ annotOfExp scrut
+            let T.OptionT t'e = o't'e
+            prev       <- lift fresh
+            n'unit     <- lift fresh
+            let t'res   = typeFold res
+            let prev'   = CE.xVar prev
+            let k'      = CE.xLam prev t'res
+                        ( CE.xPrim (C.PrimFold (C.PrimFoldOption t'e) t'res)
+                            CE.@~ CE.xLam b' t'e (foldKons res CE.@~ prev')
+                            CE.@~ CE.xLam n'unit T.UnitT prev'
+                            CE.@~ e' )
+            return (res { foldKons = k' })
+
+    (FilterLet (Annot { annAnnot = ann }) pat _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
     (Latest _ i : _)
      | case getTemporalityOrPure $ annResult $ annotOfQuery q' of
@@ -398,7 +420,7 @@ convertFold q
                           $ unwrapSum k'possibly t'sumF n'error  k'             n'key t'k
                           $ mapInsertF
 
-           mapInsertX    <- primInsert t'kr t'xr (CE.xVar n'acc') (CE.xVar n'key) (CE.xVar n'x')
+           mapInsertX    <- primInsertNoCheck t'kr t'xr (CE.xVar n'acc') (CE.xVar n'key) (CE.xVar n'x')
 
            let extract n  = mapExtract res CE.@~ CE.xVar n
            let ins        = CE.xLam n'acc t'sumX
@@ -406,6 +428,7 @@ convertFold q
                           $ CE.xLam n'x   t'fold
                           $ unwrapSum True       t'sumX n'error (CE.xVar n'acc) n'acc' t'sumX
                           $ unwrapSum q'possibly t'sumX n'error (extract n'x)   n'x' (typeExtract res)
+                          $ x'right (T.MapT t'kr t'xr)
                           $ mapInsertX
 
            let xtra       = CE.xLam n'sum t'sumF
@@ -634,6 +657,12 @@ convertFold q
 
     (LetFold (Annot { annAnnot = ann }) Fold{ foldBind = pat } : _)
      -> convertError $ ConvertErrorPatternUnconvertable ann pat
+
+    (LetScan (Annot { annAnnot = ann }) pat x : _)
+     -> do  resb <- convertFold (Query [] x)
+            convertAsLet ann pat resb
+
+
 
  where
   q' = q { contexts = drop 1 $ contexts q }

@@ -113,6 +113,11 @@ substQ' s (Query (c:rest_cs) rest_x)
            (s', p')  <- rempatbind s p
            rest s' (Let a p' x')
 
+    LetScan a p x
+     -> do x'        <- substX' s x
+           (s', p')  <- rempatbind s p
+           rest s' (LetScan a p' x')
+
     LetFold a f
      -> do z'       <- substX' s  (foldInit f)
            (s', p') <- rempatbind s (foldBind f)
@@ -137,6 +142,11 @@ substQ' s (Query (c:rest_cs) rest_x)
     Filter a x
      -> do x'       <- substX s x
            rest s (Filter a x')
+    FilterLet a p x
+     -> do x'        <- substX' s x
+           (s', p')  <- rempatbind s p
+           rest s' (FilterLet a p' x')
+
  where
   ins cx' (Query cs' x') = Query (cx' : cs') x'
   q                      = Query rest_cs rest_x

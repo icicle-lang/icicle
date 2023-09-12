@@ -18,7 +18,6 @@ import                  Data.Hashable (Hashable)
 
 import                  GHC.Generics
 
-
 newtype Operator
  = Operator Text
  deriving (Eq, Ord, Show)

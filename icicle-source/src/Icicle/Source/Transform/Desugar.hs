@@ -131,7 +131,7 @@ desugarLets cc
            expand PatDefault = do
              n <- fresh
              return (PatVariable n, [])
-           expand (PatVariable n) = do
+           expand (PatVariable n) =
              return (PatVariable n, [])
            expand c = do
              n <- fresh
@@ -144,6 +144,67 @@ desugarLets cc
            return $
              GroupFold a k' v' m : concat lets
 
+    LetScan a n x
+      -> let
+           expand PatDefault = do
+             n' <- fresh
+             return (PatVariable n', [])
+           expand (PatVariable n') =
+             return (PatVariable n', [])
+           expand c = do
+             n' <- fresh
+             let nbind = Let a c (Var a n')
+             return (PatVariable n', [nbind])
+         in do
+           (n', nx) <- expand n
+           lets     <- mapM desugarLets nx
+           return $
+             LetScan a n' x : concat lets
+
+    FilterLet a (PatCon ConRight [arg]) x
+      -> do n        <- fresh
+            i        <- fresh
+            j        <- fresh
+            let nbind = Let a (PatVariable n) $ Case a x [(PatCon ConRight [PatVariable i], con1 a ConSome (Var a i))
+                                                         ,(PatCon ConLeft  [PatVariable j], con0 a ConNone)]
+            let more  = FilterLet a (PatCon ConSome [arg]) (Var a n)
+            ccs      <- mapM desugarLets [nbind, more]
+            return $ concat ccs
+
+    FilterLet a (PatCon ConLeft [arg]) x
+      -> do n        <- fresh
+            i        <- fresh
+            j        <- fresh
+            let nbind = Let a (PatVariable n) $ Case a x [(PatCon ConLeft  [PatVariable i], con1 a ConSome (Var a i))
+                                                         ,(PatCon ConRight [PatVariable j], con0 a ConNone)]
+            let more  = FilterLet a (PatCon ConSome [arg]) (Var a n)
+            ccs      <- mapM desugarLets [nbind, more]
+            return $ concat ccs
+
+    FilterLet a (PatCon ConSome [subCases]) x
+      -> do n        <- fresh
+            let nbind = FilterLet a subCases (Var a n)
+            nnbind   <- desugarLets nbind
+            return $
+              FilterLet a (PatCon ConSome [PatVariable n]) x : nnbind
+
+    FilterLet a (PatCon ConNone []) x
+      -> do nSome    <- fresh
+            return . pure $ Filter a $
+              Case a x [(PatCon ConSome [PatVariable nSome], Prim a (PrimCon ConFalse)),
+                        (PatCon ConNone [],                  Prim a (PrimCon ConTrue))]
+
+    FilterLet ann (PatLit lit negated) scrut
+      -> do let eq = Prim ann $ Op $ Relation Eq
+                neg = Prim ann $ Op $ ArithUnary Negate
+                lit' = Prim ann $ Lit lit
+                prim = if negated then App ann neg lit' else lit'
+                sc = App ann (App ann eq scrut) prim
+            return . pure $ Filter ann sc
+
+    FilterLet a tuples x
+      -> do desugarLets $ Let a tuples x
+
     x -> return [x]
 
 desugarC
@@ -155,7 +216,9 @@ desugarC cc
     GroupBy   a   x   -> GroupBy   a     <$> desugarX x
     Distinct  a   x   -> Distinct  a     <$> desugarX x
     Filter    a   x   -> Filter    a     <$> desugarX x
+    FilterLet a n x   -> FilterLet a n   <$> desugarX x
     Let       a n x   -> Let       a n   <$> desugarX x
+    LetScan   a n x   -> LetScan   a n   <$> desugarX x
     LetFold   a   f   -> LetFold   a     <$> desugarF f
     GroupFold a k v x -> GroupFold a k v <$> desugarX x
     Windowed{}        -> return cc
@@ -557,3 +620,10 @@ checkOverlapping ann userpats genpats
 
 freshes :: (Monad m, Hashable n) => Int -> FreshT n m [Name n]
 freshes n = replicateM n fresh
+
+
+con0 :: a -> Constructor -> Exp a n
+con0 a c   =        Prim a (PrimCon c)
+
+con1 :: a -> Constructor -> Exp a n -> Exp a n
+con1 a c x = App a (Prim a (PrimCon c)) x

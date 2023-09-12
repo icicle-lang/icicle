@@ -228,6 +228,32 @@ layoutTokens env = \case
       x <:> before y Tok_LBrace <:>
       layoutTokens (startImplicit y $ startExplicit Context env) (y : xs)
 
+  --
+  -- Layout for 'filter let' is simpler than 'of', the layout block always starts at
+  -- the beginning of the next token.
+  --
+  --   foo =
+  --     filter let
+  --       |xyz =
+  --       |  123
+  --     in
+  --
+  --   ==>
+  --
+  --   foo =
+  --     let
+  --       {xyz =
+  --         123
+  --       ;abc =
+  --         457
+  --     }in
+  --
+  x@(Positioned _ _ Tok_Filter) : y@(Positioned _ _ Tok_Let) : z : xs
+    | notLBrace y
+    ->
+      x <:> y <:> before z Tok_LBrace <:>
+      layoutTokens (startImplicit z $ startExplicit Context env) (z : xs)
+
 
   --
   -- Layout for 'where' is similar to that of 'let', but can't be closed
@@ -358,6 +384,8 @@ takeOpenScope = \case
   Tok_Let ->
     Just Context
   Tok_Fold ->
+    Just Context
+  Tok_Scan ->
     Just Context
   Tok_Fold1 ->
     Just Context

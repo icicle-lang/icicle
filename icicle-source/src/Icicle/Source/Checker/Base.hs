@@ -80,6 +80,8 @@ data Invariants
    allowLatest :: Bool
  , allowWindows :: Bool
  , allowGroupFolds :: Bool
+ -- | Unimplemented in Core: let-scans inside folds, groups, lets
+ , allowLetScan    :: Bool
  }
 
 -- | Initial environment at top-level, not inside a group, and allowing contexts
@@ -88,7 +90,7 @@ emptyCheckEnv
  = CheckEnv Map.empty Map.empty emptyInvariants
 
 emptyInvariants :: Invariants
-emptyInvariants = Invariants True True True
+emptyInvariants = Invariants True True True True
 
 --------------------------------------------------------------------------------
 

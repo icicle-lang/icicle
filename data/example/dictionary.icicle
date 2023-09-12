@@ -18,6 +18,12 @@ max_group k e =
   group fold (k, e) = (group k in e)
   in max_by e k
 
+feature actioned_damage =
+  from injury
+    in filter let Some act = action
+    in group act
+    in sum severity
+
 feature age =
   from age
     in newest value

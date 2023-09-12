@@ -1,0 +1,2 @@
+-- Elem/Scalar lets
+from injury ~> filter let "head" = location ~> sum severity

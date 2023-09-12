@@ -104,6 +104,7 @@ defaults topq
          fv x = fa <> defaultOfAllX x
      in case c of
           Let _ _ x -> fv x
+          LetScan _ _ x -> fv x
           LetFold _ f
            -> fa                      <>
               defaultOfAllX (foldInit f) <>
@@ -114,6 +115,7 @@ defaults topq
           GroupFold _ _ _ x -> fv x
           Distinct _ x -> fv x
           Filter _ x -> fv x
+          FilterLet _ _ x -> fv x
 
   defaultOfAllX x
    = let fa   = defaultOfAllA (annotOfExp x)
@@ -303,27 +305,27 @@ generateQ qq@(Query (c:_) _) env
     -- >   ~> (k: Element a'k, v: Element a'v |- Aggregate a'p a)
     -- >    : Aggregate (PossibilityJoin g'p a'p) a
     GroupFold ann k v x
-     -> do  (x', sx, consg) <- generateX x env
-            let tgroup       = annResult $ annotOfExp x'
+     -> do  (x', sx, consg)     <- generateX x env
+            let tgroup           = annResult $ annotOfExp x'
 
-            retk <- Temporality TemporalityElement <$> patTy ann k
-            retv <- Temporality TemporalityElement <$> patTy ann v
+            retk                <- Temporality TemporalityElement <$> patTy ann k
+            retv                <- Temporality TemporalityElement <$> patTy ann v
 
-            let env' = removeElementBinds $ substE sx env
-            (q', sq, t', consr)
-                <- rest =<< goPat ann k retk =<< goPat ann v retv env'
+            let env0             = removeElementBinds $ substE sx env
+            (env1, consv)       <- goPat ann v retv env0
+            (env2, consk)       <- goPat ann k retk env1
+            (q', sq, t', consr) <- rest env2
 
-            consT  <-  requireAgg  t'
-            consgt <-  requireAgg  tgroup
-            let consgd = requireData tgroup (GroupT retk retv)
-
-            (poss, consp)  <- requirePossibilityJoin tgroup t'
+            consT               <- requireAgg  t'
+            consgt              <- requireAgg  tgroup
+            let consgd           = requireData tgroup (GroupT retk retv)
+            (poss, consp)       <- requirePossibilityJoin tgroup t'
 
             let t'' = canonT
                     $ Temporality TemporalityAggregate
                     $ Possibility poss t'
 
-            let cons' = concat [consg, consr, consT, consgt, consgd, consp]
+            let cons' = concat [consg, consr, consT, consgt, consgd, consp, consv, consk]
 
             let ss  = compose sx sq
             let q'' = with cons' q' t'' $ \a' -> GroupFold a' k v x'
@@ -373,6 +375,20 @@ generateQ qq@(Query (c:_) _) env
             let q'' = with cons' q' t'' $ \a' -> Filter a' x'
             return (q'', ss, cons')
 
+    -- >   filter let (Element p'p Bool) ~> Aggregate x'p x'd
+    -- > : Aggregate (PossibilityJoin p'p x'p) x'd
+    FilterLet ann n x
+     -> do  (x', sx, consd)      <- generateX x env
+            let x'typ             = annResult $ annotOfExp x'
+            (env', consq)        <- goPatPartial ann n x'typ (substE sx env)
+            (q',sq,tq,consr)     <- rest env'
+            consT                <- requireTemporality x'typ TemporalityElement
+            let cons'             = concat [consd, consr, consT, consq]
+
+            let ss  = compose sx sq
+            let q'' = with cons' q' tq $ \a' -> FilterLet a' n x'
+            return (q'', ss, cons')
+
     -- >     let fold  bind = ( |- Pure z'p a'd) : ( bind : Element z'p a'd |- Element k'p a'd)
     -- >  ~> (bind : Aggregate k'p a'd |- Aggregate r'p r'd)
     -- >   :  Aggregate r'p r'd
@@ -390,8 +406,8 @@ generateQ qq@(Query (c:_) _) env
                     $ Possibility ip'
                     $ annResult $ annotOfExp i
 
-            let env' = substE si env
-            (w,sw, csw) <- generateX (foldWork f) =<< goPat ann (foldBind f) ti env'
+            (env', consl)  <- goPat ann (foldBind f) ti (substE si env)
+            (w,sw, csw)    <- generateX (foldWork f) env'
 
             let bindType
                  | FoldTypeFoldl1 <- foldType f
@@ -405,8 +421,8 @@ generateQ qq@(Query (c:_) _) env
                  $ Temporality TemporalityAggregate
                  $ annResult $ annotOfExp w
 
-            let env'' = substE sw env'
-            (q', sq, t', consr) <- rest =<< goPat ann (foldBind f) bindType env''
+            (env'', consq)      <- goPat ann (foldBind f) bindType (substE sw env')
+            (q', sq, t', consr) <- rest env''
 
             consf
               <- case foldType f of
@@ -425,7 +441,7 @@ generateQ qq@(Query (c:_) _) env
                        [ require a (CEquals it wt)
                        , require a (CPossibilityJoin iniPos wp' ip') ]
 
-            let cons' = concat [csi, csw, consr, consf, consT, conseq]
+            let cons' = concat [csi, csw, consr, consf, consT, conseq, consq, consl]
 
             let t'' = canonT $ Temporality TemporalityAggregate t'
             let s'  = si `compose` sw `compose` sq
@@ -447,34 +463,73 @@ generateQ qq@(Query (c:_) _) env
      -> do  (x', sx, consd)  <- generateX x env
             let x'typ = annResult $ annotOfExp x'
 
-            (q',sq,tq,consr) <- rest =<< goPat ann n x'typ (substE sx env)
+            (env', consQ)    <- goPat ann n x'typ (substE sx env)
+            (q',sq,tq,consr) <- rest env'
 
             retTmp   <- TypeVar <$> fresh
             let tmpx  = getTemporalityOrPure x'typ
             let tmpq  = getTemporalityOrPure $ tq
 
             let consT = require a (CReturnOfLetTemporalities retTmp tmpx tmpq)
-            let cons' = concat [consd, consr, consT]
-
+            let cons' = concat [consd, consr, consT, consQ]
             let t'    = canonT $ Temporality retTmp tq
 
             let ss  = compose sx sq
             let q'' = with cons' q' t' $ \a' -> Let a' n x'
             return (q'', ss, cons')
 
+    -- Let Scans turn an aggregate back into an element. This allows for one to get
+    -- a running total or the like.
+    --
+    -- Similar to Lets above, we also require that the binding of the function is able
+    -- to be used in the body. So even though the binding is bound as an element, it
+    -- must be usable as an aggregate.
+    --
+    -- This stops one from putting a let scan in where it's impossible to reference
+    -- an aggregate, like in the body of a fold.
+    --
+    -- >   let n = ( |- Aggregate def'p def'd )
+    -- >    ~> ( n : def't Element def'd |- body't body'p body'd )
+    -- > : body't body'p body'd
+    LetScan ann n x
+     -> do  (x', sx, consd)  <- generateX x env
+            let x'typ         = annResult $ annotOfExp x'
+            let (_,mp,x'can)  = decomposeT x'typ
+
+            consI            <- requireAgg x'typ
+            let x'typ'elem    = recomposeT (Just TemporalityElement, mp, x'can)
+            (env', consQ)    <- goPat ann n x'typ'elem (substE sx env)
+            (q',sq,tq,consr) <- rest env'
+
+            retTmp           <- TypeVar <$> fresh
+            let tmpx          = getTemporalityOrPure x'typ
+            let tmpq          = getTemporalityOrPure $ tq
+            let consT         = require a (CReturnOfLetTemporalities retTmp tmpx tmpq)
+
+            let cons' = concat [consI, consd, consr, consT, consQ]
+
+            let ss  = compose sx sq
+            let q'' = with cons' q' tq $ \a' -> LetScan a' n x'
+            return (q'', ss, cons')
+
  where
+
+  goPatPartial =
+    goPat' True
+
+  goPat = goPat' False
   -- Create the binding environment for a pattern.
   -- We are only permitting total patterns, so PairT
   -- variables and non-binders.
-  goPat _ PatDefault _ e
+  goPat' _ _ PatDefault _ e
     -- A Default _ binding doesn't effect the rest
     -- of the program.
-    = return e
-  goPat _ (PatVariable n) typ e
+    = return (e, [])
+  goPat' _ _ (PatVariable n) typ e
     -- A binding variable is accessible downstream
     -- so bind it and its type to the environment.
-    = return $ bindT n typ e
-  goPat ann (PatCon ConTuple [a'pat,b'pat]) typ e
+    = return $ (bindT n typ e, [])
+  goPat' cc ann (PatCon ConTuple [a'pat,b'pat]) typ e
     -- As we can put a let at any temporality and
     -- possibility, we need to decompose the pattern
     -- and keep the possibility/temporality of the
@@ -482,11 +537,11 @@ generateQ qq@(Query (c:_) _) env
     -- bound.
     | (mt,mp,canon'typ) <- decomposeT $ canonT typ
     , PairT a'typ b'typ <- canon'typ
-    = do
-      a'env <- goPat ann a'pat (recomposeT (mt, mp, a'typ)) e
-      b'env <- goPat ann b'pat (recomposeT (mt, mp, b'typ)) a'env
-      return b'env
-  goPat ann (PatCon ConTuple _) typ _
+    = do (a'env, a'c) <- goPat' cc ann a'pat (recomposeT (mt, mp, a'typ)) e
+         (b'env, b'c) <- goPat' cc ann b'pat (recomposeT (mt, mp, b'typ)) a'env
+         return (b'env, a'c <> b'c)
+
+  goPat' _ ann (PatCon ConTuple _) typ _
     -- It's a type error, as we can't bind a non-pair
     -- pattern to a pair. We don't have type variables
     -- for the what the elements of the pair should be,
@@ -499,11 +554,34 @@ generateQ qq@(Query (c:_) _) env
         $ errorNoSuggestions
         $ ErrorConstraintsNotSatisfied ann
           [(ann, CannotUnify (PairT p1 p2) canon'typ)]
-  goPat ann pat _ _
+
+  goPat' True ann (PatCon ConSome [p]) typ e
+    | (mt,mp,canon'typ) <- decomposeT $ canonT typ
+    , OptionT b'typ     <- canon'typ
+    = do goPat' True ann p (recomposeT (mt, mp, b'typ)) e
+
+  goPat' True ann (PatCon ConLeft [p]) typ e
+    | (mt,mp,canon'typ) <- decomposeT $ canonT typ
+    , SumT a'typ _      <- canon'typ
+    = do goPat' True ann p (recomposeT (mt, mp, a'typ)) e
+
+  goPat' True ann (PatCon ConRight [p]) typ e
+    | (mt,mp,canon'typ) <- decomposeT $ canonT typ
+    , SumT _ b'typ <- canon'typ
+    = do goPat' True ann p (recomposeT (mt, mp, b'typ)) e
+
+  goPat' True _ (PatCon ConNone []) _ e
+    = return (e, [])
+
+  goPat' True ann (PatLit lit _) typ e
+    = do (_, resT, cons) <- primLookup ann (Lit lit)
+         return (e, cons <> requireData resT typ)
+
+  goPat' _ ann pat typ _
     -- It's not a pair, default or variable. All other
     -- patterns are Partial, so we disallow it.
     = genHoistEither
-    $ errorNoSuggestions (ErrorPartialBinding ann pat)
+    $ errorNoSuggestions (ErrorPartialBinding ann pat typ)
 
   -- Generate a fresh set of type variables which a
   -- total pattern must match. This flow upwards into
@@ -519,9 +597,10 @@ generateQ qq@(Query (c:_) _) env
   patTy ann pat
     -- It's not a pair, default or variable. All other
     -- patterns are Partial, so we disallow it.
-    = genHoistEither
-    $ errorNoSuggestions (ErrorPartialBinding ann pat)
-
+    = do
+       typeOfPartial <- TypeVar <$> fresh
+       genHoistEither
+        $ errorNoSuggestions (ErrorPartialBinding ann pat typeOfPartial)
 
   a  = annotOfContext c
 
@@ -780,7 +859,7 @@ generateX x env
            returnPoss' <- TypeVar <$> fresh
            let consPs  =  require a (CPossibilityJoin returnPoss' scrutPs returnPoss)
 
-           (pats', subs, consA) <- generateP a scrutT returnType returnTemp' returnTemp returnPoss pats (substE sub env)
+           (pats', subs, consA) <- generatePatterns a scrutT returnType returnTemp' returnTemp returnPoss pats (substE sub env)
 
            let t'    = canonT
                      $ Temporality returnTemp'
@@ -802,7 +881,7 @@ generateX x env
     <*> (Possibility <$> (TypeVar <$> fresh)
     <*>                  (TypeVar <$> fresh))
 
-generateP
+generatePatterns
   :: (Hashable n, Eq n, Pretty n)
   => a
   -> Type n                 -- ^ scrutinee type
@@ -811,27 +890,27 @@ generateP
   -> Type n                 -- ^ chained result temporality of previous alternative
   -> Type n                 -- ^ result possibility
   -> [(Pattern n, Exp a n)] -- ^ pattern and alternative
-  -> GenEnv n
+  -> GenEnv n               -- ^ environment
   -> Gen a n ([(Pattern n, Exp'C a n)], SubstT n, GenConstraintSet a n)
 
-generateP ann _ _ _ resTm resPs [] _
+generatePatterns ann _ _ _ resTm resPs [] _
  = do   let consT = require ann (CEquals resTm TemporalityPure)
         let consP = require ann (CEquals resPs PossibilityDefinitely)
         return ([], Map.empty, concat [consT, consP])
 
-generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
- = do   (t, consp, envp) <- goPat pat env
+generatePatterns ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
+ = do   (t, consp, envp)    <- generatePattern ann pat env
 
-        let (_,_,datS) = decomposeT $ canonT scrutTy
-        let conss      = require (annotOfExp alt) (CEquals datS t)
+        let (_,_,datS)       = decomposeT $ canonT scrutTy
+        let conss            = require (annotOfExp alt) (CEquals datS t)
 
-        (alt', sub, consa) <- generateX alt envp
+        (alt', sub, consa)  <- generateX alt envp
 
-        let altTy' = annResult (annotOfExp alt')
-        let altTp  = getTemporalityOrPure       altTy'
-        let altPs  = getPossibilityOrDefinitely altTy'
-        resTp'     <- TypeVar <$> fresh
-        resPs'     <- TypeVar <$> fresh
+        let altTy'           = annResult (annotOfExp alt')
+        let altTp            = getTemporalityOrPure       altTy'
+        let altPs            = getPossibilityOrDefinitely altTy'
+        resTp'              <- TypeVar <$> fresh
+        resPs'              <- TypeVar <$> fresh
 
         -- Require alternative types to have the same temporality if they
         -- do have temporalities. Otherwise defaults to TemporalityPure.
@@ -843,7 +922,7 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
                   , require (annotOfExp alt) (CPossibilityJoin resPs resPs' altPs)
                   ]
 
-        (rest', subs, consr) <- generateP ann scrutTy resTy resTmTop resTp' resPs' rest (substE sub env)
+        (rest', subs, consr) <- generatePatterns ann scrutTy resTy resTmTop resTp' resPs' rest (substE sub env)
         let cons'       = concat [consp, conss, consa, consT, consr]
         let alt''       = substTX subs alt'
         let subs'       = compose sub subs
@@ -856,27 +935,22 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
          (_,_,d2) = decomposeT t2
      in  require ann $ CEquals d1 d2
 
-  goPat  PatDefault e
+
+generatePattern
+  :: (Hashable n, Eq n, Pretty n)
+  => a
+  -> Pattern n
+  -> GenEnv n
+  -> Gen a n (Type n, [(a, Constraint n)], GenEnv n)
+generatePattern ann =
+  goPat
+    where
+  goPat PatDefault e
    = (,[],e) . TypeVar <$> fresh
 
   goPat (PatVariable n) e
-   = do datV              <- TypeVar <$> fresh
-        -- The bound variable is actually Definite, because the case will only succeed
-        -- if the scrutinee is an actual value.
-        --
-        -- CASEHACK: pattern bindings have the temporality of the whole case.
-        -- This is to work around a flaw in the conversion to Core.
-        -- We cannot convert this:
-        -- > case (Left 0)
-        -- >  | Left l  -> fold a = l : l * 2 ~> a
-        -- >  | Right r -> fold b = r : r / 2 ~> b
-        -- > end
-        -- Because conversion would require a case at each step: in the zero of the fold,
-        -- and in the kons of the fold, as well as in pre and eject.
-        -- So we outlaw this, by making sure the pattern binding has temporality of the
-        -- return: which means this example is ill-typed, as the binding (l :: Aggregate _)
-        -- could only be used at the end of the fold.
-        let env'           = bindT n (recomposeT (Just resTmTop, Nothing, datV)) e
+   = do datV     <- TypeVar <$> fresh
+        let env'  = bindT n datV e
         return (datV, [], env')
 
   goPat (PatCon ConSome  [p]) e
@@ -900,7 +974,7 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
         r        <- TypeVar <$> fresh
         return ( SumT l r, c, e' )
   goPat (PatCon ConRight  [p]) e
-   = do l        <- TypeVar <$> fresh
+   = do l           <- TypeVar <$> fresh
         (r,c,e') <- goPat p e
         return ( SumT l r , c, e' )
 
@@ -911,9 +985,9 @@ generateP ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
    = do (_fErr, resT, cons) <- primLookup ann (Lit l)
         return (resT, cons, e)
 
-  goPat _ _
+  goPat pat _
    = genHoistEither
-   $ errorNoSuggestions (ErrorCaseBadPattern (annotOfExp alt) pat)
+   $ errorNoSuggestions (ErrorCaseBadPattern ann pat)
 
 
 appType

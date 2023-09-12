@@ -1,0 +1,3 @@
+:let second_last x = fold (a, b) = (None, None) then (b, Some x) in a
+
+from salary ~> scan v = (second_last value) ~> filter let Some comp = v in group value > comp in count ()

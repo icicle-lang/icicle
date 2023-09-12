@@ -52,8 +52,9 @@ import                  Icicle.Internal.Pretty
 
 import                  P hiding (with)
 
-import                  Control.Monad.Trans.State.Lazy
 import                  Control.Monad.Trans.Class
+import                  Control.Monad.Trans.State.Lazy
+
 
 import qualified        Data.Map as Map
 import qualified        Data.Set as Set
@@ -151,7 +152,7 @@ data ConvertError a n
  | ConvertErrorExpApplicationOfNonPrimitive  a (Exp (Annot a n) n)
  | ConvertErrorReduceAggregateBadArguments   a (Exp (Annot a n) n)
  | ConvertErrorCannotConvertType             a (Type n)
- | ConvertErrorBadCaseNoDefault              a (Exp (Annot a n) n)
+ | ConvertErrorBadCaseNoDefault              a ValType (Exp (Annot a n) n)
  | ConvertErrorBadCaseNestedConstructors     a (Exp (Annot a n) n)
  | ConvertErrorImpossibleFold1               a
  | ConvertErrorCannotConvertAccessor         a ValType StructField
@@ -188,7 +189,7 @@ annotOfError e
      -> Just a
     ConvertErrorCannotConvertType a _
      -> Just a
-    ConvertErrorBadCaseNoDefault a _
+    ConvertErrorBadCaseNoDefault a _ _
      -> Just a
     ConvertErrorBadCaseNestedConstructors a _
      -> Just a
@@ -341,7 +342,6 @@ convertError :: ConvertError a n -> ConvertM a n r
 convertError = lift . lift . Left
 
 
-
 windowEdge :: C.Exp () n -> WindowUnit -> C.Exp () n
 windowEdge now = \case
   Days d ->
@@ -392,8 +392,8 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
      ConvertErrorCannotConvertType a t
       -> pretty a <> ": cannot convert base type: " <> pretty t
 
-     ConvertErrorBadCaseNoDefault a x
-      -> pretty a <> ": case has no default alternative: " <> pretty x
+     ConvertErrorBadCaseNoDefault a t x
+      -> pretty a <> ": case has no default alternative, type " <> pretty t <> line  <> pretty x
 
      ConvertErrorBadCaseNestedConstructors a x
       -> pretty a <> ": case has nested constructors in pattern; these should be removed by an earlier pass: " <> pretty x

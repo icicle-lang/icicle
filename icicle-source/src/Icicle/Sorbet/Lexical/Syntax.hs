@@ -71,6 +71,7 @@ data Token =
   | Tok_In
   --
   | Tok_Let
+  | Tok_Scan
   | Tok_Fold
   | Tok_Fold1
   | Tok_Windowed
@@ -150,6 +151,7 @@ renderToken = \case
   Tok_From              -> "from"
   Tok_In                -> "in"
   Tok_Let               -> "let"
+  Tok_Scan              -> "scan"
   Tok_Fold              -> "fold"
   Tok_Fold1             -> "fold1"
   Tok_Windowed          -> "windowed"

@@ -101,15 +101,29 @@ simplifyNestedQ q
 simplifyNestedC :: Context a n -> Context a n
 simplifyNestedC c
  = case c of
-    Windowed{}  -> c
-    Latest{}     -> c
-    GroupBy  a x -> GroupBy  a $ simplifyNestedX x
-    GroupFold a k v x -> GroupFold a k v $ simplifyNestedX x
-    Distinct a x -> Distinct a $ simplifyNestedX x
-    Filter   a x -> Filter   a $ simplifyNestedX x
-    LetFold  a f -> LetFold a f { foldInit = simplifyNestedX $ foldInit f
-                                , foldWork = simplifyNestedX $ foldWork f }
-    Let a n  x -> Let a n  $ simplifyNestedX x
+    Windowed{} ->
+      c
+    Latest{} ->
+      c
+    GroupBy a x ->
+      GroupBy  a $ simplifyNestedX x
+    GroupFold a k v x ->
+      GroupFold a k v $ simplifyNestedX x
+    Distinct a x ->
+      Distinct a $ simplifyNestedX x
+    Filter a x ->
+      Filter a $ simplifyNestedX x
+    FilterLet a p x ->
+      FilterLet a p $ simplifyNestedX x
+    LetFold  a f ->
+      LetFold a f {
+        foldInit = simplifyNestedX $ foldInit f,
+        foldWork = simplifyNestedX $ foldWork f
+      }
+    Let a n x ->
+      Let a n $ simplifyNestedX x
+    LetScan a n x ->
+      LetScan a n $ simplifyNestedX x
 
 
 simplifyNestedX :: Exp a n -> Exp a n
@@ -200,6 +214,13 @@ allvarsC ns c
                 [ ns, nsX, annX x' ]
         in  Let (a, ns') p' x'
 
+    LetScan a p x
+     -> let x' = allvarsX x
+            (p',nsX) = allvarsP p
+            ns' = Set.unions
+                [ ns, nsX, annX x' ]
+        in  LetScan (a, ns') p' x'
+
     LetFold a f
      -> let z'  = allvarsX (foldInit f)
             k'  = allvarsX (foldWork f)
@@ -232,6 +253,12 @@ allvarsC ns c
      -> let x'  = allvarsX x
             ns' = Set.union ns (annX x')
         in  Filter (a,ns') x'
+
+    FilterLet a p x
+     -> let x'       = allvarsX x
+            (p',nsX) = allvarsP p
+            ns'      = Set.unions [ ns, nsX, annX x' ]
+        in  FilterLet (a,ns') p' x'
 
  where
   annX = snd . annotOfExp

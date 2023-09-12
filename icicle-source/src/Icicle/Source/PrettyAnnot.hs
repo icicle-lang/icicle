@@ -144,6 +144,9 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
       Filter _ x ->
         prettyKeyword "filter" <+> align (pretty (PrettyAnnot x))
 
+      FilterLet _ b x ->
+        prettyKeyword "filter" <+> prettyKeyword "let" <+> annotate AnnBinding (pretty b) <+> prettyPunctuation "=" <+>  align (pretty (PrettyAnnot x))
+
       LetFold _ f ->
         vsep [
             annotate AnnKeyword (pretty $ foldType f)
@@ -164,6 +167,13 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
             prettyKeyword "let"
           , indent 2 . align $ annotate AnnBinding (pretty b) <+> prettyPunctuation ":" <+> pretty (annotOfExp x)
           , indent 2 . align $ annotate AnnBinding (pretty b) <+> prettyPunctuation "=" <+> pretty (PrettyAnnot x)
+          ]
+
+      LetScan _ b x ->
+        vsep [
+            prettyKeyword "let" <+> prettyKeyword "scan" <+> annotate AnnBinding (pretty b) <> pretty (annotOfExp x) <+> prettyPunctuation "="
+          , indent 2 . align $
+              pretty $ PrettyAnnot x
           ]
 
 instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Query a n)) where

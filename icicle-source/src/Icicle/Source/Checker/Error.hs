@@ -51,7 +51,7 @@ data ErrorInfo a n
  | ErrorReturnNotAggregate      a (Type n)
  | ErrorDuplicateFunctionNames a (Name n)
  | ErrorEmptyCase a (Exp a n)
- | ErrorPartialBinding a (Pattern n)
+ | ErrorPartialBinding a (Pattern n) (Type n)
  | ErrorCaseBadPattern a (Pattern n)
  | ErrorResumableFoldNotAllowedHere a (Query a n)
  | ErrorInFunctionCall a (Name n) (ErrorInfo a n)
@@ -89,7 +89,7 @@ annotOfError (CheckError e _)
      -> a
     ErrorEmptyCase          a _
      -> a
-    ErrorPartialBinding        a _
+    ErrorPartialBinding        a _ _
      -> a
     ErrorCaseBadPattern          a _
      -> a
@@ -237,11 +237,13 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
         , "Exp: " <> inp x
         ]
 
-    ErrorPartialBinding a x ->
+    ErrorPartialBinding a x typ ->
       vsep [
          "Binding expression has a partial pattern match at" <+> pretty a
         , mempty
         , "Pattern: " <> inp x
+        , mempty
+        , "Type: " <> inp typ
         ]
 
     ErrorCaseBadPattern a p ->

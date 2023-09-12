@@ -101,6 +101,9 @@ transformC t cc
        Filter a x
         -> do x' <- goX x
               return (s, Filter a x')
+       FilterLet a n x -- TODO check
+        -> do x' <- transformX t x
+              return (s, FilterLet a n x')
        LetFold a f
         -> do  i' <- goX $ foldInit f
                w' <- goX $ foldWork f
@@ -111,7 +114,9 @@ transformC t cc
         --       not the internal one.
         -> do  x' <- transformX t x
                return (s, Let a n x')
-
+       LetScan a n x
+        -> do  x' <- goX x
+               return (s, LetScan a n x')
 
 transformX
     :: (Monad m)

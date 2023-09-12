@@ -51,7 +51,9 @@ simpDumbC cc
     GroupBy   a   x   -> GroupBy   a     $ simpDumbX x
     Distinct  a   x   -> Distinct  a     $ simpDumbX x
     Filter    a   x   -> Filter    a     $ simpDumbX x
+    FilterLet a n x   -> FilterLet a n   $ simpDumbX x
     Let       a n x   -> Let       a n   $ simpDumbX x
+    LetScan   a n x   -> LetScan   a n   $ simpDumbX x
     LetFold   a   f   -> LetFold   a     $ simpDumbF f
     GroupFold a k v x -> GroupFold a k v $ simpDumbX x
     Windowed{}        -> cc
@@ -118,10 +120,14 @@ simpDumbCases xx
        -> Distinct a (simpX x)
       Filter a x
        -> Filter a (simpX x)
+      FilterLet a n x
+       -> FilterLet a n (simpX x)
       LetFold a (Fold b i w t)
        -> LetFold a (Fold b (simpX i) (simpX w) t)
       Let a n x
        -> Let a n (simpX x)
+      LetScan a n x
+       -> LetScan a n (simpX x)
       GroupFold a n1 n2 x
        -> GroupFold a n1 n2 (simpX x)
       Windowed{} -> cc
@@ -193,6 +199,11 @@ simpDumbLets xx
         -> (False, Let a pat (substX x y e) : rest)
         | otherwise
         -> (f, Let a pat (substX x y e) : rest')
+       LetScan a pat e
+        | x `elem` varsIn pat
+        -> (False, LetScan a pat (substX x y e) : rest)
+        | otherwise
+        -> (f, LetScan a pat (substX x y e) : rest')
        LetFold a (Fold pat init work ty)
         | x `elem` varsIn pat
         -> (f, LetFold a (Fold pat (substX x y init) (substX x y work) ty):rest')
@@ -204,6 +215,8 @@ simpDumbLets xx
         -> (f, Distinct a (substX x y e) : rest')
        Filter a e
         -> (f, Filter a (substX x y e) : rest')
+       FilterLet a n e
+        -> (f, FilterLet a n (substX x y e) : rest')
        GroupFold a n1 n2 e
         -> (f, GroupFold a n1 n2 (substX x y e) : rest')
 

@@ -1,5 +1,4 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE PatternGuards #-}
 module Icicle.Core.Stream.Check (
       checkStream
     ) where
