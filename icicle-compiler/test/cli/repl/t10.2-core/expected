@@ -137,7 +137,7 @@ conv-3 : MaxMapSize
 
 ## Streams
 
-STREAM_FOLD conv-36 : Sum Error (Map Time (Buf 2 (Sum Error Int, Time)))
+STREAM_FOLD conv-34 : Sum Error (Map Time (Buf 2 (Sum Error Int, Time)))
   INIT:
     Right (Map [])
   KONS:
@@ -163,11 +163,11 @@ STREAM_FOLD conv-36 : Sum Error (Map Time (Buf 2 (Sum Error Int, Time)))
             (lt#
               (length# (keys# conv-31))
               conv-3))
-      conv-36
+      conv-34
 
 ## Postcomputations
 
-conv-37 =
+conv-35 =
   Sum_fold#
     (\conv-29 -> left# conv-29)
     (\conv-26 ->
@@ -179,21 +179,12 @@ conv-37 =
               Sum_fold#
                 (\conv-29 -> left# conv-29)
                 (\conv-28 ->
-                  let
-                    conv-34 =
-                      Map_insertOrUpdate#
-                        (\conv-33 -> conv-28)
-                        conv-28
-                        conv-25
-                        conv-24
-                  in
-                    if#
-                      (\conv-35 -> right# conv-34)
-                      (\conv-35 ->
-                        Left ExceptCannotCompute)
-                      (lt#
-                        (length# (keys# conv-34))
-                        conv-3))
+                  right#
+                    (Map_insertOrUpdate#
+                      (\conv-33 -> conv-28)
+                      conv-28
+                      conv-25
+                      conv-24))
                 (let
                   conv-4 =
                     Latest_read# conv-27
@@ -219,12 +210,12 @@ conv-37 =
             conv-23)
         (Right (Map []))
         conv-26)
-    conv-36
+    conv-34
 
 ## Returning
 
 repl:output =
-  conv-37
+  conv-35
 
 Core type
 ---------

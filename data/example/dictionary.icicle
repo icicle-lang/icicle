@@ -20,7 +20,8 @@ max_group k e =
 
 feature actioned_damage =
   from injury
-    in filter let Some "ignore" = action
+    in filter let Some act = action
+    in group act
     in sum severity
 
 feature age =

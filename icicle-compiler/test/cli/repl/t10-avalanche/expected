@@ -103,12 +103,12 @@ conv-2 : Time =
 conv-3 : Int =
   MAX_MAP_SIZE
 
-acc-conv-36 =i Right (Map []) : Sum Error (Map Time (Buf 2 (Sum Error Int, Time)))
+acc-conv-34 =i Right (Map []) : Sum Error (Map Time (Buf 2 (Sum Error Int, Time)))
 
 for_facts conv-1 : Time
         , conv-0 : (Sum Error Int, Time) {
-    conv-36-aval-0 =r acc-conv-36
-    acc-conv-36 =w Sum_fold#
+    conv-34-aval-0 =r acc-conv-34
+    acc-conv-34 =w Sum_fold#
                      (\conv-29 -> left# conv-29)
                      (\conv-26 ->
                        let
@@ -130,11 +130,11 @@ for_facts conv-1 : Time
                            (lt#
                              (length# (keys# conv-31))
                              conv-3))
-                     conv-36-aval-0
+                     conv-34-aval-0
 }
 
-conv-36 =r acc-conv-36
-conv-37 = Sum_fold#
+conv-34 =r acc-conv-34
+conv-35 = Sum_fold#
             (\conv-29 -> left# conv-29)
             (\conv-26 ->
               Map_fold#
@@ -145,21 +145,12 @@ conv-37 = Sum_fold#
                       Sum_fold#
                         (\conv-29 -> left# conv-29)
                         (\conv-28 ->
-                          let
-                            conv-34 =
-                              Map_insertOrUpdate#
-                                (\conv-33 -> conv-28)
-                                conv-28
-                                conv-25
-                                conv-24
-                          in
-                            if#
-                              (\conv-35 -> right# conv-34)
-                              (\conv-35 ->
-                                Left ExceptCannotCompute)
-                              (lt#
-                                (length# (keys# conv-34))
-                                conv-3))
+                          right#
+                            (Map_insertOrUpdate#
+                              (\conv-33 -> conv-28)
+                              conv-28
+                              conv-25
+                              conv-24))
                         (let
                           conv-4 =
                             Latest_read# conv-27
@@ -185,10 +176,10 @@ conv-37 = Sum_fold#
                     conv-23)
                 (Right (Map []))
                 conv-26)
-            conv-36
+            conv-34
 
 output repl:output : Sum Error (Map Time Int) =
-  conv-37 : Sum Error (Map Time Int)
+  conv-35 : Sum Error (Map Time Int)
 
 Core evaluation
 ---------------

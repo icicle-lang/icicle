@@ -899,7 +899,7 @@ generatePatterns ann _ _ _ resTm resPs [] _
         return ([], Map.empty, concat [consT, consP])
 
 generatePatterns ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
- = do   (t, consp, envp, _) <- generatePattern ann pat env
+ = do   (t, consp, envp)    <- generatePattern ann pat env
 
         let (_,_,datS)       = decomposeT $ canonT scrutTy
         let conss            = require (annotOfExp alt) (CEquals datS t)
@@ -941,49 +941,49 @@ generatePattern
   => a
   -> Pattern n
   -> GenEnv n
-  -> Gen a n (Type n, [(a, Constraint n)], GenEnv n, Bool)
+  -> Gen a n (Type n, [(a, Constraint n)], GenEnv n)
 generatePattern ann =
   goPat
     where
   goPat PatDefault e
-   = (,[],e,True) . TypeVar <$> fresh
+   = (,[],e) . TypeVar <$> fresh
 
   goPat (PatVariable n) e
    = do datV     <- TypeVar <$> fresh
         let env'  = bindT n datV e
-        return (datV, [], env',True)
+        return (datV, [], env')
 
   goPat (PatCon ConSome  [p]) e
-   = do (t,c,e',_) <- goPat p e
-        return (OptionT t, c, e',False)
+   = do (t,c,e') <- goPat p e
+        return (OptionT t, c, e')
   goPat (PatCon ConNone  []) e
-   = (,[],e,False) . OptionT . TypeVar <$> fresh
+   = (,[],e) . OptionT . TypeVar <$> fresh
   goPat (PatCon ConTrue  []) e
-   = return (BoolT, [], e, False)
+   = return (BoolT, [], e)
   goPat (PatCon ConFalse []) e
-   = return (BoolT, [], e, False)
+   = return (BoolT, [], e)
   goPat (PatCon ConTuple [a,b]) e
-   = do (ta, ca, ea, total0) <- goPat a e
-        (tb, cb, eb, total1) <- goPat b ea
-        return (PairT ta tb, ca <> cb, eb, total0 && total1)
+   = do (ta, ca, ea) <- goPat a e
+        (tb, cb, eb) <- goPat b ea
+        return (PairT ta tb, ca <> cb, eb)
   goPat (PatCon (ConError _) []) e
-   = return (ErrorT, [], e, True)
+   = return (ErrorT, [], e)
 
   goPat (PatCon ConLeft  [p]) e
-   = do (l,c,e', _) <- goPat p e
-        r           <- TypeVar <$> fresh
-        return ( SumT l r, c, e', False)
+   = do (l,c,e') <- goPat p e
+        r        <- TypeVar <$> fresh
+        return ( SumT l r, c, e' )
   goPat (PatCon ConRight  [p]) e
    = do l           <- TypeVar <$> fresh
-        (r,c,e', _) <- goPat p e
-        return ( SumT l r , c, e', False )
+        (r,c,e') <- goPat p e
+        return ( SumT l r , c, e' )
 
   goPat (PatCon ConUnit []) e
-   = return (UnitT, [], e, True)
+   = return (UnitT, [], e)
 
   goPat (PatLit l _) e
    = do (_fErr, resT, cons) <- primLookup ann (Lit l)
-        return (resT, cons, e, False)
+        return (resT, cons, e)
 
   goPat pat _
    = genHoistEither
