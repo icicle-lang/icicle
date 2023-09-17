@@ -658,9 +658,39 @@ convertFold q
     (LetFold (Annot { annAnnot = ann }) Fold{ foldBind = pat } : _)
      -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
-    (LetScan (Annot { annAnnot = ann }) pat x : _)
-     -> do  resb <- convertFold (Query [] x)
-            convertAsLet ann pat resb
+    (LetScan _ (PatVariable b) x : _)
+     -> do  scanned    <- convertFold (Query [] x)
+            a'         <- lift fresh
+            x'         <- lift fresh
+
+            (b',remains) <- convertContext $ do
+              b'      <- convertFreshenAdd b
+              remains <- convertFold q'
+              return (b', remains)
+
+            (cz,ctyp)  <- pairConstruct [foldZero scanned, foldZero remains] [typeFold scanned, typeFold remains]
+            (kz,_)     <- pairConstruct [CE.xVar a', CE.xVar x'] [typeFold scanned, typeFold remains]
+            c'kons     <- flip pairDestruct [typeFold scanned, typeFold remains] $ \[acc'scanned, acc'remains] -> do
+              return $
+                CE.xLet a' (beta (foldKons scanned CE.@~ acc'scanned)) $
+                CE.xLet b' (beta (mapExtract scanned CE.@~ CE.xVar a')) $
+                CE.xLet x' (beta (foldKons remains CE.@~ acc'remains)) $
+                kz
+
+            c'extract <- flip pairDestruct [typeFold scanned, typeFold remains] $ \[_, acc'remains] -> do
+              return (beta (mapExtract remains CE.@~ acc'remains))
+
+            return ConvertFoldResult {
+              foldZero = cz,
+              foldKons = c'kons,
+              mapExtract = c'extract,
+              typeFold = ctyp,
+              typeExtract = typeExtract remains
+            }
+
+    (LetScan (Annot { annAnnot = ann }) pat _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
+
 
 
 
@@ -756,7 +786,6 @@ convertFold q
 
             (zp',_) <- pairConstruct [CE.xVar b', foldZero resq ] [tb', tq']
             let z'  = CE.xLet b' (foldZero resb) zp'
-
 
             let cp [xa,xb]
                     = return
