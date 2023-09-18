@@ -287,7 +287,7 @@ convertFold q
     (FilterLet _ (PatCon ConSome [PatVariable b]) scrut : _)
      -> do  b'         <- convertFreshenAdd b
             res        <- convertFold q'
-            e'         <- convertExp  scrut
+            e'         <- convertExp scrut
             o't'e      <- convertValType' $ annResult $ annotOfExp scrut
             let T.OptionT t'e = o't'e
             prev       <- lift fresh

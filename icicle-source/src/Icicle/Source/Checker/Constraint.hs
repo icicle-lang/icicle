@@ -360,10 +360,10 @@ generateQ qq@(Query (c:_) _) env
 
             let pred = annResult $ annotOfExp x'
 
-            consT          <-  (<>) <$> requireTemporality pred TemporalityElement
-                                    <*> requireAgg t'
+            consT          <- (<>) <$> requireTemporality pred TemporalityElement
+                                   <*> requireAgg t'
             let consd       = requireData pred BoolT
-            (poss, consp)  <-  requirePossibilityJoin pred t'
+            (poss, consp)  <- requirePossibilityJoin pred t'
 
             let t'' = canonT
                     $ Temporality TemporalityAggregate
@@ -379,14 +379,24 @@ generateQ qq@(Query (c:_) _) env
     -- > : Aggregate (PossibilityJoin p'p x'p) x'd
     FilterLet ann n x
      -> do  (x', sx, consd)      <- generateX x env
-            let x'typ             = annResult $ annotOfExp x'
-            (env', consq)        <- goPatPartial ann n x'typ (substE sx env)
+            let scrutT            = annResult $ annotOfExp x'
+
+            -- This is a bit silly, it's type correct to use a pure expression as the
+            -- scrutinee (but very silly), to support this we need to treat the bound
+            -- expressions as an elements further in, as otherwise, the core elaboration
+            -- will hoist the pure expressions up outside of the scope of the filter.
+            let p'typ             = canonT $ Temporality TemporalityElement scrutT
+            (env', consq)        <- goPatPartial ann n p'typ (substE sx env)
             (q',sq,tq,consr)     <- rest env'
-            consT                <- requireTemporality x'typ TemporalityElement
+
+            consT                <- (<>) <$> requireTemporality scrutT TemporalityElement
+                                         <*> requireAgg tq
+
+            let finalT            = canonT $ Temporality TemporalityAggregate tq
             let cons'             = concat [consd, consr, consT, consq]
 
             let ss  = compose sx sq
-            let q'' = with cons' q' tq $ \a' -> FilterLet a' n x'
+            let q'' = with cons' q' finalT $ \a' -> FilterLet a' n x'
             return (q'', ss, cons')
 
     -- >     let fold  bind = ( |- Pure z'p a'd) : ( bind : Element z'p a'd |- Element k'p a'd)

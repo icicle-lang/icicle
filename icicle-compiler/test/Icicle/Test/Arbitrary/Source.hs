@@ -434,11 +434,13 @@ genQuery toptgi
    = oneof_sized
       [ genWindow tgi
       , nobinds tgi . Latest   () . abs <$> arbitrary ]
-      [ nobinds tgi . GroupBy  () <$> genExp tgi { tgiTemp = TTElt}
-      , nobinds tgi . Distinct () <$> genExp tgi { tgiTemp = TTElt}
-      , nobinds tgi . Filter   () <$> genExp tgi { tgiTemp = TTElt}
+      [ nobinds tgi . GroupBy  () <$> genExp tgi { tgiTemp = TTElt }
+      , nobinds tgi . Distinct () <$> genExp tgi { tgiTemp = TTElt }
+      , nobinds tgi . Filter   () <$> genExp tgi { tgiTemp = TTElt }
+      , genFilterLet tgi
       , genFold tgi
       , genLet tgi
+      , genLetScan tgi
       , genGroupFold tgi
       ]
 
@@ -460,6 +462,20 @@ genQuery toptgi
         l <- Let () (PatVariable v) <$> genExp tgi { tgiTemp = tt' }
         let tgi' = tgi { tgiVars = Map.insert v tt' $ tgiVars tgi }
         return (l,tgi')
+
+  genLetScan tgi
+   = do v <- arbitrary :: Gen (CB.Name T.Variable)
+        -- TODO: Make pattern bindings exhaustive
+        l <- LetScan () (PatVariable v) <$> genExp tgi { tgiTemp = TTAgg }
+        let tgi' = tgi { tgiVars = Map.insert v TTElt $ tgiVars tgi }
+        return (l,tgi')
+
+  genFilterLet tgi
+   = do v <- arbitrary :: Gen (CB.Name T.Variable)
+        l <- FilterLet () (PatCon ConSome [PatVariable v]) <$> genExp tgi { tgiTemp = TTElt }
+        let tgi' = tgi { tgiVars = Map.insert v TTElt $ tgiVars tgi }
+        return (l,tgi')
+
   genGroupFold tgi
    = do k <- arbitrary :: Gen (CB.Name T.Variable)
         v <- arbitrary :: Gen (CB.Name T.Variable)

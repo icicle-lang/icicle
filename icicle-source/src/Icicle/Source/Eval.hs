@@ -165,8 +165,18 @@ evalQ q vs env
                          (Left _, Left _)
                           -> Left $ EvalErrorExpNeitherSort a x
 
-                LetScan a _ x
-                 -> Left $ EvalErrorExpNeitherSort a x
+                LetScan _ p x
+                 -> do  records <- mapM (\vs' -> do
+                                     e' <- evalX x vs' env
+                                     let Just subst = substOfPattern p e'
+                                     return (Map.union subst env)
+                                   ) (drop 1 $ List.inits vs)
+                        evalQ q' records env
+
+                FilterLet _ pat x
+                 -> do  evaluated   <- traverse (\v -> evalX x [] v) vs
+                        let filtered = mapMaybe (substOfPattern pat) evaluated
+                        evalQ q' filtered env
 
 
 evalX   :: Ord n

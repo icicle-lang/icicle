@@ -66,7 +66,7 @@ valuesForQwf qwf
     Just nm -> [(nm, timezero)]
   vtime = [(qwfTimeName qwf, timezero)]
 
-  timezero = CB.VTime $ unsafeTimeOfYMD 2000 1 1 
+  timezero = CB.VTime $ unsafeTimeOfYMD 2000 1 1
 
 
 return []

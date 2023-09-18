@@ -374,7 +374,7 @@ convertQuery q
     let k'      = beta
                 ( foldKons res CE.@~ CE.xVar n'red)
 
-    let b'red   = sfold  n'red (typeFold res) (foldZero res) k'
+    let b'red   = sfold n'red (typeFold res) (foldZero res) k'
     let b'ret   = post n'ret $ beta (mapExtract res CE.@~ CE.xVar n'red)
 
     return (b'red <> b'ret, n'ret)

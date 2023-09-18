@@ -149,6 +149,11 @@ convertExpQ q
             b' <- convertFreshenAdd b
             x' <- convertExpQ $ Query cs $ final q
             return $ CE.xLet b' d' x'
+
+    (LetScan _ _ _:cs)
+     -> do  -- NB: We can only reach here if the query is pure; in which case the element from
+            -- the scan can't be used. Just ignore it.
+            convertExpQ $ Query cs $ final q
     _
      -> convertError
       $ ConvertErrorExpNestedQueryNotAllowedHere (annAnnot $ annotOfQuery q) q
