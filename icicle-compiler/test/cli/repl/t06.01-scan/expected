@@ -21,4 +21,10 @@ Selected psv file as input: test/cli/repl/data.psv
 homer|[ (True, 4) ]
 marge|[ (True, 2) ]
 
+λ λ Core evaluation
+---------------
+
+homer|[ (True, 4) ]
+marge|[ (True, 2) ]
+
 λ 
