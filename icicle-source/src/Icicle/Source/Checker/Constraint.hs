@@ -504,22 +504,16 @@ generateQ qq@(Query (c:_) _) env
     LetScan ann n x
      -> do  (x', sx, consd)  <- generateX x env
             let x'typ         = annResult $ annotOfExp x'
-            let (_,mp,x'can)  = decomposeT x'typ
+                x'typ'elem    = canonT $ Temporality TemporalityElement x'typ
 
-            consI            <- requireAgg x'typ
-            let x'typ'elem    = recomposeT (Just TemporalityElement, mp, x'can)
             (env', consQ)    <- goPat ann n x'typ'elem (substE sx env)
             (q',sq,tq,consr) <- rest env'
 
-            retTmp           <- TypeVar <$> fresh
-            let tmpx          = getTemporalityOrPure x'typ
-            let tmpq          = getTemporalityOrPure $ tq
-            let consT         = require a (CReturnOfLetTemporalities retTmp tmpx tmpq)
-
-            let cons' = concat [consI, consd, consr, consT, consQ]
-
-            let ss  = compose sx sq
-            let q'' = with cons' q' tq $ \a' -> LetScan a' n x'
+            consI            <- requireAgg x'typ
+            consT            <- requireAgg tq
+            let cons'         = concat [consI, consd, consr, consT, consQ]
+                ss            = compose sx sq
+                q''           = with cons' q' tq $ \a' -> LetScan a' n x'
             return (q'', ss, cons')
 
  where
