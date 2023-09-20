@@ -171,9 +171,9 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
 
       LetScan _ b x ->
         vsep [
-            prettyKeyword "scan" <+> annotate AnnBinding (pretty b) <> pretty (annotOfExp x) <+> prettyPunctuation "="
-          , indent 2 . align $
-              pretty $ PrettyAnnot x
+            prettyKeyword "scan"
+          , indent 2 . align $ annotate AnnBinding (pretty b) <+> prettyPunctuation ":" <+> pretty (annotOfExp x)
+          , indent 2 . align $ annotate AnnBinding (pretty b) <+> prettyPunctuation "=" <+> pretty (PrettyAnnot x)
           ]
 
 instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Query a n)) where
