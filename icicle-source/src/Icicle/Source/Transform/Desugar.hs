@@ -202,8 +202,23 @@ desugarLets cc
                 sc = App ann (App ann eq scrut) prim
             return . pure $ Filter ann sc
 
-    FilterLet a tuples x
-      -> do desugarLets $ Let a tuples x
+    FilterLet ann (PatCon ConTuple [apat, bpat]) x
+      -> do n        <- fresh
+            let nbind = Let ann (PatVariable n) x
+            abind    <- FilterLet ann apat <$> from n fst
+            bbind    <- FilterLet ann bpat <$> from n snd
+            ccs      <- mapM desugarLets [nbind, abind, bbind]
+            return $ concat ccs
+          where
+            from n which = do
+              b@(i,j)  <- (,) <$> fresh <*> fresh
+              let
+                tup   = PatCon ConTuple [PatVariable i, PatVariable j]
+                varn  = (Var ann n)
+              return $ Case ann varn [(tup, Var ann (which b))]
+
+    FilterLet a simpleBinding x
+      -> do desugarLets $ Let a simpleBinding x
 
     x -> return [x]
 
