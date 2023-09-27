@@ -308,8 +308,8 @@ generateQ qq@(Query (c:_) _) env
      -> do  (x', sx, consg)     <- generateX x env
             let tgroup           = annResult $ annotOfExp x'
 
-            retk                <- Temporality TemporalityElement <$> patTy ann k
-            retv                <- Temporality TemporalityElement <$> patTy ann v
+            retk                <- Temporality TemporalityElement . TypeVar <$> fresh
+            retv                <- Temporality TemporalityElement . TypeVar <$> fresh
 
             let env0             = removeElementBinds $ substE sx env
             (env1, consv)       <- goPat ann v retv env0
@@ -522,9 +522,9 @@ generateQ qq@(Query (c:_) _) env
     goPat' True
 
   goPat = goPat' False
+
   -- Create the binding environment for a pattern.
-  -- We are only permitting total patterns, so PairT
-  -- variables and non-binders.
+  -- Partial patterns must check that the first argument.
   goPat' _ _ PatDefault _ e
     -- A Default _ binding doesn't effect the rest
     -- of the program.
@@ -533,49 +533,42 @@ generateQ qq@(Query (c:_) _) env
     -- A binding variable is accessible downstream
     -- so bind it and its type to the environment.
     = return $ (bindT n typ e, [])
-  goPat' cc ann (PatCon ConTuple [a'pat,b'pat]) typ e
-    -- As we can put a let at any temporality and
-    -- possibility, we need to decompose the pattern
-    -- and keep the possibility/temporality of the
-    -- values of the pair the same as the pair being
-    -- bound.
-    | (mt,mp,canon'typ) <- decomposeT $ canonT typ
-    , PairT a'typ b'typ <- canon'typ
-    = do (a'env, a'c) <- goPat' cc ann a'pat (recomposeT (mt, mp, a'typ)) e
-         (b'env, b'c) <- goPat' cc ann b'pat (recomposeT (mt, mp, b'typ)) a'env
-         return (b'env, a'c <> b'c)
 
-  goPat' _ ann (PatCon ConTuple _) typ _
-    -- It's a type error, as we can't bind a non-pair
-    -- pattern to a pair. We don't have type variables
-    -- for the what the elements of the pair should be,
-    -- so draw some fresh ones.
-    = do
-      p1 <- TypeVar <$> fresh
-      p2 <- TypeVar <$> fresh
-      let (_,_,canon'typ) = decomposeT $ canonT typ
-      genHoistEither
-        $ errorNoSuggestions
-        $ ErrorConstraintsNotSatisfied ann
-          [(ann, CannotUnify (PairT p1 p2) canon'typ)]
+  goPat' cc ann (PatCon ConTuple [a'pat,b'pat]) typ e
+    | (mt,mp,canon)   <- decomposeT typ
+    = do p1           <- TypeVar <$> fresh
+         p2           <- TypeVar <$> fresh
+         let cons      = require a (CEquals canon (PairT p1 p2))
+         (a'env, a'c) <- goPat' cc ann a'pat (recomposeT (mt,mp,p1)) e
+         (b'env, b'c) <- goPat' cc ann b'pat (recomposeT (mt,mp,p2)) a'env
+         return (b'env, cons <> a'c <> b'c)
 
   goPat' True ann (PatCon ConSome [p]) typ e
-    | (mt,mp,canon'typ) <- decomposeT $ canonT typ
-    , OptionT b'typ     <- canon'typ
-    = do goPat' True ann p (recomposeT (mt, mp, b'typ)) e
+    | (mt,mp,canon) <- decomposeT typ
+    = do p1            <- TypeVar <$> fresh
+         let cons       = require a (CEquals canon (OptionT p1))
+         (env', consr) <- goPat' True ann p (recomposeT (mt, mp, p1)) e
+         return (env', cons <> consr)
 
   goPat' True ann (PatCon ConLeft [p]) typ e
-    | (mt,mp,canon'typ) <- decomposeT $ canonT typ
-    , SumT a'typ _      <- canon'typ
-    = do goPat' True ann p (recomposeT (mt, mp, a'typ)) e
+    | (mt,mp,canon) <- decomposeT typ
+    = do p1            <- TypeVar <$> fresh
+         p2            <- TypeVar <$> fresh
+         let cons       = require a (CEquals canon (SumT p1 p2))
+         (env', consr) <- goPat' True ann p (recomposeT (mt, mp, p1)) e
+         return (env', cons <> consr)
 
   goPat' True ann (PatCon ConRight [p]) typ e
-    | (mt,mp,canon'typ) <- decomposeT $ canonT typ
-    , SumT _ b'typ <- canon'typ
-    = do goPat' True ann p (recomposeT (mt, mp, b'typ)) e
+    | (mt,mp,canon) <- decomposeT typ
+    = do p1            <- TypeVar <$> fresh
+         p2            <- TypeVar <$> fresh
+         let cons       = require a (CEquals canon (SumT p1 p2))
+         (env', consr) <- goPat' True ann p (recomposeT (mt, mp, p2)) e
+         return (env', cons <> consr)
 
-  goPat' True _ (PatCon ConNone []) _ e
-    = return (e, [])
+  goPat' True _ (PatCon ConNone []) typ e
+    = do p1       <- TypeVar <$> fresh
+         return (e, requireData typ (OptionT p1))
 
   goPat' True ann (PatLit lit _) typ e
     = do (_, resT, cons) <- primLookup ann (Lit lit)
@@ -586,25 +579,6 @@ generateQ qq@(Query (c:_) _) env
     -- patterns are Partial, so we disallow it.
     = genHoistEither
     $ errorNoSuggestions (ErrorPartialBinding ann pat typ)
-
-  -- Generate a fresh set of type variables which a
-  -- total pattern must match. This flow upwards into
-  -- a group fold.
-  patTy _ PatDefault
-    = TypeVar <$> fresh
-  patTy _ PatVariable {}
-    = TypeVar <$> fresh
-  patTy ann (PatCon ConTuple [a'pat,b'pat])
-    = do a'typ <- patTy ann a'pat
-         b'typ <- patTy ann b'pat
-         return (PairT a'typ b'typ)
-  patTy ann pat
-    -- It's not a pair, default or variable. All other
-    -- patterns are Partial, so we disallow it.
-    = do
-       typeOfPartial <- TypeVar <$> fresh
-       genHoistEither
-        $ errorNoSuggestions (ErrorPartialBinding ann pat typeOfPartial)
 
   a  = annotOfContext c
 
