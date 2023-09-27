@@ -376,25 +376,31 @@ generateQ qq@(Query (c:_) _) env
             let q'' = with cons' q' t'' $ \a' -> Filter a' x'
             return (q'', ss, cons')
 
-    -- >   filter let (Element p'p Bool) ~> Aggregate x'p x'd
-    -- > : Aggregate (PossibilityJoin p'p x'p) x'd
+    -- >   filter let n = (Element p'p def'd)
+    --       ~> ( n : Element def'p def'd |- Aggregate body'p body'd )
+    -- > : Aggregate (PossibilityJoin def'p body'p) body'd
     FilterLet ann n x
      -> do  (x', sx, consd)      <- generateX x env
             let scrutT            = annResult $ annotOfExp x'
 
             -- This is a bit silly, it's type correct to use a pure expression as the
-            -- scrutinee (but very silly), to support this we need to treat the bound
-            -- expressions as an elements further in, as otherwise, the core elaboration
-            -- will hoist the pure expressions up outside of the scope of the filter.
+            -- scrutinee (although quite silly). In order to support this we need to
+            -- treat the bound expressions as an elements further in, as otherwise,
+            -- the core elaboration will hoist the pure expressions up outside of the
+            -- scope of the filter.
             let p'typ             = canonT $ Temporality TemporalityElement scrutT
             (env', consq)        <- goPatPartial ann n p'typ (substE sx env)
             (q',sq,tq,consr)     <- rest env'
 
             consT                <- (<>) <$> requireTemporality scrutT TemporalityElement
                                          <*> requireAgg tq
+            (poss, consp)        <- requirePossibilityJoin scrutT tq
 
-            let finalT            = canonT $ Temporality TemporalityAggregate tq
-            let cons'             = concat [consd, consr, consT, consq]
+            let finalT            = canonT
+                                  $ Temporality TemporalityAggregate
+                                  $ Possibility poss tq
+
+            let cons'             = concat [consd, consr, consT, consq, consp]
 
             let ss  = compose sx sq
             let q'' = with cons' q' finalT $ \a' -> FilterLet a' n x'
@@ -492,16 +498,13 @@ generateQ qq@(Query (c:_) _) env
     -- Let Scans turn an aggregate back into an element. This allows for one to get
     -- a running total or the like.
     --
-    -- Similar to Lets above, we also require that the binding of the function is able
-    -- to be used in the body. So even though the binding is bound as an element, it
-    -- must be usable as an aggregate.
+    -- We have to ensure that the scanned value can be used, but it's a little simpler
+    -- that for lets above. Here we just have to make sure the body is also an
+    -- aggregate.
     --
-    -- This stops one from putting a let scan in where it's impossible to reference
-    -- an aggregate, like in the body of a fold.
-    --
-    -- >   let n = ( |- Aggregate def'p def'd )
-    -- >    ~> ( n : def't Element def'd |- body't body'p body'd )
-    -- > : body't body'p body'd
+    -- >   scan n = ( |- Aggregate def'p def'd )
+    -- >    ~> ( n : Element def'p def'd |- body't Aggregate body'd )
+    -- > : body't Aggregate body'd
     LetScan ann n x
      -> do  (x', sx, consd)  <- generateX x env
             let x'typ         = annResult $ annotOfExp x'
