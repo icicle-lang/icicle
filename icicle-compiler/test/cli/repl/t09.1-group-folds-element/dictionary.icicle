@@ -1,0 +1,3 @@
+module Test where
+
+input a : Array Int
