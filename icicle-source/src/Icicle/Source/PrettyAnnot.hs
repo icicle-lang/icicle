@@ -127,6 +127,13 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Context a n)) where
       GroupBy _ x ->
         prettyKeyword "group" <+> align (pretty (PrettyAnnot x))
 
+      ArrayFold _ n1 x ->
+        vsep [
+            prettyKeyword "array fold" <+> pretty n1 <+> prettyPunctuation "="
+          , indent 2 . align $
+              pretty (PrettyAnnot x)
+          ]
+
       GroupFold _ n1 n2 x ->
         vsep [
             prettyKeyword "group fold" <+> pretty (n1, n2) <+> prettyPunctuation "="

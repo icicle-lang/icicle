@@ -55,6 +55,7 @@ simpDumbC cc
     Let       a n x   -> Let       a n   $ simpDumbX x
     LetScan   a n x   -> LetScan   a n   $ simpDumbX x
     LetFold   a   f   -> LetFold   a     $ simpDumbF f
+    ArrayFold a v x   -> ArrayFold a v   $ simpDumbX x
     GroupFold a k v x -> GroupFold a k v $ simpDumbX x
     Windowed{}        -> cc
     Latest{}          -> cc
@@ -128,10 +129,14 @@ simpDumbCases xx
        -> Let a n (simpX x)
       LetScan a n x
        -> LetScan a n (simpX x)
+      ArrayFold a n1 x
+       -> ArrayFold a n1 (simpX x)
       GroupFold a n1 n2 x
        -> GroupFold a n1 n2 (simpX x)
-      Windowed{} -> cc
-      Latest{}   -> cc
+      Windowed{} ->
+        cc
+      Latest{}   ->
+        cc
 
 -- | Simplify nested bindings from variables to variables, e.g. `let x = y ~>..`
 --   This recurses into nested queries so it's not a traditional beta-reduction.
@@ -218,6 +223,8 @@ simpDumbLets xx
         -> (f, Filter a (substX x y e) : rest')
        FilterLet a n e
         -> (f, FilterLet a n (substX x y e) : rest')
+       ArrayFold a n1 e
+        -> (f, ArrayFold a n1 (substX x y e) : rest')
        GroupFold a n1 n2 e
         -> (f, GroupFold a n1 n2 (substX x y e) : rest')
 

@@ -33,7 +33,7 @@ module Icicle.Source.Checker.Base (
   , lookup
   , bindT
   , withBind
-  , removeElementBinds
+  , purifyUsableBinds
 
   , substE
   , substTQ
@@ -279,15 +279,24 @@ withBind
 withBind n t old gen
  = gen (bindT n t old)
 
-
-removeElementBinds :: Eq n => GenEnv n -> GenEnv n
-removeElementBinds env
- = let elts  = Map.keys $ Map.filter isElementTemporality env
-   in  foldr Map.delete env elts
+-- | For map and array folds.
+--   Group folds can use bindings which are in the same phase
+--   as them, so a group fold over an aggregate can use aggregates
+--   computed previously; but they can use them in any position,
+--   so what we do is rewrite terms with matching temporality as
+--   pure binds, and remove non-matching terms.
+purifyUsableBinds :: Eq n => Type n -> GenEnv n -> GenEnv n
+purifyUsableBinds typ =
+  Map.mapMaybe purifyElements
  where
-  isElementTemporality ft
-   = getTemporalityOrPure (schemeType ft) == TemporalityElement
-
+  purifyElements ft =
+    case getTemporalityOrPure (schemeType ft) of
+      TemporalityPure ->
+        Just ft
+      other | typ == other ->
+        Just $ ft { schemeType = canonT (Temporality TemporalityPure (schemeType ft)) }
+      _ ->
+        Nothing
 
 substE :: Eq n => SubstT n -> GenEnv n -> GenEnv n
 substE s

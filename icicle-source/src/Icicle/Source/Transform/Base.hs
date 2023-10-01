@@ -95,6 +95,10 @@ transformC t cc
         --       should have the original sum inside.
         -> do x' <- transformX t x
               return (s, GroupFold a k v x')
+       ArrayFold a v x
+        -- Note: same as group fold
+        -> do x' <- transformX t x
+              return (s, ArrayFold a v x')
        Distinct a x
         -> do x' <- goX x
               return (s, Distinct a x')

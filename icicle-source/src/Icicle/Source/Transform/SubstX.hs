@@ -135,6 +135,10 @@ substQ' s (Query (c:rest_cs) rest_x)
     GroupBy a x
      -> do x'       <- substX s x
            rest s (GroupBy a x')
+    ArrayFold a v x
+     -> do x'       <- substX s x
+           (s',v')  <- rempatbind s v
+           rest s' (ArrayFold a v' x')
     GroupFold a k v x
      -> do x'       <- substX s x
            (s', k') <- rempatbind s  k

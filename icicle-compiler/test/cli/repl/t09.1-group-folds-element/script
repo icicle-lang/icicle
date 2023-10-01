@@ -1,0 +1,14 @@
+:load test/cli/repl/t09.1-group-folds-element/dictionary.icicle
+:load test/cli/repl/t09.1-group-folds-element/data.psv
+
+-- Normal way of getting the lengths
+from a in latest 10 in length value
+
+-- Silly way of getting the lengths (should be the same)
+from a in let lengths = (array fold v = value in count v) in latest 10 in lengths
+
+-- Getting the sums per array
+from a in let lengths = (array fold v = value in sum v) in latest 10 in lengths
+
+-- Get the sums, but by going via a maps keys.
+from a in let keyed_values = (array fold v = value in group v in 1); flavours = (group fold (k,v) = keyed_values in sum k) in latest 10 in flavours

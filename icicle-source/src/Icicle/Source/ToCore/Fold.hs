@@ -9,6 +9,7 @@ module Icicle.Source.ToCore.Fold (
     convertFold
   , ConvertFoldResult(..)
   , groupFoldType
+  , arrayFoldType
   ) where
 
 import           Icicle.Common.Base
@@ -469,7 +470,7 @@ convertFold q
            -- (map, fold) -> fold
            let x'snd      = CE.xApp $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t'map t'fold
            -- map -> fold -> (map, fold)
-           let x'pair x y = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t'map t'fold) CE.@~ x CE.@~ y
+           let x'pair x y = CE.xPrim (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t'map t'fold) CE.@~ x CE.@~ y
            -- (map, fold) -> Sum Error (map, fold)
            let x'right    = CE.xApp $ CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT t'pair
            -- ()
@@ -520,6 +521,40 @@ convertFold q
                           ( mapExtract res CE.@~ x'snd (CE.xVar n'pair))
 
            return $ ConvertFoldResult kons zero xtra t'sum t'xtra
+
+    (ArrayFold (Annot { annAnnot = ann }) (PatVariable v) e : _ )
+     -> do  tv       <- arrayFoldType (convertValType (annAnnot $ annotOfQuery q)) ann e
+
+            n'acc    <- lift fresh
+            n'map    <- lift fresh
+
+            -- Convert the inner group into a fold that produces a map.
+            inner    <- convertFold (Query [] e)
+
+            -- The key and value will be available after the fold
+            v'       <- convertFreshenAdd v
+
+            -- Convert the rest of the query into a map fold.
+            res      <- convertFold q'
+            let t'acc = typeFold res
+
+            -- Perform the map fold over the result of the inner fold.
+            let xtra  = CE.xLam n'map (typeFold inner)
+                      ( mapExtract res CE.@~
+                      ( CE.xPrim
+                          (C.PrimFold (C.PrimFoldArray tv) t'acc)
+                        CE.@~ ( CE.xLam n'acc t'acc
+                              $ CE.xLam v'   tv
+                                (foldKons res CE.@~ CE.xVar n'acc))
+                        CE.@~ foldZero res
+                        CE.@~ (mapExtract inner CE.@~ CE.xVar n'map)))
+
+            -- Update the inner group's fold to include the map
+            -- fold as its extract function.
+            return (inner { mapExtract = xtra })
+
+    (ArrayFold (Annot { annAnnot = ann }) pat _ : _)
+     -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
     (GroupFold (Annot { annAnnot = ann }) (PatVariable k) (PatVariable v) e : _ )
      -> do  (tk, tv) <- groupFoldType (convertValType (annAnnot $ annotOfQuery q)) ann e
@@ -813,5 +848,17 @@ groupFoldType convertValType' a e
  = do t <- convertValType' $ annResult $ annotOfExp e
       case t of
        T.MapT tk tv -> return (tk, tv)
+       _            -> convertError $ ConvertErrorGroupFoldNotOnGroup a e
+
+
+-- | Get the key and value type of a group inside a group-fold.
+arrayFoldType :: (Type n -> ConvertM a n T.ValType)
+              -> a
+              -> Exp (Annot a n) n
+              -> ConvertM a n T.ValType
+arrayFoldType convertValType' a e
+ = do t <- convertValType' $ annResult $ annotOfExp e
+      case t of
+       T.ArrayT  tv -> return tv
        _            -> convertError $ ConvertErrorGroupFoldNotOnGroup a e
 

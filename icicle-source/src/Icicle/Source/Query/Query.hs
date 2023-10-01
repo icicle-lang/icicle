@@ -109,6 +109,8 @@ simplifyNestedC c
       GroupBy  a $ simplifyNestedX x
     GroupFold a k v x ->
       GroupFold a k v $ simplifyNestedX x
+    ArrayFold a v x ->
+      ArrayFold a v $ simplifyNestedX x
     Distinct a x ->
       Distinct a $ simplifyNestedX x
     Filter a x ->
@@ -124,7 +126,6 @@ simplifyNestedC c
       Let a n $ simplifyNestedX x
     LetScan a n x ->
       LetScan a n $ simplifyNestedX x
-
 
 simplifyNestedX :: Exp a n -> Exp a n
 simplifyNestedX xx
@@ -235,6 +236,13 @@ allvarsC ns c
      -> let x'  = allvarsX x
             ns' = Set.union ns (annX x')
         in  GroupBy (a,ns') x'
+
+    ArrayFold a nv x
+     -> let x'  = allvarsX x
+            (nv',nvX) = allvarsP nv
+            ns' = Set.unions
+                [ ns, nvX, annX x' ]
+        in  ArrayFold (a,ns') nv' x'
 
     GroupFold a nk nv x
      -> let x'  = allvarsX x

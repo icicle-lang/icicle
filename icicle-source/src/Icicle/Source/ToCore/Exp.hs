@@ -22,6 +22,7 @@ module Icicle.Source.ToCore.Exp (
 import                  Icicle.Source.Query
 import                  Icicle.Source.ToCore.Base
 import                  Icicle.Source.ToCore.Prim
+import {-# SOURCE #-}   Icicle.Source.ToCore.Fold
 import                  Icicle.Source.Type
 
 import qualified        Icicle.Core as C
@@ -40,6 +41,7 @@ import                  Control.Monad.Trans.Class
 import                  Data.List (zip)
 import qualified        Data.Map as Map
 import                  Data.Hashable (Hashable)
+import qualified Icicle.Common.Exp.Simp.Beta as Beta
 
 -- | Convert an element-level expression.
 -- These are worker functions for folds, filters and so on.
@@ -144,20 +146,81 @@ convertExpQ q
     []
      -> convertExp $ final q
 
-    (Let _ (PatVariable b) d:cs)
+    (Let _ (PatVariable b) d:_)
      -> do  d' <- convertExp d
             -- NB: because it's non-recursive let, the freshen must be done after the definition
             b' <- convertFreshenAdd b
-            x' <- convertExpQ $ Query cs $ final q
+            x' <- convertExpQ q'
             return $ CE.xLet b' d' x'
+
 
     (LetScan _ _ _:cs)
      -> do  -- NB: We can only reach here if the query is pure; in which case the element from
             -- the scan can't be used. Just ignore it.
             convertExpQ $ Query cs $ final q
+
+    (ArrayFold ann  (PatVariable v) x:_)
+     -> do  tv       <- getArrayFoldType (annAnnot ann) x
+            x'       <- convertExp x
+
+            -- The key and value will be available after the fold
+            v'       <- convertFreshenAdd v
+            nacc     <- lift fresh
+
+            res      <- convertFold q'
+            let tacc  = typeFold res
+
+            return . beta $ (
+              (mapExtract res) CE.@~
+                ( CE.xPrim
+                    (C.PrimFold (C.PrimFoldArray tv) tacc)
+                  CE.@~ ( CE.xLam nacc tacc
+                        $ CE.xLam v'   tv
+                            (beta (foldKons res CE.@~ CE.xVar nacc)))
+                  CE.@~ foldZero res
+                  CE.@~ x'))
+
+    (GroupFold ann (PatVariable k) (PatVariable v) x:_)
+     -> do  (tk, tv) <- getGroupFoldType (annAnnot ann) x
+            x'       <- convertExp x
+
+            -- The key and value will be available after the fold
+            k'       <- convertFreshenAdd k
+            v'       <- convertFreshenAdd v
+
+            nacc     <- lift fresh
+
+            res      <- convertFold q'
+            let tacc  = typeFold res
+
+            return . beta $ (
+              mapExtract res CE.@~
+                ( CE.xPrim
+                    (C.PrimFold (C.PrimFoldMap tk tv) tacc)
+                  CE.@~ ( CE.xLam nacc tacc
+                        $ CE.xLam k'   tk
+                        $ CE.xLam v'   tv
+                            (beta (foldKons res CE.@~ CE.xVar nacc)))
+                  CE.@~ foldZero res
+                  CE.@~ x'))
+
     _
      -> convertError
       $ ConvertErrorExpNestedQueryNotAllowedHere (annAnnot $ annotOfQuery q) q
+
+ where
+  -- The remaining query after the current context is removed
+  q' = q { contexts = drop 1 $ contexts q }
+
+  -- Perform beta reduction, just to simplify the output a tiny bit.
+  beta = Beta.betaToLets ()
+       . Beta.beta
+
+  convertValType' = convertValType (annAnnot $ annotOfQuery q)
+
+  getGroupFoldType  = groupFoldType convertValType'
+
+  getArrayFoldType = arrayFoldType convertValType'
 
 -- | Enfreshinate the variables in a case pattern and add them to the convert environment.
 --

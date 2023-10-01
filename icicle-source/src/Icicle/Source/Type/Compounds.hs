@@ -150,7 +150,7 @@ getPossibility tt
          Nothing     -> Just (a, b)
 
     PossibilityPossibly   -> Nothing
-    PossibilityDefinitely -> Nothing
+    PossibilityDefinitely  -> Nothing
 
     TypeVar {}            -> Nothing
     TypeArrow {}          -> Nothing
