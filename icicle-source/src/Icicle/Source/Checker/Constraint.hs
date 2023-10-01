@@ -313,10 +313,7 @@ generateQ qq@(Query (c:_) _) env
 
             retv                <- Temporality TemporalityElement . TypeVar <$> fresh
 
-            let env0             = if tmpFinal == TemporalityAggregate
-                                   then purifyAggregateBinds $ substE sx env
-                                   else purifyElementBinds $ substE sx env
-
+            let env0             = purifyUsableBinds tmpFinal $ substE sx env
             (env1, consv)       <- goPat ann v retv env0
             (q', sq, t', consr) <- rest env1
 
@@ -345,10 +342,7 @@ generateQ qq@(Query (c:_) _) env
             retk                <- Temporality TemporalityElement . TypeVar <$> fresh
             retv                <- Temporality TemporalityElement . TypeVar <$> fresh
 
-            let env0             = if tmpFinal == TemporalityAggregate
-                                   then purifyAggregateBinds $ substE sx env
-                                   else purifyElementBinds $ substE sx env
-
+            let env0             = purifyUsableBinds tmpFinal $ substE sx env
             (env1, consv)       <- goPat ann v retv env0
             (env2, consk)       <- goPat ann k retk env1
             (q', sq, t', consr) <- rest env2

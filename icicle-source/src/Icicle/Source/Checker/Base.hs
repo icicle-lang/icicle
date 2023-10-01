@@ -33,8 +33,7 @@ module Icicle.Source.Checker.Base (
   , lookup
   , bindT
   , withBind
-  , purifyAggregateBinds
-  , purifyElementBinds
+  , purifyUsableBinds
 
   , substE
   , substTQ
@@ -280,21 +279,14 @@ withBind
 withBind n t old gen
  = gen (bindT n t old)
 
-
 -- | For map and array folds.
-purifyAggregateBinds :: Eq n => GenEnv n -> GenEnv n
-purifyAggregateBinds = purifyBinds TemporalityAggregate
-
--- | For map and array folds.
-purifyElementBinds :: Eq n => GenEnv n -> GenEnv n
-purifyElementBinds = purifyBinds TemporalityElement
-
--- | For map and array folds.
---   Group and Array folds are subject to the modal type
---   but they don't have quite as many restraints as
---   it might seem.
-purifyBinds :: Eq n => Type n -> GenEnv n -> GenEnv n
-purifyBinds typ =
+--   Group folds can use bindings which are in the same phase
+--   as them, so a group fold over an aggregate can use aggregates
+--   computed previously; but they can use them in any position,
+--   so what we do is rewrite terms with matching temporality as
+--   pure binds, and remove non-matching terms.
+purifyUsableBinds :: Eq n => Type n -> GenEnv n -> GenEnv n
+purifyUsableBinds typ =
   Map.mapMaybe purifyElements
  where
   purifyElements ft =
