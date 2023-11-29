@@ -152,6 +152,7 @@ data ConvertError a n
  | ConvertErrorExpApplicationOfNonPrimitive  a (Exp (Annot a n) n)
  | ConvertErrorReduceAggregateBadArguments   a (Exp (Annot a n) n)
  | ConvertErrorCannotConvertType             a (Type n)
+ | ConvertErrorCannotConvertTypeForPrim      a Prim (Type n)
  | ConvertErrorBadCaseNoDefault              a ValType (Exp (Annot a n) n)
  | ConvertErrorBadCaseNestedConstructors     a (Exp (Annot a n) n)
  | ConvertErrorImpossibleFold1               a
@@ -188,6 +189,8 @@ annotOfError e
     ConvertErrorReduceAggregateBadArguments a _
      -> Just a
     ConvertErrorCannotConvertType a _
+     -> Just a
+    ConvertErrorCannotConvertTypeForPrim a _ _
      -> Just a
     ConvertErrorBadCaseNoDefault a _ _
      -> Just a
@@ -391,6 +394,9 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
 
      ConvertErrorCannotConvertType a t
       -> pretty a <> ": cannot convert base type: " <> pretty t
+
+     ConvertErrorCannotConvertTypeForPrim a p t
+      -> pretty a <> ": cannot convert prim: " <> pretty p <> "; unexpected type type: " <> pretty t
 
      ConvertErrorBadCaseNoDefault a t x
       -> pretty a <> ": case has no default alternative, type " <> pretty t <> line  <> pretty x

@@ -85,7 +85,7 @@ convertFold q
      -> convertFold qq
 
      -- Primitive application
-     | Just (p, Annot { annAnnot = ann, annResult = retty }, args) <- takePrimApps $ final q
+     | Just (p, Annot { annAnnot = ann, annResult = primTy }, args) <- takePrimApps $ final q
      -- Non-aggregate primitive operations such as (+) or (/) are a bit more involved:
      -- we convert the arguments to folds,
      -- then store the accumulator as nested pairs of arguments
@@ -93,8 +93,8 @@ convertFold q
       -> do -- Convert all arguments
             -- (create a query out of the expression,
             --  just because there is no separate convertFoldX function)
-            res <- mapM (convertFold . Query []) args
-            retty' <- convertValType' retty
+            res    <- mapM (convertFold . Query []) args
+            retty  <- convertValType' (annResult $ annotOfQuery q)
 
             let ts  = fmap typeFold         res
             -- Create pairs for zeros
@@ -105,7 +105,7 @@ convertFold q
             --  recursively extract the arguments,
             --  apply the primitive
             let cp ns
-                    = convertPrim p ann retty
+                    = convertPrim p ann primTy
                         ((fmap (uncurry CE.xApp) (fmap mapExtract res `zip` ns)) `zip` fmap (annResult . annotOfExp) args)
             xx       <- pairDestruct cp ts
 
@@ -114,7 +114,7 @@ convertFold q
             let applyKs ns = fst <$> pairConstruct (fmap (uncurry CE.xApp) (fmap foldKons res `zip` ns)) ts
             kk       <- pairDestruct applyKs ts
 
-            return $ ConvertFoldResult kk zz xx tt retty'
+            return $ ConvertFoldResult kk zz xx tt retty
 
      -- Variable lookup.
      | Var (Annot { annAnnot = ann, annResult = retty }) v <- final q
