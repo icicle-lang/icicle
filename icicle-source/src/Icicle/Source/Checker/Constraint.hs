@@ -940,7 +940,7 @@ generatePatterns ann scrutTy resTy resTmTop resTm resPs ((pat, alt):rest) env
         let consT = concat
                   -- Require the alternative types without temporality to be the same.
                   [ requireData resTy altTy'
-        -- Require return temporality to be compatible with alternative temporalities.
+                  -- Require return temporality to be compatible with alternative temporalities.
                   , require (annotOfExp alt) (CTemporalityJoin resTm resTp' altTp)
                   , require (annotOfExp alt) (CPossibilityJoin resPs resPs' altPs)
                   ]

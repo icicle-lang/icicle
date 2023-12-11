@@ -21,6 +21,8 @@ import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Either
 
 import qualified Data.Map as Map
+import qualified Data.Map.Merge.Strict as Map
+
 import           Data.Hashable (Hashable)
 import           Data.Functor.Identity
 
@@ -340,8 +342,7 @@ data Ty
  -- where we can, instead of doing a real case, check against "x == Con".
  -- This doesn't work for Bool because this desugaring uses Bool
  | TyLit [TyLit]
-
- | TyRecord [(StructField, Ty)]
+ | TyRecord (Map.Map StructField Ty)
  | TyAny
  deriving (Show)
 
@@ -454,13 +455,17 @@ addToTy err (PatLit l n) ty = case ty of
 addToTy _ PatDefault      ty    = return ty
 addToTy _ (PatVariable _) ty    = return ty
 
-addToTy err r@(PatRecord fields) TyAny =
-  let a = fmap (fmap (const TyAny)) fields
-  in addToTy err r $ TyRecord a
+addToTy err r@(PatRecord _) TyAny =
+  addToTy err r $ TyRecord Map.empty
 
 addToTy err (PatRecord fields) (TyRecord tys) =
-  let goer (n, p) (_, ty) = (n,) <$> addToTy err p ty
-  in  TyRecord <$> zipWithM goer fields tys
+  TyRecord <$>
+    Map.mergeA
+      (Map.traverseMissing $ \_ p -> addToTy err p TyAny)
+      (Map.traverseMissing $ \_ ty -> return ty)
+      (Map.zipWithAMatched $ \_ p ty -> addToTy err p ty)
+      (Map.fromList fields)
+      tys
 
 addToTy err (PatRecord _) _ =
   lift $ left err
@@ -526,7 +531,7 @@ casesForTy ann scrut ty
       $ TCase scrut [ (PatCon ConUnit  [], Done (PatCon ConUnit  [])) ]
 
     TyRecord fields
-     -> do let (names, tys) = List.unzip fields
+     -> do let (names, tys) = List.unzip $ Map.toList fields
            args     <- traverse (\n -> (n,) <$> fresh) names
            let pat'  = PatRecord  (second PatVariable <$> args)
            let vars  = fmap (Var ann . snd) args
@@ -659,8 +664,16 @@ matcher (PatLit l n) (PatLit l' n')
  , n == n'
  = return []
 matcher (PatRecord as) (PatRecord bs)
- = do substs <- sequence $ Map.elems $ Map.intersectionWith matcher (Map.fromList as) (Map.fromList bs)
-      return (concat substs)
+ = do compared <-
+        Map.mergeA
+          (Map.traverseMissing $ \_ x -> matcher x PatDefault)
+          (Map.traverseMissing $ \_ x -> matcher x PatDefault)
+          (Map.zipWithAMatched $ \_ x y -> matcher x y)
+          (Map.fromList as)
+          (Map.fromList bs)
+      return $
+        concat $
+          Map.elems compared
 matcher _ _
  = Nothing
 

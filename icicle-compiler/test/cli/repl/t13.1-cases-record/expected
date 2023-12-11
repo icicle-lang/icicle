@@ -1,0 +1,57 @@
+Queries will no longer be evaluated using the C evaluator.
+Snapshot mode activated with a snapshot date of 2017-01-01.
+Loaded dictionary with 5 inputs, 0 outputs, 74 functions.
+Selected psv file as input: test/cli/repl/data.psv
+
+  ██▓ ▄████▄   ██▓ ▄████▄   ██▓    ▓█████
+ ▓██▒▒██▀ ▀█  ▓██▒▒██▀ ▀█  ▓██▒    ▓█   ▀
+ ▒██▒▒▓█    ▄ ▒██▒▒▓█    ▄ ▒██░    ▒███
+ ░██░▒▓▓▄ ▄██▒░██░▒▓▓▄ ▄██▒▒██░    ▒▓█  ▄
+ ░██░▒ ▓███▀ ░░██░▒ ▓███▀ ░░██████▒░▒████▒
+ ░▓  ░ ░▒ ▒  ░░▓  ░ ░▒ ▒  ░░ ▒░▓  ░░░ ▒░ ░
+  ▒ ░  ░  ▒    ▒ ░  ░  ▒   ░ ░ ▒  ░ ░ ░  ░
+  ▒ ░░         ▒ ░░          ░ ░ REPL ░
+  ░  ░ ░       ░  ░ ░          ░  ░   ░  ░
+     ░            ░
+                  ░     :help for help
+
+λ λ -- Second case { b = b } covers all cases from b and a, should succeed.
+λ Core evaluation
+---------------
+
+homer|4
+marge|4
+
+λ λ -- Second case does not cover { a = None, b = Some _ }
+λ                  ^
+Error
+-----
+
+## Desugar error
+
+  Missing alternative: { a = None, b = Some desugar_q-5 } at 1:16
+
+λ λ -- Third case is overlapping { a = None, b = None }
+λ                  ^
+Error
+-----
+
+## Desugar error
+
+  Overlapping pattern: { a = None, b = None } at 1:16
+
+λ λ -- Covering and not overlapping.
+λ Core evaluation
+---------------
+
+homer|6
+marge|6
+
+λ λ -- Testing extraction (expect value in b of 4)
+λ Core evaluation
+---------------
+
+homer|4
+marge|4
+
+λ 

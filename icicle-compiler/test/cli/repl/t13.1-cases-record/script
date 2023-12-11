@@ -1,0 +1,15 @@
+
+-- Second case { b = b } covers all cases from b and a, should succeed.
+from salary in case ({ a = None, b = Some 4 }) of { ({ a = Some _ }) then 2; ({ b = b }) then 4 }
+
+-- Second case does not cover { a = None, b = Some _ }
+from salary in case ({ a = None, b = Some 4 }) of { ({ a = Some _ }) then 2; ({ b = None }) then 3 }
+
+-- Third case is overlapping { a = None, b = None }
+from salary in case ({ a = None, b = Some 4 }) of { ({ a = Some _ }) then 2; ({ b = None }) then 3; ({ a = None, b = None }) then 2 }
+
+-- Covering and not overlapping.
+from salary in case ({ a = None, b = Some 4 }) of { ({ a = Some a }) then a; ({ b = None }) then 2; ({ a = None }) then 6 }
+
+-- Testing extraction (expect value in b of 4)
+from salary in case ({ a = None, b = Some 4 }) of { ({ a = Some a }) then a; ({ b = None }) then 2; ({ a = None, b = Some b }) then b }
