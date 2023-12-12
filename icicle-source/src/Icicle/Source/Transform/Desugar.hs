@@ -37,7 +37,6 @@ import           Icicle.Source.Transform.SubstX
 import           Icicle.Internal.Pretty
 
 import           P
-import qualified Data.List as List
 
 
 
@@ -531,13 +530,11 @@ casesForTy ann scrut ty
       $ TCase scrut [ (PatCon ConUnit  [], Done (PatCon ConUnit  [])) ]
 
     TyRecord fields
-     -> do let (names, tys) = List.unzip $ Map.toList fields
-           args     <- traverse (\n -> (n,) <$> fresh) names
-           let pat'  = PatRecord  (second PatVariable <$> args)
-           let vars  = fmap (Var ann . snd) args
-           bds      <- zipWithM (casesForTy ann) vars tys
-           let bd    = fmap (PatRecord . List.zip names) $ sequence bds
-           return $ TCase scrut [ (pat', bd) ]
+     -> do freshened <- traverse (\fieldTy -> (,fieldTy) <$> fresh) fields
+           bds       <- traverse (uncurry (casesForTy ann . Var ann)) freshened
+           let topPat = PatRecord . Map.toList $ PatVariable . fst <$> freshened
+           let bd     = PatRecord . Map.toList <$> sequence bds
+           return $ TCase scrut [ (topPat, bd) ]
 
     -- If we don't know the type of this pattern, use a fresh variable
     -- Use TLet to avoid generating variable patterns, since Core can't handle them.
