@@ -584,8 +584,8 @@ treeToCase
   -> Tree a n (Pattern n)
   -> DesugarM a n (Exp a n)
 treeToCase ann patalts tree
- = lift . fmap (simpDumbX . caseStmtsFor) . sequence
- $ fmap (getAltBody patalts) tree
+ = lift . fmap (simpDumbX . caseStmtsFor)
+ $ traverse (getAltBody patalts) tree
   where
    -- Convert tree structure to AST
    caseStmtsFor (Done x)
@@ -603,9 +603,9 @@ treeToCase ann patalts tree
             TyLitLit l False -> Prim ann $ Lit l
             TyLitCon c' -> Prim ann $ PrimCon c'
           sc = App ann (App ann eq scrut) prim
-      in Case ann sc
-            [ ( PatCon ConTrue  [], caseStmtsFor x )
-            , ( PatCon ConFalse [], caseStmtsFor $ TLits scrut cs d ) ]
+      in If ann sc
+            ( caseStmtsFor x )
+            ( caseStmtsFor $ TLits scrut cs d )
    caseStmtsFor (TLits _ [] d)
     = caseStmtsFor d
 
