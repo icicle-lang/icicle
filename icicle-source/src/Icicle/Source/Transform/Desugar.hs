@@ -654,7 +654,7 @@ matcher (PatCon c as) (PatCon c' bs)
       return (concat substs)
 matcher p (PatVariable x)
  = return [(x, p)]
-matcher _ (PatDefault)
+matcher _ PatDefault
  = return []
 matcher (PatLit l n) (PatLit l' n')
  | l == l'
@@ -664,7 +664,7 @@ matcher (PatRecord as) (PatRecord bs)
  = do compared <-
         Map.mergeA
           (Map.traverseMissing $ \_ x -> matcher x PatDefault)
-          (Map.traverseMissing $ \_ x -> matcher x PatDefault)
+          (Map.traverseMissing $ \_ _ -> Nothing)
           (Map.zipWithAMatched $ \_ x y -> matcher x y)
           (Map.fromList as)
           (Map.fromList bs)
