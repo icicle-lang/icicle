@@ -30,6 +30,7 @@ library
                      , ambiata-p
                      , ambiata-x-show
                      , array
+                     , attoparsec                      >= 0.12       && < 0.14
                      , aeson                           >= 0.8        && < 1.5
                      , ansi-terminal                   == 0.6.*
                      , bifunctors                      >= 4.2        && < 5.6
@@ -40,6 +41,7 @@ library
                      , file-embed                      >= 0.0.9      && < 0.0.16
                      , hashable
                      , lens
+                     , megaparsec                      >= 7.0        && < 8.0
                      , mmorph                          >= 1.0
                      , parser-combinators
                      , scientific                      == 0.3.*
@@ -54,16 +56,6 @@ library
                      , transformers-either
                      , validation                      >= 1          && < 1.2
                      , vector
-                     -- Well, it might look very odd that we're using both attoparsec
-                     -- and parsec.
-                     -- The thing is, attoparsec only operates on raw strings, and our source parser
-                     -- for Icicle should operate over tokens.
-                     -- Going over tokens instead of strings simplifies the parser itself and makes everything
-                     -- a bit cleaner.
-                     -- As an added benefit, parsec will give us nicer error messages.
-                     , attoparsec                      >= 0.12       && < 0.14
-                     , megaparsec                      >= 7.0        && < 8.0
-                     ,     parsec                      == 3.1.*
 
   ghc-options:
                        -Wall

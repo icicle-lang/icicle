@@ -93,8 +93,6 @@ import           Data.String
 import           Data.Hashable                            (Hashable)
 import qualified Data.Text.Encoding                       as Text
 
-import qualified Text.ParserCombinators.Parsec            as Parsec
-
 import           GHC.Generics                             (Generic)
 
 import           P
@@ -233,7 +231,7 @@ sourceParseQT oid t
  = first ErrorSourceParse
  $ Parse.parseQueryTop oid t
 
-sourceParseF :: Parsec.SourceName
+sourceParseF :: String
              -> Text
              -> Either Error (Query.Module Sorbet.Range Var)
 sourceParseF env t
@@ -335,7 +333,7 @@ loadedPrelude =
   first ErrorSourceParse $ uncurry (Parse.parseModule) Dict.prelude
 
 
-readIcicleLibraryPure :: Check.CheckOptions -> FilePath -> Parsec.SourceName -> Text -> Either Error (Query.ResolvedModule Sorbet.Range Var)
+readIcicleLibraryPure :: Check.CheckOptions -> FilePath -> FilePath -> Text -> Either Error (Query.ResolvedModule Sorbet.Range Var)
 readIcicleLibraryPure opts _ source input
  = do current <- first ErrorSourceParse $ Parse.parseModule source input
       prelude <- loadedPrelude
@@ -361,7 +359,7 @@ readIcicleLibraryPure opts _ source input
         Query.ResolvedModule (Query.moduleName current) [] inputs outputs smooshed
 
 
-readIcicleLibrary :: Check.CheckOptions -> FilePath -> Parsec.SourceName -> Text -> EitherT Error IO (Query.ResolvedModule Sorbet.Range Var)
+readIcicleLibrary :: Check.CheckOptions -> FilePath -> FilePath -> Text -> EitherT Error IO (Query.ResolvedModule Sorbet.Range Var)
 readIcicleLibrary opts rootDir source input
  = do current <- hoistWith ErrorSourceParse $ Parse.parseModule source input
       prelude <- hoistEither loadedPrelude

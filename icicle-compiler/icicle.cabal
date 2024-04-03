@@ -55,6 +55,7 @@ library
                      , lens                            >= 4.7        && < 5.3
                      , lifted-async                    >= 0.9        && < 0.11
                      , lifted-base                     == 0.2.*
+                     , megaparsec                      >= 5.0        && < 8.0
                      , mmorph                          >= 1.0
                      , monad-control                   == 1.0.*
                      , mtl                             == 2.2.*
@@ -84,16 +85,6 @@ library
                      , void                            >= 0.5        && < 0.8
                      , wl-pprint-annotated             == 0.1.*
                      , zenc                            == 0.1.*
-
-                     -- Well, it might look very odd that we're using both attoparsec
-                     -- and parsec.
-                     -- The thing is, attoparsec only operates on raw strings, and our source parser
-                     -- for Icicle should operate over tokens.
-                     -- Going over tokens instead of strings simplifies the parser itself and makes everything
-                     -- a bit cleaner.
-                     -- As an added benefit, parsec will give us nicer error messages.
-                     , megaparsec                      >= 5.0        && < 8.0
-                     ,     parsec                      == 3.1.*
 
   ghc-options:
                        -Wall
@@ -218,7 +209,6 @@ executable icicle
                      , optparse-applicative            >= 0.14       && < 0.17
                      , mmorph
                      , parallel
-                     , parsec
                      , resourcet
                      , temporary
                      , text
@@ -282,7 +272,6 @@ test-suite test
                      , geniplate-mirror                >= 0.7.2      && < 0.8
                      , megaparsec
                      , mtl
-                     , parsec
                      , pretty-show
                      , hashable
                      , hedgehog                        >= 1.0.2      && < 1.1

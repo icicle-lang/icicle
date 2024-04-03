@@ -15,8 +15,6 @@ module Icicle.Sorbet.Position (
   , Range(..)
 
   , renderPosition
-  , toParsec
-  , fromParsec
   , fromSourcePos
   ) where
 
@@ -37,7 +35,6 @@ import           System.IO (FilePath)
 
 import           Text.Megaparsec (Stream(..), PosState (..))
 import           Text.Megaparsec.Pos (SourcePos(..), mkPos, unPos)
-import qualified Text.Parsec.Pos as Parsec
 
 import           X.Text.Show (gshowsPrec)
 
@@ -164,18 +161,6 @@ fromSourcePos = \case
     Position file
       (fromIntegral $ unPos srcLine)
       (fromIntegral $ unPos col)
-
-
-toParsec :: Position -> Parsec.SourcePos
-toParsec = \case
-  Position file srcLine col ->
-    Parsec.newPos file srcLine col
-
-
-
-fromParsec ::  Parsec.SourcePos -> Position
-fromParsec =
-  Position <$> Parsec.sourceName <*> Parsec.sourceLine <*> Parsec.sourceColumn
 
 
 instance Pretty Position where
