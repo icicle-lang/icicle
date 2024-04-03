@@ -13,6 +13,7 @@ module Icicle.Repl.Monad (
   , getHaskelineSettings
   ) where
 
+import           Control.Monad.Catch (MonadThrow, MonadCatch, MonadMask)
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.State (MonadState(..))
 import           Control.Monad.Trans.Class (lift)
@@ -27,7 +28,7 @@ import           Icicle.Repl.Pretty
 
 import           P
 
-import           System.Console.Haskeline (InputT, MonadException)
+import           System.Console.Haskeline (InputT)
 import qualified System.Console.Haskeline as Haskeline
 import qualified System.Directory as Directory
 import           System.IO (IO)
@@ -36,7 +37,7 @@ import           System.IO (IO)
 newtype Repl a =
   Repl {
       unRepl :: InputT (StateT State IO) a
-    } deriving (Functor, Applicative, Monad, MonadIO, MonadException)
+    } deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadCatch, MonadMask)
 
 instance MonadState State Repl where
   get =

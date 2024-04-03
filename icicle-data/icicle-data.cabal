@@ -32,7 +32,7 @@ library
                      , lens                            >= 4.7
                      , mmorph                          >= 1.0
                      , semigroups                      >= 0.16       && < 0.20
-                     , template-haskell                >= 2.9        && < 2.16
+                     , template-haskell                >= 2.9        && < 2.21
                      , text                            >= 1.2
                      , these
                      , thyme                           >= 0.4        && < 0.5
