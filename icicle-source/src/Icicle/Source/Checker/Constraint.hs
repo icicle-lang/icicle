@@ -130,6 +130,7 @@ defaults topq
            Access _ p _ -> fa <> defaultOfAllX p
            Record _ fs -> fa <> (Map.unions $ fmap (defaultOfAllX . snd) fs)
            If _ p t f -> fa <> defaultOfAllX p <> defaultOfAllX t <> defaultOfAllX f
+           IfLet _ _ s t f -> fa <> defaultOfAllX s <> defaultOfAllX t <> defaultOfAllX f
            Case _ s pats
             ->  fa <> defaultOfAllX s <>
                (Map.unions $ fmap (defaultOfAllX . snd) pats)
@@ -854,8 +855,29 @@ generateX x env
                return $
                  (If a' scrut' true' false', sub, cons)
              _ ->
-               genHoistEither
-               $ errorNoSuggestions (ErrorImpossible a)
+               genHoistEither $
+                 errorNoSuggestions (ErrorImpossible a)
+
+    -- If Lets require:
+    --  1. Match and fallback branches have to be "join-able" types (see below).
+    --  2. The return temporality is the join of the scrutinee with the alternatives.
+    --  3. The data type of the scrutinee matches the pattern.
+    IfLet a pat scrut true false
+     -> do
+           -- This is a bit lazy.
+           -- If then else should have exactly the same semantics and type checking
+           -- as the equivalent case expression.
+           let asCase = Case a scrut [(pat, true), (PatDefault, false)]
+
+           (asCase', sub, cons) <- generateX asCase env
+
+           case asCase' of
+             Case a' scrut' [(_, true'), (_, false')] ->
+               return $
+                 (IfLet a' pat scrut' true' false', sub, cons)
+             _ ->
+               genHoistEither $
+                 errorNoSuggestions (ErrorImpossible a)
 
     -- Cases require:
     --

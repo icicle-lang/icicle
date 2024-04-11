@@ -75,6 +75,14 @@ instance (Pretty a, Pretty n) => Pretty (PrettyAnnot (Exp a n)) where
             , indent 4 $ pretty (PrettyAnnot false)
             ]
 
+        IfLet _ pat scrut true false ->
+          vsep [
+              prettyKeyword "if" <+> prettyKeyword "let" <+> pretty pat <+> prettyPunctuation "=" <+> pretty (PrettyAnnot scrut) <+> prettyKeyword "then"
+            , indent 4 $ pretty (PrettyAnnot true)
+            , prettyKeyword "else"
+            , indent 4 $ pretty (PrettyAnnot false)
+            ]
+
         Access _ expression field ->
           pretty expression <> "." <> pretty field
 

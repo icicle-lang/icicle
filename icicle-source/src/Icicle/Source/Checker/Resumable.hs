@@ -134,6 +134,8 @@ checkResumableX ctx x
      -> checkResumableX ctx s >> mapM_ (checkResumableX ctx . snd) ps
     If _ s t f
      -> checkResumableX ctx s >> checkResumableX ctx t >> checkResumableX ctx f
+    IfLet _ _ s t f
+     -> checkResumableX ctx s >> checkResumableX ctx t >> checkResumableX ctx f
     Access _ e _
      -> checkResumableX ctx e
     Record _ fs

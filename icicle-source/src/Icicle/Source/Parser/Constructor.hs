@@ -61,7 +61,7 @@ checkPat exp =
 
     -- Applications
     Q.App {}
-      -- Simple contructors are easy
+      -- Simple constructors are easy
       | Just (p, _, xs) <- Q.takePrimApps exp
       , Q.PrimCon con  <- p
       -> Q.PatCon con <$> traverse checkPat xs
@@ -106,6 +106,9 @@ checkPat exp =
 
     Q.If {}
       -> fail "unable to parse if expression as a pattern"
+
+    Q.IfLet {}
+      -> fail "unable to parse if let expression as a pattern"
 
     Q.Access {}
       -> fail "unable to parse record access as a pattern"

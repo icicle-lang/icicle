@@ -75,6 +75,9 @@ data Exp' q a n
   -- | If then else block
   | If a (Exp' q a n) (Exp' q a n) (Exp' q a n)
 
+  -- | If let x = y then else block
+  | IfLet a (Pattern n) (Exp' q a n) (Exp' q a n) (Exp' q a n)
+
   -- | Case matching with patterns
   | Case a (Exp' q a n) [(Pattern n, Exp' q a n)]
 
@@ -145,6 +148,13 @@ instance TraverseAnnot q => TraverseAnnot (Exp' q) where
           <*> traverseAnnot f pred
           <*> traverseAnnot f true
           <*> traverseAnnot f false
+      IfLet a pat scrut true false ->
+        IfLet
+          <$> f a
+          <*> pure pat
+          <*> traverseAnnot f scrut
+          <*> traverseAnnot f true
+          <*> traverseAnnot f false
       Case a scrut pats ->
         Case
           <$> f a
@@ -191,15 +201,16 @@ takePrimApps x
 annotOfExp :: Exp' q a n -> a
 annotOfExp x
  = case x of
-   Var    a _     -> a
-   Lam    a _ _   -> a
-   Nested a _     -> a
-   App    a _ _   -> a
-   Prim   a _     -> a
-   If     a _ _ _ -> a
-   Case   a _ _   -> a
-   Access a _ _   -> a
-   Record a _     -> a
+   Var    a _       -> a
+   Lam    a _ _     -> a
+   Nested a _       -> a
+   App    a _ _     -> a
+   Prim   a _       -> a
+   If     a _ _ _   -> a
+   IfLet  a _ _ _ _ -> a
+   Case   a _ _     -> a
+   Access a _ _     -> a
+   Record a _       -> a
 
 mkApp :: Exp' q a n -> Exp' q a n -> Exp' q a n
 mkApp x y
@@ -253,6 +264,14 @@ instance (Pretty n, Pretty (q a n)) => Pretty (Exp' q a n) where
                     indent 2 $ pretty p <+> prettyPunctuation "then"
                   , indent 4 $ pretty x
                   ]
+            ]
+
+        IfLet _ pat scrut true false ->
+          vsep [
+              prettyKeyword "if" <+> prettyKeyword "let" <+> pretty pat <+> prettyPunctuation "=" <+> pretty scrut <+> prettyKeyword "then"
+            , indent 4 $ pretty true
+            , prettyKeyword "else"
+            , indent 4 $ pretty false
             ]
 
         If _ scrut true false ->
@@ -336,6 +355,8 @@ precedenceOfX xx
     Prim{}
      -> precedenceNeverParens
     If{}
+     -> precedenceAlwaysParens
+    IfLet{}
      -> precedenceAlwaysParens
     Case{}
      -> precedenceAlwaysParens

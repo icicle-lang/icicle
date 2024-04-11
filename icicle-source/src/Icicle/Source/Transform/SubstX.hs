@@ -65,6 +65,9 @@ substX' s x
      -> return x
     If a p t f
      -> If a <$> substX' s p <*> substX' s t <*> substX' s f
+    IfLet a p scrut t f
+     -> do  (p', t') <- goPat (p, t)
+            IfLet a <$>  pure p' <*> substX' s scrut <*> pure t' <*> substX' s f
     Case a scrut pats
      -> Case a <$> substX' s scrut <*> mapM goPat pats
     Access a e f

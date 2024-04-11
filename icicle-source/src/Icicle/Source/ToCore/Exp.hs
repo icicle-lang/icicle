@@ -101,6 +101,15 @@ convertExp x
                 CE.@~ CE.xLam sn T.UnitT false'
                 CE.@~ scrut')
 
+    IfLet ann pat scrut ok other
+     -> do  scrut' <- convertExp scrut
+            pat'   <- convertCaseFreshenPat pat
+            ok'    <- convertExp ok
+            other' <- convertExp other
+            scrutT <- convertValType (annAnnot ann) $ annResult $ annotOfExp scrut
+            resT   <- convertValType (annAnnot ann) $ annResult ann
+            convertCase x scrut' [ (pat', ok'), (PatDefault, other' ) ] scrutT resT
+
     -- Only deal with flattened, single layer cases.
     -- We need a pass beforehand to simplify them.
     Case ann scrut pats

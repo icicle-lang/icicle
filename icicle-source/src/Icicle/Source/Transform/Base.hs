@@ -156,6 +156,11 @@ transformX t xx
               true'  <- goX true
               false' <- goX false
               return $ If a scr' true' false'
+       IfLet a pat scr true false
+        -> do scr'          <- goX scr
+              (pat',true')  <- goP (pat, true)
+              false'        <- goX false
+              return $ IfLet a pat' scr' true' false'
        Case a scr pats
         -> do scr'  <- goX scr
               pats' <- mapM goP pats

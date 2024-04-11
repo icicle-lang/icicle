@@ -159,6 +159,10 @@ reifyPossibilityX' wrap x
               f'     <-  wrapRightIfAnnot a <$> reifyPossibilityX' wrap f
               return $ If  (wrapAnnot a) scrut' t' f'
 
+      -- Error
+      IfLet a b c d e ->
+        return $ IfLet a b c d e
+
       -- If the scrutinee is possibly, we need to unwrap it before performing the case:
       -- > case scrut | alt -> ...
       -- ==>

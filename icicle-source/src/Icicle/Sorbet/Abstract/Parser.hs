@@ -416,7 +416,7 @@ pExp1
  =   ((uncurry Var <$> pVariable)  >>= accessor)
  <|> (pRecord                      >>= accessor)         <?> "record literal"
  <|> (uncurry Prim <$> primitives)                       <?> "primitive"
- <|> (inParens                     >>= accessor)         <?> "sub-expression or nested query"
+ <|> (inParens                     >>= accessor)         <?> "sub-expression, or nested query"
  <|> Mega.hidden pIf
  <|> Mega.hidden pCase
 
@@ -434,7 +434,8 @@ pExp1
 
   tuples r =
     let
-      build Nothing = Prim r (PrimCon ConUnit)
+      build Nothing =
+        Prim r (PrimCon ConUnit)
       build (Just (x,xs)) =
         foldl (\a (com, b) -> mkApp (mkApp (Prim com $ PrimCon ConTuple) a) b) x xs
     in
@@ -446,12 +447,28 @@ pExp1
 pIf :: Parser s m => m (Exp Range Var)
 pIf
  = do pos   <- pToken Tok_If
-      scrut <- pExp                                           <?> "scrutinee"
-      _     <- pToken Tok_Then                                <?> "then"
-      true  <- simpQuery                                      <?> "true branch"
-      _     <- pToken Tok_Else                                <?> "else"
-      false <- simpQuery                                      <?> "false branch"
-      return $ If pos scrut true false
+      pIfLet pos <|> pIfBase pos
+
+ where
+  pIfLet pos =
+    do  _     <- pToken Tok_Let
+        pat   <- pPattern
+        _     <- pToken Tok_Equals
+        scrut <- pExp                                           <?> "scrutinee"
+        _     <- pToken Tok_Then                                <?> "then"
+        true  <- simpQuery                                      <?> "true branch"
+        _     <- pToken Tok_Else                                <?> "else"
+        false <- simpQuery                                      <?> "false branch"
+        return $ IfLet pos pat scrut true false
+
+  pIfBase pos =
+    do  scrut <- pExp                                           <?> "scrutinee"
+        _     <- pToken Tok_Then                                <?> "then"
+        true  <- simpQuery                                      <?> "true branch"
+        _     <- pToken Tok_Else                                <?> "else"
+        false <- simpQuery                                      <?> "false branch"
+        return $ If pos scrut true false
+
 
 pCase :: Parser s m => m (Exp Range Var)
 pCase

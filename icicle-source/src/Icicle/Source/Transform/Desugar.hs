@@ -301,6 +301,17 @@ desugarX xx
             x2' <- desugarX x2
             return $ App a x1' x2'
 
+
+    IfLet a pat scrut ok other
+     -> do ty       <- addToTy (DesugarIllTypedPatterns a [pat]) pat TyAny
+
+           scrut'   <- desugarX scrut
+           ok'      <- desugarX ok
+           other'   <- desugarX other
+
+           tree     <- casesForTy a scrut' ty
+           treeToCase a [(pat, ok'), (PatDefault, other')] tree
+
     If a x1 x2 x3
       -> do x1' <- desugarX x1
             x2' <- desugarX x2
@@ -324,6 +335,9 @@ desugarX xx
             return $ Record a fs'
 
 --------------------------------------------------------------------------------
+
+
+
 
 -- * Case Flattening
 

@@ -236,12 +236,14 @@ layoutTokens env = \case
   --     filter let
   --       |xyz =
   --       |  123
+  --       |abc =
+  --       |  457
   --     in
   --
   --   ==>
   --
   --   foo =
-  --     let
+  --     filter let
   --       {xyz =
   --         123
   --       ;abc =
@@ -249,10 +251,22 @@ layoutTokens env = \case
   --     }in
   --
   x@(Positioned _ _ Tok_Filter) : y@(Positioned _ _ Tok_Let) : z : xs
-    | notLBrace y
+    | notLBrace z
     ->
       x <:> y <:> before z Tok_LBrace <:>
       layoutTokens (startImplicit z $ startExplicit Context env) (z : xs)
+
+
+  --
+  -- The expression 'if let' skips layout filters and just uses the explicit
+  -- If scope.
+  --
+  --   if let Some x = y then x else z
+  --
+  x@(Positioned _ _ Tok_If) : y@(Positioned _ _ Tok_Let) : z : xs
+    | notLBrace z
+    ->
+      x <:> y <:> layoutTokens (startExplicit If env) (z : xs)
 
 
   --

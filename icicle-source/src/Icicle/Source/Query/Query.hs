@@ -151,6 +151,9 @@ simplifyNestedX xx
     If a p t f
      -> If a (simplifyNestedX p) (simplifyNestedX t) (simplifyNestedX f)
 
+    IfLet a p s t f
+     -> IfLet a p (simplifyNestedX s) (simplifyNestedX t) (simplifyNestedX f)
+
     Case a scrut pats
      -> Case a (simplifyNestedX scrut)
       $ fmap (\(p,x) -> (p, simplifyNestedX x)) pats
@@ -295,6 +298,12 @@ allvarsX x
             t' = allvarsX t
             f' = allvarsX f
          in If (a, Set.unions [annX p', annX t', annX f']) p' t' f'
+    IfLet a p s t f
+     -> let (p',np') = allvarsP p
+            s' = allvarsX s
+            t' = allvarsX t
+            f' = allvarsX f
+         in IfLet (a, Set.unions [np', annX s', annX t', annX f']) p' s' t' f'
     Case a s ps
      -> let s'        = allvarsX s
             (ps',ns') = goPatXs ps

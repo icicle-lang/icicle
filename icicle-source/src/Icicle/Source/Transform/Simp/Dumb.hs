@@ -93,6 +93,9 @@ simpDumbCases xx
     If a s t f
      -> If a (simpX s) (simpX t) (simpX f)
 
+    IfLet a pat s t f
+     -> IfLet a pat (simpX s) (simpX t) (simpX f)
+
     Lam a n x
      -> Lam a n (simpX x)
 
@@ -172,6 +175,8 @@ simpDumbLets xx
         -> App a (substX x y e1) (substX x y e2)
       If a scr true false
         -> If a (substX x y scr) (substX x y true) (substX x y false)
+      IfLet a pat scr true false
+        -> IfLet a pat (substX x y scr) (substX x y true) (substX x y false)
       Case a e pats
         -> Case a (substX x y e) (fmap (substA x y) pats)
       Lam {}
