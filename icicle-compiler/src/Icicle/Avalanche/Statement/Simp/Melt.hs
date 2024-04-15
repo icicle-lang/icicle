@@ -174,8 +174,6 @@ meltOutputs :: forall a n. a
 meltOutputs a_fresh statements
  = transformUDStmt goStmt () statements
  where
-  MeltOps{..} = meltOps a_fresh
-
   goStmt () stmt
    = case stmt of
        Output n t xts

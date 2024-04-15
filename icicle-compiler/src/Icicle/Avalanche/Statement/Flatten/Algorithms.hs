@@ -136,7 +136,6 @@ putArrayAcc' a_fresh t n'acc idx push
 
 
 -- | Copy an array - before mutating
--- This should just be a copy, but for now we will cheat by using immutable put
 copyArrayAcc :: (Hashable n, Monad m, IsString n)
              => a -> ValType -> Name n
              -> FreshT n m (Flat.S a n)
@@ -146,11 +145,9 @@ copyArrayAcc a_fresh t n'acc
       let num = xValue IntT . VInt
       let is_empty = relEq IntT (arrLen t x) (num 0)
 
-      let put_copy = arrUpd t x (num 0) (arrIx t x $ num 0)
-
       return $ Read n'x n'acc (ArrayT t)
              $ If is_empty mempty
-             $ Write n'acc put_copy
+             $ Write n'acc (arrCpy t x)
  where
   Flat.FlatOps  {..} = Flat.flatOps a_fresh
   Flat.FlatCons {..} = Flat.flatCons a_fresh
@@ -327,11 +324,6 @@ avalancheHeapSortMap
   -> FlatM a n
 avalancheHeapSortMap a_fresh tk tv n_acc_keys n_acc_vals =
   avalancheHeapSort_ a_fresh tk n_acc_keys (Just (tv, n_acc_vals))
-
-  where
-    Flat.FlatCons{..} = Flat.flatCons a_fresh
-    Flat.FlatOps {..} = Flat.flatOps  a_fresh
-
 
 avalancheHeapSort_
   :: forall a n . (Hashable n, IsString n)
@@ -632,7 +624,7 @@ avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
       -- If it exists, update.
       sUpd <- sletPrefix a_fresh "map_insert_loc_old" (get_v v_idx)
             $ \v  -> flatX' (upd `xApp'` v)
-            $ \v' -> putArrayAcc a_fresh tv n_acc_vals v_idx v'
+            $ \v' -> putArrayAcc' a_fresh tv n_acc_vals v_idx v'
 
       -- Otherwise, insert at v_idx.
       -- Start by creating a copy of the arrays so we can mutate
@@ -651,7 +643,7 @@ avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
       let sIns = copyk <> copyv <> move <> putk <> putv
 
       let keyInMap        = relEq BoolT v_found xTrue
-      let sInsertOrUpdate = If keyInMap sUpd sIns
+      let sInsertOrUpdate = If keyInMap (copyv <> sUpd) sIns
 
       stm'    <- stm v_res
       let res  = Let n_res (mapPack tk tv v_keys v_vals) stm'
