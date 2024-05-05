@@ -119,11 +119,12 @@ copyArrayAcc a_fresh t n'acc
  = do n'x <- freshPrefix "copy_array"
       let x = xVar n'x
       let num = xValue IntT . VInt
-      let is_empty = relEq IntT (arrLen t x) (num 0)
+      let is_empty = relNe IntT (arrLen t x) (num 0)
+      let cpy = Write n'acc (arrCpy t x)
 
       return $ Read n'x n'acc (ArrayT t)
-             $ If is_empty mempty
-             $ Write n'acc (arrCpy t x)
+             $ If is_empty cpy mempty
+
  where
   Flat.FlatOps  {..} = Flat.flatOps a_fresh
   Flat.FlatCons {..} = Flat.flatCons a_fresh
@@ -569,6 +570,8 @@ avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
       n_acc_found  <- freshPrefix "map_insert_acc_bs_found"
       n_loc_keys   <- freshPrefix "map_insert_loc_keys"
       n_loc_vals   <- freshPrefix "map_insert_loc_vals"
+      n_cpy_keys   <- freshPrefix "map_insert_cpy_keys"
+      n_cpy_vals   <- freshPrefix "map_insert_cpy_vals"
       n_loc_idx    <- freshPrefix "map_insert_loc_bs_index"
       n_loc_found  <- freshPrefix "map_insert_loc_bs_found"
       n_res        <- freshPrefix "map_insert_result"
@@ -588,11 +591,13 @@ avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
 
       let readk  = readArr tk n_loc_keys n_acc_keys
           readv  = readArr tv n_loc_vals n_acc_vals
+          readk' = readArr tk n_cpy_keys n_acc_keys
+          readv' = readArr tv n_cpy_vals n_acc_vals
           readix = readBool n_loc_found n_acc_found
                  . readInt  n_loc_idx   n_acc_idx
 
-      let get_k i   = arrIx  tk v_keys i
-          get_v i   = arrIx  tv v_vals i
+      let get_k i   = arrIx  tk (xVar n_cpy_keys) i
+          get_v i   = arrIx  tv (xVar n_cpy_vals) i
 
       -- Look up the key.
       sLookup <- avalancheBinarySearch a_fresh tk key' v_keys n_acc_found n_acc_idx
@@ -616,10 +621,10 @@ avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
       putk    <- putArrayAcc' a_fresh tk n_acc_keys v_idx key'
       putv    <- flatX' ins
                $ putArrayAcc' a_fresh tv n_acc_vals v_idx
-      let sIns = copyk <> copyv <> move <> putk <> putv
+      let sIns = copyk <> copyv <> readk' (readv' move) <> putk <> putv
 
       let keyInMap        = relEq BoolT v_found xTrue
-      let sInsertOrUpdate = If keyInMap (copyv <> sUpd) sIns
+      let sInsertOrUpdate = If keyInMap (copyv <> readv' sUpd) sIns
 
       stm'    <- stm v_res
       let res  = Let n_res (mapPack tk tv v_keys v_vals) stm'

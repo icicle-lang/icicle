@@ -219,11 +219,13 @@ instance TransformX Statement where
   = case stmt of
      If x ss es
       -> If <$> exps x <*> go ss <*> go es
+
      Let n x ss
       -> Let <$> names n <*> exps x <*> go ss
 
      While t n vt end ss
       -> While t <$> names n <*> pure vt <*> exps end <*> go ss
+
      ForeachInts t n from to ss
       -> ForeachInts t <$> names n <*> exps from <*> exps to <*> go ss
 
@@ -239,6 +241,7 @@ instance TransformX Statement where
 
      Read n acc vt ss
       -> Read <$> names n <*> names acc <*> pure vt <*> go ss
+
      Write n x
       -> Write <$> names n <*> exps x
 
