@@ -342,42 +342,42 @@ conv-2 : Time =
 conv-3 : Int =
   MAX_MAP_SIZE
 
-acc-conv-34-simpflat-30 =i ExceptNotAnError : Error
-acc-conv-34-simpflat-31 =i unsafe_Array_create#
+acc-conv-34-simpflat-28 =i ExceptNotAnError : Error
+acc-conv-34-simpflat-29 =i unsafe_Array_create#
                              0 : Array Time
-acc-conv-34-simpflat-32 =i unsafe_Array_create#
+acc-conv-34-simpflat-30 =i unsafe_Array_create#
                              0 : Array (Buf 2 Error)
-acc-conv-34-simpflat-33 =i unsafe_Array_create#
+acc-conv-34-simpflat-31 =i unsafe_Array_create#
                              0 : Array (Buf 2 Int)
 
 for_facts conv-1 : Time
-        , conv-0-simpflat-127 : Error
-        , conv-0-simpflat-128 : Int
-        , conv-0-simpflat-129 : Time {
+        , conv-0-simpflat-128 : Error
+        , conv-0-simpflat-129 : Int
+        , conv-0-simpflat-130 : Time {
+    conv-34-aval-0-simpflat-33 =r acc-conv-34-simpflat-28
+    conv-34-aval-0-simpflat-34 =r acc-conv-34-simpflat-29
     conv-34-aval-0-simpflat-35 =r acc-conv-34-simpflat-30
     conv-34-aval-0-simpflat-36 =r acc-conv-34-simpflat-31
-    conv-34-aval-0-simpflat-37 =r acc-conv-34-simpflat-32
-    conv-34-aval-0-simpflat-38 =r acc-conv-34-simpflat-33
-    flat-0-simpflat-40 =i ExceptNotAnError : Error
-    flat-0-simpflat-41 =i unsafe_Array_create#
+    flat-0-simpflat-38 =i ExceptNotAnError : Error
+    flat-0-simpflat-39 =i unsafe_Array_create#
                             0 : Array Time
-    flat-0-simpflat-42 =i unsafe_Array_create#
+    flat-0-simpflat-40 =i unsafe_Array_create#
                             0 : Array (Buf 2 Error)
-    flat-0-simpflat-43 =i unsafe_Array_create#
+    flat-0-simpflat-41 =i unsafe_Array_create#
                             0 : Array (Buf 2 Int)
     
     if (eq#
-          conv-34-aval-0-simpflat-35
+          conv-34-aval-0-simpflat-33
           ExceptNotAnError)
     {
-        map_insert_acc_keys-flat-3 =i conv-34-aval-0-simpflat-36 : Array Time
-        map_insert_acc_vals-flat-4-simpflat-45 =i conv-34-aval-0-simpflat-37 : Array (Buf 2 Error)
-        map_insert_acc_vals-flat-4-simpflat-46 =i conv-34-aval-0-simpflat-38 : Array (Buf 2 Int)
+        map_insert_acc_keys-flat-3 =i conv-34-aval-0-simpflat-34 : Array Time
+        map_insert_acc_vals-flat-4-simpflat-43 =i conv-34-aval-0-simpflat-35 : Array (Buf 2 Error)
+        map_insert_acc_vals-flat-4-simpflat-44 =i conv-34-aval-0-simpflat-36 : Array (Buf 2 Int)
         map_insert_acc_bs_found-flat-6 =i False : Bool
         map_insert_acc_bs_index-flat-5 =i -1 : Int
         map_insert_loc_keys-flat-7 =r map_insert_acc_keys-flat-3
-        map_insert_loc_vals-flat-8-simpflat-48 =r map_insert_acc_vals-flat-4-simpflat-45
-        map_insert_loc_vals-flat-8-simpflat-49 =r map_insert_acc_vals-flat-4-simpflat-46
+        map_insert_loc_vals-flat-8-simpflat-46 =r map_insert_acc_vals-flat-4-simpflat-43
+        map_insert_loc_vals-flat-8-simpflat-47 =r map_insert_acc_vals-flat-4-simpflat-44
         map_insert_size-flat-12 = Array_length#
                                     map_insert_loc_keys-flat-7
         bs_acc_found-flat-20 =i False : Bool
@@ -418,7 +418,7 @@ for_facts conv-1 : Time
                 
                 if (eq#
                       bs_loc_x-flat-22
-                      conv-0-simpflat-129)
+                      conv-0-simpflat-130)
                 {
                     bs_acc_end-flat-27 =w True
                     bs_acc_found-flat-20 =w True
@@ -428,7 +428,7 @@ for_facts conv-1 : Time
                     
                     if (lt#
                           bs_loc_x-flat-22
-                          conv-0-simpflat-129)
+                          conv-0-simpflat-130)
                     {
                         bs_acc_low-flat-25 =w add#
                                                 bs_loc_mid-flat-21
@@ -469,34 +469,10 @@ for_facts conv-1 : Time
         
         if (eq# flat-101 True)
         {
-            simpflat-240 = unsafe_Array_index#
-                             map_insert_loc_vals-flat-8-simpflat-48
-                             flat-102
-            simpflat-242 = unsafe_Array_index#
-                             map_insert_loc_vals-flat-8-simpflat-49
-                             flat-102
-            simpflat-247 = Buf_push#
-                             simpflat-240
-                             conv-0-simpflat-127
-            simpflat-250 = Buf_push#
-                             simpflat-242
-                             conv-0-simpflat-128
-            map_insert_acc_vals-flat-4-simpflat-45 =r map_insert_acc_vals-flat-4-simpflat-45
-            map_insert_acc_vals-flat-4-simpflat-45 =w Array_put_immutable#
-                                                        map_insert_acc_vals-flat-4-simpflat-45
-                                                        flat-102
-                                                        simpflat-247
-            map_insert_acc_vals-flat-4-simpflat-46 =r map_insert_acc_vals-flat-4-simpflat-46
-            map_insert_acc_vals-flat-4-simpflat-46 =w Array_put_immutable#
-                                                        map_insert_acc_vals-flat-4-simpflat-46
-                                                        flat-102
-                                                        simpflat-250
-        }
-        else
-        {
-            copy_array-flat-31 =r map_insert_acc_keys-flat-3
+            copy_array-flat-32-simpflat-49 =r map_insert_acc_vals-flat-4-simpflat-43
+            copy_array-flat-32-simpflat-50 =r map_insert_acc_vals-flat-4-simpflat-44
             simpflat-4 = Array_length#
-                           copy_array-flat-31
+                           copy_array-flat-32-simpflat-49
             
             if (eq# simpflat-4 0)
             {
@@ -504,19 +480,52 @@ for_facts conv-1 : Time
             }
             else
             {
-                simpflat-5 = unsafe_Array_index#
-                               copy_array-flat-31
-                               0
-                map_insert_acc_keys-flat-3 =w Array_put_immutable#
-                                                copy_array-flat-31
-                                                0
-                                                simpflat-5
+                map_insert_acc_vals-flat-4-simpflat-43 =w copy_array-flat-32-simpflat-49
+                map_insert_acc_vals-flat-4-simpflat-44 =w copy_array-flat-32-simpflat-50
             }
             
-            copy_array-flat-32-simpflat-54 =r map_insert_acc_vals-flat-4-simpflat-45
-            copy_array-flat-32-simpflat-55 =r map_insert_acc_vals-flat-4-simpflat-46
+            simpflat-251 = unsafe_Array_index#
+                             map_insert_loc_vals-flat-8-simpflat-46
+                             flat-102
+            simpflat-253 = unsafe_Array_index#
+                             map_insert_loc_vals-flat-8-simpflat-47
+                             flat-102
+            simpflat-258 = Buf_push#
+                             simpflat-251
+                             conv-0-simpflat-128
+            simpflat-261 = Buf_push#
+                             simpflat-253
+                             conv-0-simpflat-129
+            map_insert_acc_vals-flat-4-simpflat-43 =r map_insert_acc_vals-flat-4-simpflat-43
+            map_insert_acc_vals-flat-4-simpflat-43 =w Array_put_mutable#
+                                                        map_insert_acc_vals-flat-4-simpflat-43
+                                                        flat-102
+                                                        simpflat-258
+            map_insert_acc_vals-flat-4-simpflat-44 =r map_insert_acc_vals-flat-4-simpflat-44
+            map_insert_acc_vals-flat-4-simpflat-44 =w Array_put_mutable#
+                                                        map_insert_acc_vals-flat-4-simpflat-44
+                                                        flat-102
+                                                        simpflat-261
+        }
+        else
+        {
+            copy_array-flat-31 =r map_insert_acc_keys-flat-3
+            simpflat-5 = Array_length#
+                           copy_array-flat-31
+            
+            if (eq# simpflat-5 0)
+            {
+                
+            }
+            else
+            {
+                map_insert_acc_keys-flat-3 =w copy_array-flat-31
+            }
+            
+            flat-103-simpflat-55 =r map_insert_acc_vals-flat-4-simpflat-43
+            flat-103-simpflat-56 =r map_insert_acc_vals-flat-4-simpflat-44
             simpflat-6 = Array_length#
-                           copy_array-flat-32-simpflat-54
+                           flat-103-simpflat-55
             
             if (eq# simpflat-6 0)
             {
@@ -524,260 +533,248 @@ for_facts conv-1 : Time
             }
             else
             {
-                simpflat-262 = unsafe_Array_index#
-                                 copy_array-flat-32-simpflat-54
-                                 0
-                simpflat-264 = unsafe_Array_index#
-                                 copy_array-flat-32-simpflat-55
-                                 0
-                map_insert_acc_vals-flat-4-simpflat-45 =w Array_put_immutable#
-                                                            copy_array-flat-32-simpflat-54
-                                                            0
-                                                            simpflat-262
-                map_insert_acc_vals-flat-4-simpflat-46 =w Array_put_immutable#
-                                                            copy_array-flat-32-simpflat-55
-                                                            0
-                                                            simpflat-264
+                map_insert_acc_vals-flat-4-simpflat-43 =w flat-103-simpflat-55
+                map_insert_acc_vals-flat-4-simpflat-44 =w flat-103-simpflat-56
             }
             
             
             foreach (for_counter-flat-33 in map_insert_size-flat-12 .. flat-102)
             {
                 update_acc-flat-34 =r map_insert_acc_keys-flat-3
-                simpflat-8 = sub#
+                simpflat-7 = sub#
                                for_counter-flat-33
                                1
-                simpflat-9 = unsafe_Array_index#
+                simpflat-8 = unsafe_Array_index#
                                map_insert_loc_keys-flat-7
-                               simpflat-8
+                               simpflat-7
                 map_insert_acc_keys-flat-3 =w Array_put_mutable#
                                                 update_acc-flat-34
                                                 for_counter-flat-33
-                                                simpflat-9
-                update_acc-flat-35-simpflat-57 =r map_insert_acc_vals-flat-4-simpflat-45
-                update_acc-flat-35-simpflat-58 =r map_insert_acc_vals-flat-4-simpflat-46
-                simpflat-274 = unsafe_Array_index#
-                                 map_insert_loc_vals-flat-8-simpflat-48
-                                 simpflat-8
+                                                simpflat-8
+                update_acc-flat-35-simpflat-58 =r map_insert_acc_vals-flat-4-simpflat-43
+                update_acc-flat-35-simpflat-59 =r map_insert_acc_vals-flat-4-simpflat-44
                 simpflat-276 = unsafe_Array_index#
-                                 map_insert_loc_vals-flat-8-simpflat-49
-                                 simpflat-8
-                map_insert_acc_vals-flat-4-simpflat-45 =w Array_put_mutable#
-                                                            update_acc-flat-35-simpflat-57
-                                                            for_counter-flat-33
-                                                            simpflat-274
-                map_insert_acc_vals-flat-4-simpflat-46 =w Array_put_mutable#
+                                 map_insert_loc_vals-flat-8-simpflat-46
+                                 simpflat-7
+                simpflat-278 = unsafe_Array_index#
+                                 map_insert_loc_vals-flat-8-simpflat-47
+                                 simpflat-7
+                map_insert_acc_vals-flat-4-simpflat-43 =w Array_put_mutable#
                                                             update_acc-flat-35-simpflat-58
                                                             for_counter-flat-33
                                                             simpflat-276
+                map_insert_acc_vals-flat-4-simpflat-44 =w Array_put_mutable#
+                                                            update_acc-flat-35-simpflat-59
+                                                            for_counter-flat-33
+                                                            simpflat-278
             }
             
             map_insert_acc_keys-flat-3 =r map_insert_acc_keys-flat-3
             map_insert_acc_keys-flat-3 =w Array_put_mutable#
                                             map_insert_acc_keys-flat-3
                                             flat-102
-                                            conv-0-simpflat-129
-            simpflat-351 = Buf_make# ()
-            simpflat-286 = Buf_push#
-                             simpflat-351
-                             conv-0-simpflat-127
-            simpflat-352 = Buf_make# ()
+                                            conv-0-simpflat-130
+            simpflat-353 = Buf_make# ()
             simpflat-288 = Buf_push#
-                             simpflat-352
+                             simpflat-353
                              conv-0-simpflat-128
-            map_insert_acc_vals-flat-4-simpflat-45 =r map_insert_acc_vals-flat-4-simpflat-45
-            map_insert_acc_vals-flat-4-simpflat-45 =w Array_put_mutable#
-                                                        map_insert_acc_vals-flat-4-simpflat-45
-                                                        flat-102
-                                                        simpflat-286
-            map_insert_acc_vals-flat-4-simpflat-46 =r map_insert_acc_vals-flat-4-simpflat-46
-            map_insert_acc_vals-flat-4-simpflat-46 =w Array_put_mutable#
-                                                        map_insert_acc_vals-flat-4-simpflat-46
+            simpflat-354 = Buf_make# ()
+            simpflat-290 = Buf_push#
+                             simpflat-354
+                             conv-0-simpflat-129
+            map_insert_acc_vals-flat-4-simpflat-43 =r map_insert_acc_vals-flat-4-simpflat-43
+            map_insert_acc_vals-flat-4-simpflat-43 =w Array_put_mutable#
+                                                        map_insert_acc_vals-flat-4-simpflat-43
                                                         flat-102
                                                         simpflat-288
+            map_insert_acc_vals-flat-4-simpflat-44 =r map_insert_acc_vals-flat-4-simpflat-44
+            map_insert_acc_vals-flat-4-simpflat-44 =w Array_put_mutable#
+                                                        map_insert_acc_vals-flat-4-simpflat-44
+                                                        flat-102
+                                                        simpflat-290
         }
         
-        flat-103 =r map_insert_acc_keys-flat-3
-        flat-104-simpflat-63 =r map_insert_acc_vals-flat-4-simpflat-45
-        flat-104-simpflat-64 =r map_insert_acc_vals-flat-4-simpflat-46
-        flat-39-simpflat-66 =i ExceptNotAnError : Error
-        flat-39-simpflat-67 =i unsafe_Array_create#
-                                 0 : Array Time
+        flat-104 =r map_insert_acc_keys-flat-3
+        flat-105-simpflat-64 =r map_insert_acc_vals-flat-4-simpflat-43
+        flat-105-simpflat-65 =r map_insert_acc_vals-flat-4-simpflat-44
+        flat-39-simpflat-67 =i ExceptNotAnError : Error
         flat-39-simpflat-68 =i unsafe_Array_create#
-                                 0 : Array (Buf 2 Error)
+                                 0 : Array Time
         flat-39-simpflat-69 =i unsafe_Array_create#
+                                 0 : Array (Buf 2 Error)
+        flat-39-simpflat-70 =i unsafe_Array_create#
                                  0 : Array (Buf 2 Int)
-        simpflat-13 = Array_length#
-                        flat-103
+        simpflat-12 = Array_length#
+                        flat-104
         
-        if (lt# simpflat-13 conv-3)
+        if (lt# simpflat-12 conv-3)
         {
-            flat-39-simpflat-66 =w ExceptNotAnError
-            flat-39-simpflat-67 =w flat-103
-            flat-39-simpflat-68 =w flat-104-simpflat-63
-            flat-39-simpflat-69 =w flat-104-simpflat-64
+            flat-39-simpflat-67 =w ExceptNotAnError
+            flat-39-simpflat-68 =w flat-104
+            flat-39-simpflat-69 =w flat-105-simpflat-64
+            flat-39-simpflat-70 =w flat-105-simpflat-65
         }
         else
         {
-            flat-39-simpflat-66 =w ExceptCannotCompute
-            flat-39-simpflat-67 =w unsafe_Array_create#
-                                     0
+            flat-39-simpflat-67 =w ExceptCannotCompute
             flat-39-simpflat-68 =w unsafe_Array_create#
                                      0
             flat-39-simpflat-69 =w unsafe_Array_create#
                                      0
+            flat-39-simpflat-70 =w unsafe_Array_create#
+                                     0
         }
         
-        flat-39-simpflat-71 =r flat-39-simpflat-66
         flat-39-simpflat-72 =r flat-39-simpflat-67
         flat-39-simpflat-73 =r flat-39-simpflat-68
         flat-39-simpflat-74 =r flat-39-simpflat-69
-        flat-0-simpflat-40 =w flat-39-simpflat-71
-        flat-0-simpflat-41 =w flat-39-simpflat-72
-        flat-0-simpflat-42 =w flat-39-simpflat-73
-        flat-0-simpflat-43 =w flat-39-simpflat-74
+        flat-39-simpflat-75 =r flat-39-simpflat-70
+        flat-0-simpflat-38 =w flat-39-simpflat-72
+        flat-0-simpflat-39 =w flat-39-simpflat-73
+        flat-0-simpflat-40 =w flat-39-simpflat-74
+        flat-0-simpflat-41 =w flat-39-simpflat-75
     }
     else
     {
-        flat-0-simpflat-40 =w conv-34-aval-0-simpflat-35
+        flat-0-simpflat-38 =w conv-34-aval-0-simpflat-33
+        flat-0-simpflat-39 =w unsafe_Array_create#
+                                0
+        flat-0-simpflat-40 =w unsafe_Array_create#
+                                0
         flat-0-simpflat-41 =w unsafe_Array_create#
-                                0
-        flat-0-simpflat-42 =w unsafe_Array_create#
-                                0
-        flat-0-simpflat-43 =w unsafe_Array_create#
                                 0
     }
     
-    flat-0-simpflat-76 =r flat-0-simpflat-40
-    flat-0-simpflat-77 =r flat-0-simpflat-41
-    flat-0-simpflat-78 =r flat-0-simpflat-42
-    flat-0-simpflat-79 =r flat-0-simpflat-43
-    acc-conv-34-simpflat-30 =w flat-0-simpflat-76
-    acc-conv-34-simpflat-31 =w flat-0-simpflat-77
-    acc-conv-34-simpflat-32 =w flat-0-simpflat-78
-    acc-conv-34-simpflat-33 =w flat-0-simpflat-79
+    flat-0-simpflat-77 =r flat-0-simpflat-38
+    flat-0-simpflat-78 =r flat-0-simpflat-39
+    flat-0-simpflat-79 =r flat-0-simpflat-40
+    flat-0-simpflat-80 =r flat-0-simpflat-41
+    acc-conv-34-simpflat-28 =w flat-0-simpflat-77
+    acc-conv-34-simpflat-29 =w flat-0-simpflat-78
+    acc-conv-34-simpflat-30 =w flat-0-simpflat-79
+    acc-conv-34-simpflat-31 =w flat-0-simpflat-80
 }
 
-conv-34-simpflat-81 =r acc-conv-34-simpflat-30
-conv-34-simpflat-82 =r acc-conv-34-simpflat-31
-conv-34-simpflat-83 =r acc-conv-34-simpflat-32
-conv-34-simpflat-84 =r acc-conv-34-simpflat-33
-flat-40-simpflat-86 =i ExceptNotAnError : Error
-flat-40-simpflat-87 =i unsafe_Array_create#
-                         0 : Array Time
+conv-34-simpflat-82 =r acc-conv-34-simpflat-28
+conv-34-simpflat-83 =r acc-conv-34-simpflat-29
+conv-34-simpflat-84 =r acc-conv-34-simpflat-30
+conv-34-simpflat-85 =r acc-conv-34-simpflat-31
+flat-40-simpflat-87 =i ExceptNotAnError : Error
 flat-40-simpflat-88 =i unsafe_Array_create#
+                         0 : Array Time
+flat-40-simpflat-89 =i unsafe_Array_create#
                          0 : Array Int
 
 if (eq#
-      conv-34-simpflat-81
+      conv-34-simpflat-82
       ExceptNotAnError)
 {
-    flat-48-simpflat-89 =i ExceptNotAnError : Error
-    flat-48-simpflat-90 =i unsafe_Array_create#
-                             0 : Array Time
+    flat-48-simpflat-90 =i ExceptNotAnError : Error
     flat-48-simpflat-91 =i unsafe_Array_create#
+                             0 : Array Time
+    flat-48-simpflat-92 =i unsafe_Array_create#
                              0 : Array Int
     
     foreach (for_counter-flat-49 in 0 .. Array_length#
-                                           conv-34-simpflat-82)
+                                           conv-34-simpflat-83)
     {
-        flat-48-simpflat-92 =r flat-48-simpflat-89
         flat-48-simpflat-93 =r flat-48-simpflat-90
         flat-48-simpflat-94 =r flat-48-simpflat-91
-        simpflat-310 = unsafe_Array_index#
-                         conv-34-simpflat-82
-                         for_counter-flat-49
+        flat-48-simpflat-95 =r flat-48-simpflat-92
         simpflat-312 = unsafe_Array_index#
                          conv-34-simpflat-83
                          for_counter-flat-49
         simpflat-314 = unsafe_Array_index#
                          conv-34-simpflat-84
                          for_counter-flat-49
-        flat-51-simpflat-95 =i ExceptNotAnError : Error
-        flat-51-simpflat-96 =i unsafe_Array_create#
-                                 0 : Array Time
+        simpflat-316 = unsafe_Array_index#
+                         conv-34-simpflat-85
+                         for_counter-flat-49
+        flat-51-simpflat-96 =i ExceptNotAnError : Error
         flat-51-simpflat-97 =i unsafe_Array_create#
+                                 0 : Array Time
+        flat-51-simpflat-98 =i unsafe_Array_create#
                                  0 : Array Int
         
         if (eq#
-              flat-48-simpflat-92
+              flat-48-simpflat-93
               ExceptNotAnError)
         {
-            simpflat-326 = Buf_read#
-                             simpflat-312
             simpflat-328 = Buf_read#
                              simpflat-314
-            flat-55-simpflat-98 =i ExceptNotAnError : Error
-            flat-55-simpflat-99 =i 0 : Int
+            simpflat-330 = Buf_read#
+                             simpflat-316
+            flat-55-simpflat-99 =i ExceptNotAnError : Error
+            flat-55-simpflat-100 =i 0 : Int
             
             foreach (for_counter-flat-93 in 0 .. Array_length#
-                                                   simpflat-326)
+                                                   simpflat-328)
             {
-                flat-55-simpflat-100 =r flat-55-simpflat-98
                 flat-55-simpflat-101 =r flat-55-simpflat-99
-                simpflat-333 = unsafe_Array_index#
-                                 simpflat-326
-                                 for_counter-flat-93
+                flat-55-simpflat-102 =r flat-55-simpflat-100
                 simpflat-335 = unsafe_Array_index#
                                  simpflat-328
                                  for_counter-flat-93
-                flat-95-simpflat-102 =i ExceptNotAnError : Error
-                flat-95-simpflat-103 =i 0 : Int
+                simpflat-337 = unsafe_Array_index#
+                                 simpflat-330
+                                 for_counter-flat-93
+                flat-95-simpflat-103 =i ExceptNotAnError : Error
+                flat-95-simpflat-104 =i 0 : Int
                 
                 if (eq#
-                      simpflat-333
+                      simpflat-335
                       ExceptNotAnError)
                 {
-                    flat-98-simpflat-104 =i ExceptNotAnError : Error
-                    flat-98-simpflat-105 =i 0 : Int
+                    flat-98-simpflat-105 =i ExceptNotAnError : Error
+                    flat-98-simpflat-106 =i 0 : Int
                     
                     if (eq#
-                          flat-55-simpflat-100
+                          flat-55-simpflat-101
                           ExceptNotAnError)
                     {
-                        simpflat-16 = add#
-                                        simpflat-335
-                                        flat-55-simpflat-101
-                        flat-98-simpflat-104 =w ExceptNotAnError
-                        flat-98-simpflat-105 =w simpflat-16
+                        simpflat-15 = add#
+                                        simpflat-337
+                                        flat-55-simpflat-102
+                        flat-98-simpflat-105 =w ExceptNotAnError
+                        flat-98-simpflat-106 =w simpflat-15
                     }
                     else
                     {
-                        flat-98-simpflat-104 =w flat-55-simpflat-100
-                        flat-98-simpflat-105 =w 0
+                        flat-98-simpflat-105 =w flat-55-simpflat-101
+                        flat-98-simpflat-106 =w 0
                     }
                     
-                    flat-98-simpflat-106 =r flat-98-simpflat-104
                     flat-98-simpflat-107 =r flat-98-simpflat-105
-                    flat-95-simpflat-102 =w flat-98-simpflat-106
+                    flat-98-simpflat-108 =r flat-98-simpflat-106
                     flat-95-simpflat-103 =w flat-98-simpflat-107
+                    flat-95-simpflat-104 =w flat-98-simpflat-108
                 }
                 else
                 {
-                    flat-95-simpflat-102 =w simpflat-333
-                    flat-95-simpflat-103 =w 0
+                    flat-95-simpflat-103 =w simpflat-335
+                    flat-95-simpflat-104 =w 0
                 }
                 
-                flat-95-simpflat-108 =r flat-95-simpflat-102
                 flat-95-simpflat-109 =r flat-95-simpflat-103
-                flat-55-simpflat-98 =w flat-95-simpflat-108
+                flat-95-simpflat-110 =r flat-95-simpflat-104
                 flat-55-simpflat-99 =w flat-95-simpflat-109
+                flat-55-simpflat-100 =w flat-95-simpflat-110
             }
             
-            flat-106-simpflat-110 =r flat-55-simpflat-98
-            flat-106-simpflat-111 =r flat-55-simpflat-99
-            flat-56-simpflat-112 =i ExceptNotAnError : Error
-            flat-56-simpflat-113 =i unsafe_Array_create#
-                                      0 : Array Time
+            flat-107-simpflat-111 =r flat-55-simpflat-99
+            flat-107-simpflat-112 =r flat-55-simpflat-100
+            flat-56-simpflat-113 =i ExceptNotAnError : Error
             flat-56-simpflat-114 =i unsafe_Array_create#
+                                      0 : Array Time
+            flat-56-simpflat-115 =i unsafe_Array_create#
                                       0 : Array Int
             
             if (eq#
-                  flat-106-simpflat-110
+                  flat-107-simpflat-111
                   ExceptNotAnError)
             {
-                map_insert_acc_keys-flat-59 =i flat-48-simpflat-93 : Array Time
-                map_insert_acc_vals-flat-60 =i flat-48-simpflat-94 : Array Int
+                map_insert_acc_keys-flat-59 =i flat-48-simpflat-94 : Array Time
+                map_insert_acc_vals-flat-60 =i flat-48-simpflat-95 : Array Int
                 map_insert_acc_bs_found-flat-62 =i False : Bool
                 map_insert_acc_bs_index-flat-61 =i -1 : Int
                 map_insert_loc_keys-flat-63 =r map_insert_acc_keys-flat-59
@@ -807,16 +804,16 @@ if (eq#
                     }
                     else
                     {
-                        simpflat-19 = add#
+                        simpflat-18 = add#
                                         bs_loc_low-flat-79
                                         bs_loc_high-flat-80
-                        simpflat-20 = doubleOfInt#
+                        simpflat-19 = doubleOfInt#
+                                        simpflat-18
+                        simpflat-20 = div#
                                         simpflat-19
-                        simpflat-21 = div#
-                                        simpflat-20
                                         2.0
                         bs_acc_mid-flat-73 =w floor#
-                                                simpflat-21
+                                                simpflat-20
                         bs_loc_mid-flat-77 =r bs_acc_mid-flat-73
                         bs_loc_x-flat-78 = unsafe_Array_index#
                                              map_insert_loc_keys-flat-63
@@ -824,7 +821,7 @@ if (eq#
                         
                         if (eq#
                               bs_loc_x-flat-78
-                              simpflat-310)
+                              simpflat-312)
                         {
                             bs_acc_end-flat-83 =w True
                             bs_acc_found-flat-76 =w True
@@ -834,7 +831,7 @@ if (eq#
                             
                             if (lt#
                                   bs_loc_x-flat-78
-                                  simpflat-310)
+                                  simpflat-312)
                             {
                                 bs_acc_low-flat-81 =w add#
                                                         bs_loc_mid-flat-77
@@ -870,16 +867,30 @@ if (eq#
                     map_insert_acc_bs_index-flat-61 =w bs_loc_ins-flat-74
                 }
                 
-                flat-107 =r map_insert_acc_bs_found-flat-62
-                flat-108 =r map_insert_acc_bs_index-flat-61
+                flat-108 =r map_insert_acc_bs_found-flat-62
+                flat-109 =r map_insert_acc_bs_index-flat-61
                 
-                if (eq# flat-107 True)
+                if (eq# flat-108 True)
                 {
+                    copy_array-flat-87 =r map_insert_acc_vals-flat-60
+                    simpflat-21 = Array_length#
+                                    copy_array-flat-87
+                    
+                    if (eq# simpflat-21 0)
+                    {
+                        
+                    }
+                    else
+                    {
+                        map_insert_acc_vals-flat-60 =w Array_copy#
+                                                         copy_array-flat-87
+                    }
+                    
                     map_insert_acc_vals-flat-60 =r map_insert_acc_vals-flat-60
-                    map_insert_acc_vals-flat-60 =w Array_put_immutable#
+                    map_insert_acc_vals-flat-60 =w Array_put_mutable#
                                                      map_insert_acc_vals-flat-60
-                                                     flat-108
-                                                     flat-106-simpflat-111
+                                                     flat-109
+                                                     flat-107-simpflat-112
                 }
                 else
                 {
@@ -893,133 +904,122 @@ if (eq#
                     }
                     else
                     {
-                        simpflat-23 = unsafe_Array_index#
-                                        copy_array-flat-86
-                                        0
-                        map_insert_acc_keys-flat-59 =w Array_put_immutable#
-                                                         copy_array-flat-86
-                                                         0
-                                                         simpflat-23
+                        map_insert_acc_keys-flat-59 =w copy_array-flat-86
                     }
                     
-                    copy_array-flat-87 =r map_insert_acc_vals-flat-60
-                    simpflat-24 = Array_length#
-                                    copy_array-flat-87
+                    flat-110 =r map_insert_acc_vals-flat-60
+                    simpflat-23 = Array_length#
+                                    flat-110
                     
-                    if (eq# simpflat-24 0)
+                    if (eq# simpflat-23 0)
                     {
                         
                     }
                     else
                     {
-                        simpflat-25 = unsafe_Array_index#
-                                        copy_array-flat-87
-                                        0
-                        map_insert_acc_vals-flat-60 =w Array_put_immutable#
-                                                         copy_array-flat-87
-                                                         0
-                                                         simpflat-25
+                        map_insert_acc_vals-flat-60 =w Array_copy#
+                                                         flat-110
                     }
                     
                     
-                    foreach (for_counter-flat-88 in map_insert_size-flat-68 .. flat-108)
+                    foreach (for_counter-flat-88 in map_insert_size-flat-68 .. flat-109)
                     {
                         update_acc-flat-89 =r map_insert_acc_keys-flat-59
-                        simpflat-26 = sub#
+                        simpflat-24 = sub#
                                         for_counter-flat-88
                                         1
-                        simpflat-27 = unsafe_Array_index#
+                        simpflat-25 = unsafe_Array_index#
                                         map_insert_loc_keys-flat-63
-                                        simpflat-26
+                                        simpflat-24
                         map_insert_acc_keys-flat-59 =w Array_put_mutable#
                                                          update_acc-flat-89
                                                          for_counter-flat-88
-                                                         simpflat-27
+                                                         simpflat-25
                         update_acc-flat-90 =r map_insert_acc_vals-flat-60
-                        simpflat-29 = unsafe_Array_index#
+                        simpflat-27 = unsafe_Array_index#
                                         map_insert_loc_vals-flat-64
-                                        simpflat-26
+                                        simpflat-24
                         map_insert_acc_vals-flat-60 =w Array_put_mutable#
                                                          update_acc-flat-90
                                                          for_counter-flat-88
-                                                         simpflat-29
+                                                         simpflat-27
                     }
                     
                     map_insert_acc_keys-flat-59 =r map_insert_acc_keys-flat-59
                     map_insert_acc_keys-flat-59 =w Array_put_mutable#
                                                      map_insert_acc_keys-flat-59
-                                                     flat-108
-                                                     simpflat-310
+                                                     flat-109
+                                                     simpflat-312
                     map_insert_acc_vals-flat-60 =r map_insert_acc_vals-flat-60
                     map_insert_acc_vals-flat-60 =w Array_put_mutable#
                                                      map_insert_acc_vals-flat-60
-                                                     flat-108
-                                                     flat-106-simpflat-111
+                                                     flat-109
+                                                     flat-107-simpflat-112
                 }
                 
-                flat-109 =r map_insert_acc_keys-flat-59
-                flat-110 =r map_insert_acc_vals-flat-60
-                flat-56-simpflat-112 =w ExceptNotAnError
-                flat-56-simpflat-113 =w flat-109
-                flat-56-simpflat-114 =w flat-110
+                flat-111 =r map_insert_acc_keys-flat-59
+                flat-112 =r map_insert_acc_vals-flat-60
+                flat-56-simpflat-113 =w ExceptNotAnError
+                flat-56-simpflat-114 =w flat-111
+                flat-56-simpflat-115 =w flat-112
             }
             else
             {
-                flat-56-simpflat-112 =w flat-106-simpflat-110
-                flat-56-simpflat-113 =w unsafe_Array_create#
-                                          0
+                flat-56-simpflat-113 =w flat-107-simpflat-111
                 flat-56-simpflat-114 =w unsafe_Array_create#
+                                          0
+                flat-56-simpflat-115 =w unsafe_Array_create#
                                           0
             }
             
-            flat-56-simpflat-115 =r flat-56-simpflat-112
             flat-56-simpflat-116 =r flat-56-simpflat-113
             flat-56-simpflat-117 =r flat-56-simpflat-114
-            flat-51-simpflat-95 =w flat-56-simpflat-115
+            flat-56-simpflat-118 =r flat-56-simpflat-115
             flat-51-simpflat-96 =w flat-56-simpflat-116
             flat-51-simpflat-97 =w flat-56-simpflat-117
+            flat-51-simpflat-98 =w flat-56-simpflat-118
         }
         else
         {
-            flat-51-simpflat-95 =w flat-48-simpflat-92
-            flat-51-simpflat-96 =w unsafe_Array_create#
-                                     0
+            flat-51-simpflat-96 =w flat-48-simpflat-93
             flat-51-simpflat-97 =w unsafe_Array_create#
+                                     0
+            flat-51-simpflat-98 =w unsafe_Array_create#
                                      0
         }
         
-        flat-51-simpflat-118 =r flat-51-simpflat-95
         flat-51-simpflat-119 =r flat-51-simpflat-96
         flat-51-simpflat-120 =r flat-51-simpflat-97
-        flat-48-simpflat-89 =w flat-51-simpflat-118
+        flat-51-simpflat-121 =r flat-51-simpflat-98
         flat-48-simpflat-90 =w flat-51-simpflat-119
         flat-48-simpflat-91 =w flat-51-simpflat-120
+        flat-48-simpflat-92 =w flat-51-simpflat-121
     }
     
-    flat-111-simpflat-121 =r flat-48-simpflat-89
-    flat-111-simpflat-122 =r flat-48-simpflat-90
-    flat-111-simpflat-123 =r flat-48-simpflat-91
-    flat-40-simpflat-86 =w flat-111-simpflat-121
-    flat-40-simpflat-87 =w flat-111-simpflat-122
-    flat-40-simpflat-88 =w flat-111-simpflat-123
+    flat-113-simpflat-122 =r flat-48-simpflat-90
+    flat-113-simpflat-123 =r flat-48-simpflat-91
+    flat-113-simpflat-124 =r flat-48-simpflat-92
+    flat-40-simpflat-87 =w flat-113-simpflat-122
+    flat-40-simpflat-88 =w flat-113-simpflat-123
+    flat-40-simpflat-89 =w flat-113-simpflat-124
 }
 else
 {
-    flat-40-simpflat-86 =w conv-34-simpflat-81
-    flat-40-simpflat-87 =w unsafe_Array_create#
-                             0
+    flat-40-simpflat-87 =w conv-34-simpflat-82
     flat-40-simpflat-88 =w unsafe_Array_create#
+                             0
+    flat-40-simpflat-89 =w unsafe_Array_create#
                              0
 }
 
-flat-40-simpflat-124 =r flat-40-simpflat-86
 flat-40-simpflat-125 =r flat-40-simpflat-87
 flat-40-simpflat-126 =r flat-40-simpflat-88
+flat-40-simpflat-127 =r flat-40-simpflat-89
 
 output repl:output : Sum Error (Map Time Int) =
-    flat-40-simpflat-124 : Error
-  , flat-40-simpflat-125 : Array Time
-  , flat-40-simpflat-126 : Array Int
+    flat-40-simpflat-125 : Error
+  , flat-40-simpflat-126 : Array Time
+  , flat-40-simpflat-127 : Array Int
 
 Flattened Avalanche (simplified), typechecked
 ---------------------------------------------
@@ -1029,42 +1029,42 @@ conv-2 : Time =
 conv-3 : Int =
   MAX_MAP_SIZE
 
-acc-conv-34-simpflat-30 =i ExceptNotAnError : Error
-acc-conv-34-simpflat-31 =i unsafe_Array_create#
+acc-conv-34-simpflat-28 =i ExceptNotAnError : Error
+acc-conv-34-simpflat-29 =i unsafe_Array_create#
                              0 : Array Time
-acc-conv-34-simpflat-32 =i unsafe_Array_create#
+acc-conv-34-simpflat-30 =i unsafe_Array_create#
                              0 : Array (Buf 2 Error)
-acc-conv-34-simpflat-33 =i unsafe_Array_create#
+acc-conv-34-simpflat-31 =i unsafe_Array_create#
                              0 : Array (Buf 2 Int)
 
 for_facts conv-1 : Time
-        , conv-0-simpflat-127 : Error
-        , conv-0-simpflat-128 : Int
-        , conv-0-simpflat-129 : Time {
+        , conv-0-simpflat-128 : Error
+        , conv-0-simpflat-129 : Int
+        , conv-0-simpflat-130 : Time {
+    conv-34-aval-0-simpflat-33 =r acc-conv-34-simpflat-28
+    conv-34-aval-0-simpflat-34 =r acc-conv-34-simpflat-29
     conv-34-aval-0-simpflat-35 =r acc-conv-34-simpflat-30
     conv-34-aval-0-simpflat-36 =r acc-conv-34-simpflat-31
-    conv-34-aval-0-simpflat-37 =r acc-conv-34-simpflat-32
-    conv-34-aval-0-simpflat-38 =r acc-conv-34-simpflat-33
-    flat-0-simpflat-40 =i ExceptNotAnError : Error
-    flat-0-simpflat-41 =i unsafe_Array_create#
+    flat-0-simpflat-38 =i ExceptNotAnError : Error
+    flat-0-simpflat-39 =i unsafe_Array_create#
                             0 : Array Time
-    flat-0-simpflat-42 =i unsafe_Array_create#
+    flat-0-simpflat-40 =i unsafe_Array_create#
                             0 : Array (Buf 2 Error)
-    flat-0-simpflat-43 =i unsafe_Array_create#
+    flat-0-simpflat-41 =i unsafe_Array_create#
                             0 : Array (Buf 2 Int)
     
     if (eq#
-          conv-34-aval-0-simpflat-35
+          conv-34-aval-0-simpflat-33
           ExceptNotAnError)
     {
-        map_insert_acc_keys-flat-3 =i conv-34-aval-0-simpflat-36 : Array Time
-        map_insert_acc_vals-flat-4-simpflat-45 =i conv-34-aval-0-simpflat-37 : Array (Buf 2 Error)
-        map_insert_acc_vals-flat-4-simpflat-46 =i conv-34-aval-0-simpflat-38 : Array (Buf 2 Int)
+        map_insert_acc_keys-flat-3 =i conv-34-aval-0-simpflat-34 : Array Time
+        map_insert_acc_vals-flat-4-simpflat-43 =i conv-34-aval-0-simpflat-35 : Array (Buf 2 Error)
+        map_insert_acc_vals-flat-4-simpflat-44 =i conv-34-aval-0-simpflat-36 : Array (Buf 2 Int)
         map_insert_acc_bs_found-flat-6 =i False : Bool
         map_insert_acc_bs_index-flat-5 =i -1 : Int
         map_insert_loc_keys-flat-7 =r map_insert_acc_keys-flat-3
-        map_insert_loc_vals-flat-8-simpflat-48 =r map_insert_acc_vals-flat-4-simpflat-45
-        map_insert_loc_vals-flat-8-simpflat-49 =r map_insert_acc_vals-flat-4-simpflat-46
+        map_insert_loc_vals-flat-8-simpflat-46 =r map_insert_acc_vals-flat-4-simpflat-43
+        map_insert_loc_vals-flat-8-simpflat-47 =r map_insert_acc_vals-flat-4-simpflat-44
         map_insert_size-flat-12 = Array_length#
                                     map_insert_loc_keys-flat-7
         bs_acc_found-flat-20 =i False : Bool
@@ -1105,7 +1105,7 @@ for_facts conv-1 : Time
                 
                 if (eq#
                       bs_loc_x-flat-22
-                      conv-0-simpflat-129)
+                      conv-0-simpflat-130)
                 {
                     bs_acc_end-flat-27 =w True
                     bs_acc_found-flat-20 =w True
@@ -1115,7 +1115,7 @@ for_facts conv-1 : Time
                     
                     if (lt#
                           bs_loc_x-flat-22
-                          conv-0-simpflat-129)
+                          conv-0-simpflat-130)
                     {
                         bs_acc_low-flat-25 =w add#
                                                 bs_loc_mid-flat-21
@@ -1156,34 +1156,10 @@ for_facts conv-1 : Time
         
         if (eq# flat-101 True)
         {
-            simpflat-240 = unsafe_Array_index#
-                             map_insert_loc_vals-flat-8-simpflat-48
-                             flat-102
-            simpflat-242 = unsafe_Array_index#
-                             map_insert_loc_vals-flat-8-simpflat-49
-                             flat-102
-            simpflat-247 = Buf_push#
-                             simpflat-240
-                             conv-0-simpflat-127
-            simpflat-250 = Buf_push#
-                             simpflat-242
-                             conv-0-simpflat-128
-            map_insert_acc_vals-flat-4-simpflat-45 =r map_insert_acc_vals-flat-4-simpflat-45
-            map_insert_acc_vals-flat-4-simpflat-45 =w Array_put_immutable#
-                                                        map_insert_acc_vals-flat-4-simpflat-45
-                                                        flat-102
-                                                        simpflat-247
-            map_insert_acc_vals-flat-4-simpflat-46 =r map_insert_acc_vals-flat-4-simpflat-46
-            map_insert_acc_vals-flat-4-simpflat-46 =w Array_put_immutable#
-                                                        map_insert_acc_vals-flat-4-simpflat-46
-                                                        flat-102
-                                                        simpflat-250
-        }
-        else
-        {
-            copy_array-flat-31 =r map_insert_acc_keys-flat-3
+            copy_array-flat-32-simpflat-49 =r map_insert_acc_vals-flat-4-simpflat-43
+            copy_array-flat-32-simpflat-50 =r map_insert_acc_vals-flat-4-simpflat-44
             simpflat-4 = Array_length#
-                           copy_array-flat-31
+                           copy_array-flat-32-simpflat-49
             
             if (eq# simpflat-4 0)
             {
@@ -1191,19 +1167,52 @@ for_facts conv-1 : Time
             }
             else
             {
-                simpflat-5 = unsafe_Array_index#
-                               copy_array-flat-31
-                               0
-                map_insert_acc_keys-flat-3 =w Array_put_immutable#
-                                                copy_array-flat-31
-                                                0
-                                                simpflat-5
+                map_insert_acc_vals-flat-4-simpflat-43 =w copy_array-flat-32-simpflat-49
+                map_insert_acc_vals-flat-4-simpflat-44 =w copy_array-flat-32-simpflat-50
             }
             
-            copy_array-flat-32-simpflat-54 =r map_insert_acc_vals-flat-4-simpflat-45
-            copy_array-flat-32-simpflat-55 =r map_insert_acc_vals-flat-4-simpflat-46
+            simpflat-251 = unsafe_Array_index#
+                             map_insert_loc_vals-flat-8-simpflat-46
+                             flat-102
+            simpflat-253 = unsafe_Array_index#
+                             map_insert_loc_vals-flat-8-simpflat-47
+                             flat-102
+            simpflat-258 = Buf_push#
+                             simpflat-251
+                             conv-0-simpflat-128
+            simpflat-261 = Buf_push#
+                             simpflat-253
+                             conv-0-simpflat-129
+            map_insert_acc_vals-flat-4-simpflat-43 =r map_insert_acc_vals-flat-4-simpflat-43
+            map_insert_acc_vals-flat-4-simpflat-43 =w Array_put_mutable#
+                                                        map_insert_acc_vals-flat-4-simpflat-43
+                                                        flat-102
+                                                        simpflat-258
+            map_insert_acc_vals-flat-4-simpflat-44 =r map_insert_acc_vals-flat-4-simpflat-44
+            map_insert_acc_vals-flat-4-simpflat-44 =w Array_put_mutable#
+                                                        map_insert_acc_vals-flat-4-simpflat-44
+                                                        flat-102
+                                                        simpflat-261
+        }
+        else
+        {
+            copy_array-flat-31 =r map_insert_acc_keys-flat-3
+            simpflat-5 = Array_length#
+                           copy_array-flat-31
+            
+            if (eq# simpflat-5 0)
+            {
+                
+            }
+            else
+            {
+                map_insert_acc_keys-flat-3 =w copy_array-flat-31
+            }
+            
+            flat-103-simpflat-55 =r map_insert_acc_vals-flat-4-simpflat-43
+            flat-103-simpflat-56 =r map_insert_acc_vals-flat-4-simpflat-44
             simpflat-6 = Array_length#
-                           copy_array-flat-32-simpflat-54
+                           flat-103-simpflat-55
             
             if (eq# simpflat-6 0)
             {
@@ -1211,260 +1220,248 @@ for_facts conv-1 : Time
             }
             else
             {
-                simpflat-262 = unsafe_Array_index#
-                                 copy_array-flat-32-simpflat-54
-                                 0
-                simpflat-264 = unsafe_Array_index#
-                                 copy_array-flat-32-simpflat-55
-                                 0
-                map_insert_acc_vals-flat-4-simpflat-45 =w Array_put_immutable#
-                                                            copy_array-flat-32-simpflat-54
-                                                            0
-                                                            simpflat-262
-                map_insert_acc_vals-flat-4-simpflat-46 =w Array_put_immutable#
-                                                            copy_array-flat-32-simpflat-55
-                                                            0
-                                                            simpflat-264
+                map_insert_acc_vals-flat-4-simpflat-43 =w flat-103-simpflat-55
+                map_insert_acc_vals-flat-4-simpflat-44 =w flat-103-simpflat-56
             }
             
             
             foreach (for_counter-flat-33 in map_insert_size-flat-12 .. flat-102)
             {
                 update_acc-flat-34 =r map_insert_acc_keys-flat-3
-                simpflat-8 = sub#
+                simpflat-7 = sub#
                                for_counter-flat-33
                                1
-                simpflat-9 = unsafe_Array_index#
+                simpflat-8 = unsafe_Array_index#
                                map_insert_loc_keys-flat-7
-                               simpflat-8
+                               simpflat-7
                 map_insert_acc_keys-flat-3 =w Array_put_mutable#
                                                 update_acc-flat-34
                                                 for_counter-flat-33
-                                                simpflat-9
-                update_acc-flat-35-simpflat-57 =r map_insert_acc_vals-flat-4-simpflat-45
-                update_acc-flat-35-simpflat-58 =r map_insert_acc_vals-flat-4-simpflat-46
-                simpflat-274 = unsafe_Array_index#
-                                 map_insert_loc_vals-flat-8-simpflat-48
-                                 simpflat-8
+                                                simpflat-8
+                update_acc-flat-35-simpflat-58 =r map_insert_acc_vals-flat-4-simpflat-43
+                update_acc-flat-35-simpflat-59 =r map_insert_acc_vals-flat-4-simpflat-44
                 simpflat-276 = unsafe_Array_index#
-                                 map_insert_loc_vals-flat-8-simpflat-49
-                                 simpflat-8
-                map_insert_acc_vals-flat-4-simpflat-45 =w Array_put_mutable#
-                                                            update_acc-flat-35-simpflat-57
-                                                            for_counter-flat-33
-                                                            simpflat-274
-                map_insert_acc_vals-flat-4-simpflat-46 =w Array_put_mutable#
+                                 map_insert_loc_vals-flat-8-simpflat-46
+                                 simpflat-7
+                simpflat-278 = unsafe_Array_index#
+                                 map_insert_loc_vals-flat-8-simpflat-47
+                                 simpflat-7
+                map_insert_acc_vals-flat-4-simpflat-43 =w Array_put_mutable#
                                                             update_acc-flat-35-simpflat-58
                                                             for_counter-flat-33
                                                             simpflat-276
+                map_insert_acc_vals-flat-4-simpflat-44 =w Array_put_mutable#
+                                                            update_acc-flat-35-simpflat-59
+                                                            for_counter-flat-33
+                                                            simpflat-278
             }
             
             map_insert_acc_keys-flat-3 =r map_insert_acc_keys-flat-3
             map_insert_acc_keys-flat-3 =w Array_put_mutable#
                                             map_insert_acc_keys-flat-3
                                             flat-102
-                                            conv-0-simpflat-129
-            simpflat-351 = Buf_make# ()
-            simpflat-286 = Buf_push#
-                             simpflat-351
-                             conv-0-simpflat-127
-            simpflat-352 = Buf_make# ()
+                                            conv-0-simpflat-130
+            simpflat-353 = Buf_make# ()
             simpflat-288 = Buf_push#
-                             simpflat-352
+                             simpflat-353
                              conv-0-simpflat-128
-            map_insert_acc_vals-flat-4-simpflat-45 =r map_insert_acc_vals-flat-4-simpflat-45
-            map_insert_acc_vals-flat-4-simpflat-45 =w Array_put_mutable#
-                                                        map_insert_acc_vals-flat-4-simpflat-45
-                                                        flat-102
-                                                        simpflat-286
-            map_insert_acc_vals-flat-4-simpflat-46 =r map_insert_acc_vals-flat-4-simpflat-46
-            map_insert_acc_vals-flat-4-simpflat-46 =w Array_put_mutable#
-                                                        map_insert_acc_vals-flat-4-simpflat-46
+            simpflat-354 = Buf_make# ()
+            simpflat-290 = Buf_push#
+                             simpflat-354
+                             conv-0-simpflat-129
+            map_insert_acc_vals-flat-4-simpflat-43 =r map_insert_acc_vals-flat-4-simpflat-43
+            map_insert_acc_vals-flat-4-simpflat-43 =w Array_put_mutable#
+                                                        map_insert_acc_vals-flat-4-simpflat-43
                                                         flat-102
                                                         simpflat-288
+            map_insert_acc_vals-flat-4-simpflat-44 =r map_insert_acc_vals-flat-4-simpflat-44
+            map_insert_acc_vals-flat-4-simpflat-44 =w Array_put_mutable#
+                                                        map_insert_acc_vals-flat-4-simpflat-44
+                                                        flat-102
+                                                        simpflat-290
         }
         
-        flat-103 =r map_insert_acc_keys-flat-3
-        flat-104-simpflat-63 =r map_insert_acc_vals-flat-4-simpflat-45
-        flat-104-simpflat-64 =r map_insert_acc_vals-flat-4-simpflat-46
-        flat-39-simpflat-66 =i ExceptNotAnError : Error
-        flat-39-simpflat-67 =i unsafe_Array_create#
-                                 0 : Array Time
+        flat-104 =r map_insert_acc_keys-flat-3
+        flat-105-simpflat-64 =r map_insert_acc_vals-flat-4-simpflat-43
+        flat-105-simpflat-65 =r map_insert_acc_vals-flat-4-simpflat-44
+        flat-39-simpflat-67 =i ExceptNotAnError : Error
         flat-39-simpflat-68 =i unsafe_Array_create#
-                                 0 : Array (Buf 2 Error)
+                                 0 : Array Time
         flat-39-simpflat-69 =i unsafe_Array_create#
+                                 0 : Array (Buf 2 Error)
+        flat-39-simpflat-70 =i unsafe_Array_create#
                                  0 : Array (Buf 2 Int)
-        simpflat-13 = Array_length#
-                        flat-103
+        simpflat-12 = Array_length#
+                        flat-104
         
-        if (lt# simpflat-13 conv-3)
+        if (lt# simpflat-12 conv-3)
         {
-            flat-39-simpflat-66 =w ExceptNotAnError
-            flat-39-simpflat-67 =w flat-103
-            flat-39-simpflat-68 =w flat-104-simpflat-63
-            flat-39-simpflat-69 =w flat-104-simpflat-64
+            flat-39-simpflat-67 =w ExceptNotAnError
+            flat-39-simpflat-68 =w flat-104
+            flat-39-simpflat-69 =w flat-105-simpflat-64
+            flat-39-simpflat-70 =w flat-105-simpflat-65
         }
         else
         {
-            flat-39-simpflat-66 =w ExceptCannotCompute
-            flat-39-simpflat-67 =w unsafe_Array_create#
-                                     0
+            flat-39-simpflat-67 =w ExceptCannotCompute
             flat-39-simpflat-68 =w unsafe_Array_create#
                                      0
             flat-39-simpflat-69 =w unsafe_Array_create#
                                      0
+            flat-39-simpflat-70 =w unsafe_Array_create#
+                                     0
         }
         
-        flat-39-simpflat-71 =r flat-39-simpflat-66
         flat-39-simpflat-72 =r flat-39-simpflat-67
         flat-39-simpflat-73 =r flat-39-simpflat-68
         flat-39-simpflat-74 =r flat-39-simpflat-69
-        flat-0-simpflat-40 =w flat-39-simpflat-71
-        flat-0-simpflat-41 =w flat-39-simpflat-72
-        flat-0-simpflat-42 =w flat-39-simpflat-73
-        flat-0-simpflat-43 =w flat-39-simpflat-74
+        flat-39-simpflat-75 =r flat-39-simpflat-70
+        flat-0-simpflat-38 =w flat-39-simpflat-72
+        flat-0-simpflat-39 =w flat-39-simpflat-73
+        flat-0-simpflat-40 =w flat-39-simpflat-74
+        flat-0-simpflat-41 =w flat-39-simpflat-75
     }
     else
     {
-        flat-0-simpflat-40 =w conv-34-aval-0-simpflat-35
+        flat-0-simpflat-38 =w conv-34-aval-0-simpflat-33
+        flat-0-simpflat-39 =w unsafe_Array_create#
+                                0
+        flat-0-simpflat-40 =w unsafe_Array_create#
+                                0
         flat-0-simpflat-41 =w unsafe_Array_create#
-                                0
-        flat-0-simpflat-42 =w unsafe_Array_create#
-                                0
-        flat-0-simpflat-43 =w unsafe_Array_create#
                                 0
     }
     
-    flat-0-simpflat-76 =r flat-0-simpflat-40
-    flat-0-simpflat-77 =r flat-0-simpflat-41
-    flat-0-simpflat-78 =r flat-0-simpflat-42
-    flat-0-simpflat-79 =r flat-0-simpflat-43
-    acc-conv-34-simpflat-30 =w flat-0-simpflat-76
-    acc-conv-34-simpflat-31 =w flat-0-simpflat-77
-    acc-conv-34-simpflat-32 =w flat-0-simpflat-78
-    acc-conv-34-simpflat-33 =w flat-0-simpflat-79
+    flat-0-simpflat-77 =r flat-0-simpflat-38
+    flat-0-simpflat-78 =r flat-0-simpflat-39
+    flat-0-simpflat-79 =r flat-0-simpflat-40
+    flat-0-simpflat-80 =r flat-0-simpflat-41
+    acc-conv-34-simpflat-28 =w flat-0-simpflat-77
+    acc-conv-34-simpflat-29 =w flat-0-simpflat-78
+    acc-conv-34-simpflat-30 =w flat-0-simpflat-79
+    acc-conv-34-simpflat-31 =w flat-0-simpflat-80
 }
 
-conv-34-simpflat-81 =r acc-conv-34-simpflat-30
-conv-34-simpflat-82 =r acc-conv-34-simpflat-31
-conv-34-simpflat-83 =r acc-conv-34-simpflat-32
-conv-34-simpflat-84 =r acc-conv-34-simpflat-33
-flat-40-simpflat-86 =i ExceptNotAnError : Error
-flat-40-simpflat-87 =i unsafe_Array_create#
-                         0 : Array Time
+conv-34-simpflat-82 =r acc-conv-34-simpflat-28
+conv-34-simpflat-83 =r acc-conv-34-simpflat-29
+conv-34-simpflat-84 =r acc-conv-34-simpflat-30
+conv-34-simpflat-85 =r acc-conv-34-simpflat-31
+flat-40-simpflat-87 =i ExceptNotAnError : Error
 flat-40-simpflat-88 =i unsafe_Array_create#
+                         0 : Array Time
+flat-40-simpflat-89 =i unsafe_Array_create#
                          0 : Array Int
 
 if (eq#
-      conv-34-simpflat-81
+      conv-34-simpflat-82
       ExceptNotAnError)
 {
-    flat-48-simpflat-89 =i ExceptNotAnError : Error
-    flat-48-simpflat-90 =i unsafe_Array_create#
-                             0 : Array Time
+    flat-48-simpflat-90 =i ExceptNotAnError : Error
     flat-48-simpflat-91 =i unsafe_Array_create#
+                             0 : Array Time
+    flat-48-simpflat-92 =i unsafe_Array_create#
                              0 : Array Int
     
     foreach (for_counter-flat-49 in 0 .. Array_length#
-                                           conv-34-simpflat-82)
+                                           conv-34-simpflat-83)
     {
-        flat-48-simpflat-92 =r flat-48-simpflat-89
         flat-48-simpflat-93 =r flat-48-simpflat-90
         flat-48-simpflat-94 =r flat-48-simpflat-91
-        simpflat-310 = unsafe_Array_index#
-                         conv-34-simpflat-82
-                         for_counter-flat-49
+        flat-48-simpflat-95 =r flat-48-simpflat-92
         simpflat-312 = unsafe_Array_index#
                          conv-34-simpflat-83
                          for_counter-flat-49
         simpflat-314 = unsafe_Array_index#
                          conv-34-simpflat-84
                          for_counter-flat-49
-        flat-51-simpflat-95 =i ExceptNotAnError : Error
-        flat-51-simpflat-96 =i unsafe_Array_create#
-                                 0 : Array Time
+        simpflat-316 = unsafe_Array_index#
+                         conv-34-simpflat-85
+                         for_counter-flat-49
+        flat-51-simpflat-96 =i ExceptNotAnError : Error
         flat-51-simpflat-97 =i unsafe_Array_create#
+                                 0 : Array Time
+        flat-51-simpflat-98 =i unsafe_Array_create#
                                  0 : Array Int
         
         if (eq#
-              flat-48-simpflat-92
+              flat-48-simpflat-93
               ExceptNotAnError)
         {
-            simpflat-326 = Buf_read#
-                             simpflat-312
             simpflat-328 = Buf_read#
                              simpflat-314
-            flat-55-simpflat-98 =i ExceptNotAnError : Error
-            flat-55-simpflat-99 =i 0 : Int
+            simpflat-330 = Buf_read#
+                             simpflat-316
+            flat-55-simpflat-99 =i ExceptNotAnError : Error
+            flat-55-simpflat-100 =i 0 : Int
             
             foreach (for_counter-flat-93 in 0 .. Array_length#
-                                                   simpflat-326)
+                                                   simpflat-328)
             {
-                flat-55-simpflat-100 =r flat-55-simpflat-98
                 flat-55-simpflat-101 =r flat-55-simpflat-99
-                simpflat-333 = unsafe_Array_index#
-                                 simpflat-326
-                                 for_counter-flat-93
+                flat-55-simpflat-102 =r flat-55-simpflat-100
                 simpflat-335 = unsafe_Array_index#
                                  simpflat-328
                                  for_counter-flat-93
-                flat-95-simpflat-102 =i ExceptNotAnError : Error
-                flat-95-simpflat-103 =i 0 : Int
+                simpflat-337 = unsafe_Array_index#
+                                 simpflat-330
+                                 for_counter-flat-93
+                flat-95-simpflat-103 =i ExceptNotAnError : Error
+                flat-95-simpflat-104 =i 0 : Int
                 
                 if (eq#
-                      simpflat-333
+                      simpflat-335
                       ExceptNotAnError)
                 {
-                    flat-98-simpflat-104 =i ExceptNotAnError : Error
-                    flat-98-simpflat-105 =i 0 : Int
+                    flat-98-simpflat-105 =i ExceptNotAnError : Error
+                    flat-98-simpflat-106 =i 0 : Int
                     
                     if (eq#
-                          flat-55-simpflat-100
+                          flat-55-simpflat-101
                           ExceptNotAnError)
                     {
-                        simpflat-16 = add#
-                                        simpflat-335
-                                        flat-55-simpflat-101
-                        flat-98-simpflat-104 =w ExceptNotAnError
-                        flat-98-simpflat-105 =w simpflat-16
+                        simpflat-15 = add#
+                                        simpflat-337
+                                        flat-55-simpflat-102
+                        flat-98-simpflat-105 =w ExceptNotAnError
+                        flat-98-simpflat-106 =w simpflat-15
                     }
                     else
                     {
-                        flat-98-simpflat-104 =w flat-55-simpflat-100
-                        flat-98-simpflat-105 =w 0
+                        flat-98-simpflat-105 =w flat-55-simpflat-101
+                        flat-98-simpflat-106 =w 0
                     }
                     
-                    flat-98-simpflat-106 =r flat-98-simpflat-104
                     flat-98-simpflat-107 =r flat-98-simpflat-105
-                    flat-95-simpflat-102 =w flat-98-simpflat-106
+                    flat-98-simpflat-108 =r flat-98-simpflat-106
                     flat-95-simpflat-103 =w flat-98-simpflat-107
+                    flat-95-simpflat-104 =w flat-98-simpflat-108
                 }
                 else
                 {
-                    flat-95-simpflat-102 =w simpflat-333
-                    flat-95-simpflat-103 =w 0
+                    flat-95-simpflat-103 =w simpflat-335
+                    flat-95-simpflat-104 =w 0
                 }
                 
-                flat-95-simpflat-108 =r flat-95-simpflat-102
                 flat-95-simpflat-109 =r flat-95-simpflat-103
-                flat-55-simpflat-98 =w flat-95-simpflat-108
+                flat-95-simpflat-110 =r flat-95-simpflat-104
                 flat-55-simpflat-99 =w flat-95-simpflat-109
+                flat-55-simpflat-100 =w flat-95-simpflat-110
             }
             
-            flat-106-simpflat-110 =r flat-55-simpflat-98
-            flat-106-simpflat-111 =r flat-55-simpflat-99
-            flat-56-simpflat-112 =i ExceptNotAnError : Error
-            flat-56-simpflat-113 =i unsafe_Array_create#
-                                      0 : Array Time
+            flat-107-simpflat-111 =r flat-55-simpflat-99
+            flat-107-simpflat-112 =r flat-55-simpflat-100
+            flat-56-simpflat-113 =i ExceptNotAnError : Error
             flat-56-simpflat-114 =i unsafe_Array_create#
+                                      0 : Array Time
+            flat-56-simpflat-115 =i unsafe_Array_create#
                                       0 : Array Int
             
             if (eq#
-                  flat-106-simpflat-110
+                  flat-107-simpflat-111
                   ExceptNotAnError)
             {
-                map_insert_acc_keys-flat-59 =i flat-48-simpflat-93 : Array Time
-                map_insert_acc_vals-flat-60 =i flat-48-simpflat-94 : Array Int
+                map_insert_acc_keys-flat-59 =i flat-48-simpflat-94 : Array Time
+                map_insert_acc_vals-flat-60 =i flat-48-simpflat-95 : Array Int
                 map_insert_acc_bs_found-flat-62 =i False : Bool
                 map_insert_acc_bs_index-flat-61 =i -1 : Int
                 map_insert_loc_keys-flat-63 =r map_insert_acc_keys-flat-59
@@ -1494,16 +1491,16 @@ if (eq#
                     }
                     else
                     {
-                        simpflat-19 = add#
+                        simpflat-18 = add#
                                         bs_loc_low-flat-79
                                         bs_loc_high-flat-80
-                        simpflat-20 = doubleOfInt#
+                        simpflat-19 = doubleOfInt#
+                                        simpflat-18
+                        simpflat-20 = div#
                                         simpflat-19
-                        simpflat-21 = div#
-                                        simpflat-20
                                         2.0
                         bs_acc_mid-flat-73 =w floor#
-                                                simpflat-21
+                                                simpflat-20
                         bs_loc_mid-flat-77 =r bs_acc_mid-flat-73
                         bs_loc_x-flat-78 = unsafe_Array_index#
                                              map_insert_loc_keys-flat-63
@@ -1511,7 +1508,7 @@ if (eq#
                         
                         if (eq#
                               bs_loc_x-flat-78
-                              simpflat-310)
+                              simpflat-312)
                         {
                             bs_acc_end-flat-83 =w True
                             bs_acc_found-flat-76 =w True
@@ -1521,7 +1518,7 @@ if (eq#
                             
                             if (lt#
                                   bs_loc_x-flat-78
-                                  simpflat-310)
+                                  simpflat-312)
                             {
                                 bs_acc_low-flat-81 =w add#
                                                         bs_loc_mid-flat-77
@@ -1557,16 +1554,30 @@ if (eq#
                     map_insert_acc_bs_index-flat-61 =w bs_loc_ins-flat-74
                 }
                 
-                flat-107 =r map_insert_acc_bs_found-flat-62
-                flat-108 =r map_insert_acc_bs_index-flat-61
+                flat-108 =r map_insert_acc_bs_found-flat-62
+                flat-109 =r map_insert_acc_bs_index-flat-61
                 
-                if (eq# flat-107 True)
+                if (eq# flat-108 True)
                 {
+                    copy_array-flat-87 =r map_insert_acc_vals-flat-60
+                    simpflat-21 = Array_length#
+                                    copy_array-flat-87
+                    
+                    if (eq# simpflat-21 0)
+                    {
+                        
+                    }
+                    else
+                    {
+                        map_insert_acc_vals-flat-60 =w Array_copy#
+                                                         copy_array-flat-87
+                    }
+                    
                     map_insert_acc_vals-flat-60 =r map_insert_acc_vals-flat-60
-                    map_insert_acc_vals-flat-60 =w Array_put_immutable#
+                    map_insert_acc_vals-flat-60 =w Array_put_mutable#
                                                      map_insert_acc_vals-flat-60
-                                                     flat-108
-                                                     flat-106-simpflat-111
+                                                     flat-109
+                                                     flat-107-simpflat-112
                 }
                 else
                 {
@@ -1580,133 +1591,122 @@ if (eq#
                     }
                     else
                     {
-                        simpflat-23 = unsafe_Array_index#
-                                        copy_array-flat-86
-                                        0
-                        map_insert_acc_keys-flat-59 =w Array_put_immutable#
-                                                         copy_array-flat-86
-                                                         0
-                                                         simpflat-23
+                        map_insert_acc_keys-flat-59 =w copy_array-flat-86
                     }
                     
-                    copy_array-flat-87 =r map_insert_acc_vals-flat-60
-                    simpflat-24 = Array_length#
-                                    copy_array-flat-87
+                    flat-110 =r map_insert_acc_vals-flat-60
+                    simpflat-23 = Array_length#
+                                    flat-110
                     
-                    if (eq# simpflat-24 0)
+                    if (eq# simpflat-23 0)
                     {
                         
                     }
                     else
                     {
-                        simpflat-25 = unsafe_Array_index#
-                                        copy_array-flat-87
-                                        0
-                        map_insert_acc_vals-flat-60 =w Array_put_immutable#
-                                                         copy_array-flat-87
-                                                         0
-                                                         simpflat-25
+                        map_insert_acc_vals-flat-60 =w Array_copy#
+                                                         flat-110
                     }
                     
                     
-                    foreach (for_counter-flat-88 in map_insert_size-flat-68 .. flat-108)
+                    foreach (for_counter-flat-88 in map_insert_size-flat-68 .. flat-109)
                     {
                         update_acc-flat-89 =r map_insert_acc_keys-flat-59
-                        simpflat-26 = sub#
+                        simpflat-24 = sub#
                                         for_counter-flat-88
                                         1
-                        simpflat-27 = unsafe_Array_index#
+                        simpflat-25 = unsafe_Array_index#
                                         map_insert_loc_keys-flat-63
-                                        simpflat-26
+                                        simpflat-24
                         map_insert_acc_keys-flat-59 =w Array_put_mutable#
                                                          update_acc-flat-89
                                                          for_counter-flat-88
-                                                         simpflat-27
+                                                         simpflat-25
                         update_acc-flat-90 =r map_insert_acc_vals-flat-60
-                        simpflat-29 = unsafe_Array_index#
+                        simpflat-27 = unsafe_Array_index#
                                         map_insert_loc_vals-flat-64
-                                        simpflat-26
+                                        simpflat-24
                         map_insert_acc_vals-flat-60 =w Array_put_mutable#
                                                          update_acc-flat-90
                                                          for_counter-flat-88
-                                                         simpflat-29
+                                                         simpflat-27
                     }
                     
                     map_insert_acc_keys-flat-59 =r map_insert_acc_keys-flat-59
                     map_insert_acc_keys-flat-59 =w Array_put_mutable#
                                                      map_insert_acc_keys-flat-59
-                                                     flat-108
-                                                     simpflat-310
+                                                     flat-109
+                                                     simpflat-312
                     map_insert_acc_vals-flat-60 =r map_insert_acc_vals-flat-60
                     map_insert_acc_vals-flat-60 =w Array_put_mutable#
                                                      map_insert_acc_vals-flat-60
-                                                     flat-108
-                                                     flat-106-simpflat-111
+                                                     flat-109
+                                                     flat-107-simpflat-112
                 }
                 
-                flat-109 =r map_insert_acc_keys-flat-59
-                flat-110 =r map_insert_acc_vals-flat-60
-                flat-56-simpflat-112 =w ExceptNotAnError
-                flat-56-simpflat-113 =w flat-109
-                flat-56-simpflat-114 =w flat-110
+                flat-111 =r map_insert_acc_keys-flat-59
+                flat-112 =r map_insert_acc_vals-flat-60
+                flat-56-simpflat-113 =w ExceptNotAnError
+                flat-56-simpflat-114 =w flat-111
+                flat-56-simpflat-115 =w flat-112
             }
             else
             {
-                flat-56-simpflat-112 =w flat-106-simpflat-110
-                flat-56-simpflat-113 =w unsafe_Array_create#
-                                          0
+                flat-56-simpflat-113 =w flat-107-simpflat-111
                 flat-56-simpflat-114 =w unsafe_Array_create#
+                                          0
+                flat-56-simpflat-115 =w unsafe_Array_create#
                                           0
             }
             
-            flat-56-simpflat-115 =r flat-56-simpflat-112
             flat-56-simpflat-116 =r flat-56-simpflat-113
             flat-56-simpflat-117 =r flat-56-simpflat-114
-            flat-51-simpflat-95 =w flat-56-simpflat-115
+            flat-56-simpflat-118 =r flat-56-simpflat-115
             flat-51-simpflat-96 =w flat-56-simpflat-116
             flat-51-simpflat-97 =w flat-56-simpflat-117
+            flat-51-simpflat-98 =w flat-56-simpflat-118
         }
         else
         {
-            flat-51-simpflat-95 =w flat-48-simpflat-92
-            flat-51-simpflat-96 =w unsafe_Array_create#
-                                     0
+            flat-51-simpflat-96 =w flat-48-simpflat-93
             flat-51-simpflat-97 =w unsafe_Array_create#
+                                     0
+            flat-51-simpflat-98 =w unsafe_Array_create#
                                      0
         }
         
-        flat-51-simpflat-118 =r flat-51-simpflat-95
         flat-51-simpflat-119 =r flat-51-simpflat-96
         flat-51-simpflat-120 =r flat-51-simpflat-97
-        flat-48-simpflat-89 =w flat-51-simpflat-118
+        flat-51-simpflat-121 =r flat-51-simpflat-98
         flat-48-simpflat-90 =w flat-51-simpflat-119
         flat-48-simpflat-91 =w flat-51-simpflat-120
+        flat-48-simpflat-92 =w flat-51-simpflat-121
     }
     
-    flat-111-simpflat-121 =r flat-48-simpflat-89
-    flat-111-simpflat-122 =r flat-48-simpflat-90
-    flat-111-simpflat-123 =r flat-48-simpflat-91
-    flat-40-simpflat-86 =w flat-111-simpflat-121
-    flat-40-simpflat-87 =w flat-111-simpflat-122
-    flat-40-simpflat-88 =w flat-111-simpflat-123
+    flat-113-simpflat-122 =r flat-48-simpflat-90
+    flat-113-simpflat-123 =r flat-48-simpflat-91
+    flat-113-simpflat-124 =r flat-48-simpflat-92
+    flat-40-simpflat-87 =w flat-113-simpflat-122
+    flat-40-simpflat-88 =w flat-113-simpflat-123
+    flat-40-simpflat-89 =w flat-113-simpflat-124
 }
 else
 {
-    flat-40-simpflat-86 =w conv-34-simpflat-81
-    flat-40-simpflat-87 =w unsafe_Array_create#
-                             0
+    flat-40-simpflat-87 =w conv-34-simpflat-82
     flat-40-simpflat-88 =w unsafe_Array_create#
+                             0
+    flat-40-simpflat-89 =w unsafe_Array_create#
                              0
 }
 
-flat-40-simpflat-124 =r flat-40-simpflat-86
 flat-40-simpflat-125 =r flat-40-simpflat-87
 flat-40-simpflat-126 =r flat-40-simpflat-88
+flat-40-simpflat-127 =r flat-40-simpflat-89
 
 output repl:output : Sum Error (Map Time Int) =
-    flat-40-simpflat-124 : Error
-  , flat-40-simpflat-125 : Array Time
-  , flat-40-simpflat-126 : Array Int
+    flat-40-simpflat-125 : Error
+  , flat-40-simpflat-126 : Array Time
+  , flat-40-simpflat-127 : Array Int
 
 Core evaluation
 ---------------
