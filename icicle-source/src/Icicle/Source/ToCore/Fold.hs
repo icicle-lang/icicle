@@ -221,6 +221,10 @@ convertFold q
           ]
          }
 
+     -- Should have been converted to case expressions
+     | IfLet (Annot { annAnnot = ann }) _ _ _ _ <- final q
+      -> convertError $ ConvertErrorImpossibleIfLet ann
+
      | Access annot@(Annot { annResult = retty }) accessed field <- final q
       -> do -- Convert the accessed expression as a fold
             res    <- convertFold $ Query [] accessed

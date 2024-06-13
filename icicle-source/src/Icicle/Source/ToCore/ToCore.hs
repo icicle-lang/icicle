@@ -466,6 +466,10 @@ convertReduce xx
 
         return (bs' <> b', nm)
 
+ -- Should have been converted to case expressions
+ | IfLet (Annot { annAnnot = ann }) _ _ _ _ <- xx
+ = convertError $ ConvertErrorImpossibleIfLet ann
+
  | Case (Annot { annAnnot = ann, annResult = retty }) scrut patalts <- xx
  = do   scrut' <- convertReduce scrut
 

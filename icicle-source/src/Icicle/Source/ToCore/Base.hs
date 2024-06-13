@@ -143,18 +143,16 @@ post n x = mempty { postcomps = [(n,x)] }
 data ConvertError a n
  = ConvertErrorNoSuchFeature UnresolvedInputId
  | ConvertErrorPrimNoArguments               a Int Prim
- | ConvertErrorPrimAggregate                 a Prim
  | ConvertErrorGroupByHasNonGroupResult      a (Type n)
  | ConvertErrorGroupFoldNotOnGroup           a (Exp (Annot a n) n)
- | ConvertErrorContextNotAllowedInGroupBy    a (Query (Annot a n) n)
  | ConvertErrorExpNoSuchVariable             a (Name n)
  | ConvertErrorExpNestedQueryNotAllowedHere  a (Query (Annot a n) n)
  | ConvertErrorExpApplicationOfNonPrimitive  a (Exp (Annot a n) n)
- | ConvertErrorReduceAggregateBadArguments   a (Exp (Annot a n) n)
  | ConvertErrorCannotConvertType             a (Type n)
  | ConvertErrorBadCaseNoDefault              a ValType (Exp (Annot a n) n)
  | ConvertErrorBadCaseNestedConstructors     a (Exp (Annot a n) n)
  | ConvertErrorImpossibleFold1               a
+ | ConvertErrorImpossibleIfLet               a
  | ConvertErrorCannotConvertAccessor         a ValType StructField
  | ConvertErrorInputTypeNotPair              a ValType
  | ConvertErrorInputTypeNotMap               a ValType
@@ -171,21 +169,15 @@ annotOfError e
      -> Just a
     ConvertErrorPrimNoArguments a _ _
      -> Just a
-    ConvertErrorPrimAggregate a _
-     -> Just a
     ConvertErrorGroupByHasNonGroupResult a _
      -> Just a
     ConvertErrorGroupFoldNotOnGroup a _
-     -> Just a
-    ConvertErrorContextNotAllowedInGroupBy a _
      -> Just a
     ConvertErrorExpNoSuchVariable a _
      -> Just a
     ConvertErrorExpNestedQueryNotAllowedHere a _
      -> Just a
     ConvertErrorExpApplicationOfNonPrimitive a _
-     -> Just a
-    ConvertErrorReduceAggregateBadArguments a _
      -> Just a
     ConvertErrorCannotConvertType a _
      -> Just a
@@ -194,6 +186,8 @@ annotOfError e
     ConvertErrorBadCaseNestedConstructors a _
      -> Just a
     ConvertErrorImpossibleFold1 a
+     -> Just a
+    ConvertErrorImpossibleIfLet a
      -> Just a
     ConvertErrorCannotConvertAccessor a _ _
      -> Just a
@@ -366,16 +360,11 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
      ConvertErrorPrimNoArguments a num_args p
       -> pretty a <> ": primitive " <> pretty p <> " expects " <> pretty num_args <> " arguments but got none"
 
-     ConvertErrorPrimAggregate a p
-      -> pretty a <> ": primitive " <> pretty p <> " is an aggregate. It should have been handled earlier."
-
      ConvertErrorGroupByHasNonGroupResult a ut
       -> pretty a <> ": group by has wrong return type; should be a group but got " <> pretty ut
 
      ConvertErrorGroupFoldNotOnGroup a x
       -> pretty a <> ": group fold is not on a group; expected group but got " <> pretty x
-
-     ConvertErrorContextNotAllowedInGroupBy a q -> pretty a <> ": only filters and aggregates are allowed in group by (the rest are TODO): " <> pretty q
 
      ConvertErrorExpNoSuchVariable a n
       -> pretty a <> ": no such variable " <> pretty n
@@ -385,9 +374,6 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
 
      ConvertErrorExpApplicationOfNonPrimitive a x
       -> pretty a <> ": application of non-function: " <> pretty x
-
-     ConvertErrorReduceAggregateBadArguments a x
-      -> pretty a <> ": bad arguments to aggregate: " <> pretty x
 
      ConvertErrorCannotConvertType a t
       -> pretty a <> ": cannot convert base type: " <> pretty t
@@ -400,6 +386,9 @@ instance (Pretty a, Pretty n) => Pretty (ConvertError a n) where
 
      ConvertErrorImpossibleFold1 a
       -> pretty a <> ": fold1 cannot be converted; desugar first"
+
+     ConvertErrorImpossibleIfLet a
+      -> pretty a <> ": if let expressions cannot be converted; desugar first"
 
      ConvertErrorCannotConvertAccessor a t f
       -> pretty a <> ": field accessor cannot be converted; type: " <> pretty t <> "; field to gather: " <> pretty f
