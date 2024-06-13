@@ -330,7 +330,16 @@ genExp tgi
       -- case statements
       , Case   () <$> genExp tgi
                   <*> listOf1 (genCase tgi)
-      -- if then else expression
+      -- if let x = y then else expression
+      , do (pat,bs)  <- genPat tgi
+           scrutinee <- genExp tgi
+           let tgi'   = tgi { tgiVars = tgiVars tgi `Map.union` bs }
+           match     <- genExp tgi'
+           other     <- genExp tgi
+
+           return $
+             IfLet () pat scrutinee match other
+
       , If     () <$> genExp tgi
                   <*> genExp tgi
                   <*> genExp tgi
@@ -371,22 +380,25 @@ genExp tgi
 
 genCase :: TypedGenInfo -> Gen (Pattern T.Variable, Exp () T.Variable)
 genCase tgi
- = do (pat,bs) <- genPat
+ = do (pat,bs) <- genPat tgi
       let tgi' = tgi { tgiVars = tgiVars tgi `Map.union` bs }
       x <- genExp tgi'
       return (pat,x)
- where
-  genPat
-   = oneof_sized [ return (PatDefault, Map.empty), genPatVar ]
-                 [ genPatCon ]
 
+genPat :: TypedGenInfo -> Gen (Pattern T.Variable, Map.Map (CB.Name T.Variable) TestTemporality)
+genPat tgi =
+  oneof_sized
+    [ return (PatDefault, Map.empty), genPatVar ]
+    [ genPatCon ]
+
+ where
   genPatVar
    = do a <- arbitrary
         return (PatVariable a, Map.singleton a (tgiTemp tgi))
 
   genPatCon
    = do con <- arbitrary
-        args <- vectorOf (arityOfConstructor con) genPat
+        args <- vectorOf (arityOfConstructor con) (genPat tgi)
         let (args',bss) = List.unzip args
         return (PatCon con args', Map.unions bss)
 

@@ -57,7 +57,7 @@ transformQ t (Query ctxs xx)
   goCS s []
    = return (s, [])
   goCS s (c:cs)
-   = do (s',c') <- transformC (t { transformState = s }) c
+   = do (s',c')   <- transformC (t { transformState = s }) c
         (s'',cs') <- goCS s' cs
         return (s'', c' : cs')
 
