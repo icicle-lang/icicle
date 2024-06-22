@@ -381,22 +381,21 @@ reifyPossibilityQ (Query (c:cs) final_x)
    = Query (ctx:ctxs) x
 
 makeApps
-        :: Hashable n
-        => Annot a n
-        ->  Exp (Annot a n) n
-        -> [Exp (Annot a n) n]
-        -> Bool
-        -> Fresh n (Exp (Annot a n) n)
+  :: Hashable n
+  => Annot a n
+  -> Exp (Annot a n) n
+  -> [Exp (Annot a n) n]
+  -> Bool
+  -> Fresh n (Exp (Annot a n) n)
 makeApps _ fun [] doWrap
  -- After unwrapping the arguments, check if primitive introduces Possibly.
  -- If so, we need to wrap all the return type annotations with (SumT ErrorT).
  -- We also do not want to wrap it in a Right, since the prim will do that itself.
- | Just (p, pa, args) <- takePrimApps fun
- , primReturnsPossibly p (annResult pa)
- = let pa'  = wrapAnnotReally pa
-       fun' = Prim pa' p
-       apps = foldl (App pa') fun' args
-   in  return apps
+ | App ann allButOne lastArg <- fun
+ , Just (p, _, _)            <- takePrimApps allButOne
+ , primReturnsPossibly p (annResult $ annotOfExp fun)
+ = let p'ann = wrapAnnotReally ann
+   in  return $ App p'ann allButOne lastArg
 
  | otherwise
  = let funR = conRight fun
@@ -477,7 +476,7 @@ con0 :: Annot a n -> Constructor -> Exp (Annot a n) n
 con0 a c   =        Prim a (PrimCon c)
 
 con1 :: Annot a n -> Constructor -> Exp (Annot a n) n -> Exp (Annot a n) n
-con1 a c x = App a (Prim a (PrimCon c)) x
+con1 a c x = App a (Prim a { annResult = canonT $ TypeArrow (annResult $ annotOfExp x) (annResult a) } (PrimCon c)) x
 
 aggAnnot :: Annot a n -> Annot a n
 aggAnnot ann

@@ -66,7 +66,6 @@ convertExp x
     Nested _ q
      -> convertExpQ q
 
-
     App ann f q
      -- Primitive application: convert arguments, then convert primitive
      | Just (p, Annot { annResult = resT }, args) <- takePrimApps x
@@ -377,7 +376,7 @@ unwrapSum
     -> C.Exp () n
     -> C.Exp () n
 unwrapSum isPossibly rett nErr x nk t bodyx
- | T.SumT T.ErrorT ty <- t
+ | T.SumT T.ErrorT ty   <- t
  , T.SumT T.ErrorT ret' <- rett
  -- We can only do this for (Sum Error)s introduced by Reify:
  -- not ones that the programmer explicitly wrote

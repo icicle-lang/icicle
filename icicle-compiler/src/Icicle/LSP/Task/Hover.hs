@@ -13,7 +13,7 @@ import qualified Data.Map  as Map
 import qualified Data.Text as Text
 import           Data.Aeson as Aeson
 
-import           Data.Monoid (getFirst)
+import           Data.Monoid (getLast)
 
 import           Icicle.LSP.State
 import           Icicle.LSP.Interface
@@ -69,7 +69,7 @@ typeAt pos module_ = do
     exprs1 = traverseAnnot (findRange pos) `traverse` (functionDefinition <$> resolvedEntries module_)
     ranged = void exprs0 <> void exprs1 <> void exprs2
 
-  getFirst $
+  getLast $
     getConst ranged
 
 

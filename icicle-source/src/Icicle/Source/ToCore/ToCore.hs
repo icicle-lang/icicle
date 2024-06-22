@@ -398,28 +398,16 @@ convertReduce xx
         nm <- lift fresh
         return (pre nm x', nm)
 
+ -- For primitives:
+ --   Recurse into their arguments and get bindings for them,
+ --   Apply those bindings to the primitive as a postcomputation.
  | Just (p, Annot { annResult = ty }, args) <- takePrimApps xx
- -- For any primitives:
- --   recurse into its arguments and get bindings for them
- --   apply those bindings to the primitive, as a postcomputation
- --
- -- If the binding is Pure however, it must not rely on any aggregates,
- -- so it might as well be a precomputation.
  = do   (bs,nms) <- unzip <$> mapM convertReduce args
-        let tys  = fmap (annResult . annotOfExp) args
-        let xs   = fmap  CE.xVar           nms
-        x' <- convertPrim p (annAnnot $ annotOfExp xx) ty (xs `zip` tys)
-
-        nm  <- lift fresh
-
-        let bs'  = mconcat bs
-        let b''  | TemporalityPure <- getTemporalityOrPure ty
-                 = pre nm x'
-                 | otherwise
-                 = post nm x'
-
-        return (bs' <> b'', nm)
-
+        let tys   = fmap (annResult . annotOfExp) args
+        let xs    = fmap  CE.xVar           nms
+        x'       <- convertPrim p (annAnnot $ annotOfExp xx) ty (xs `zip` tys)
+        nm       <- lift fresh
+        return (mconcat bs <> post nm x', nm)
 
  -- Convert a nested query
  -- Any lets, folds etc bound in here will go out of scope at the end.
@@ -430,6 +418,7 @@ convertReduce xx
         r <- convertQuery q
         put o
         return r
+
  -- Any variable must be a let-bound aggregate, so we can safely assume it has a binding.
  | Var (Annot { annAnnot = ann }) v      <- xx
  = (,) mempty <$> convertFreshenLookup ann v
@@ -456,15 +445,9 @@ convertReduce xx
                     CE.@~ CE.xLam sn T.UnitT (CE.xVar $ snd false')
                     CE.@~ (CE.xVar $ snd scrut')
 
-        -- If everything is pure, then it can be a pre-computation;
-        -- otherwise, it must be a post computation.
         nm     <- lift fresh
-        let b'  | TemporalityPure <- getTemporalityOrPure retty
-                = pre nm x'
-                | otherwise
-                = post nm x'
 
-        return (bs' <> b', nm)
+        return (bs' <> post nm x', nm)
 
  | Case (Annot { annAnnot = ann, annResult = retty }) scrut patalts <- xx
  = do   scrut' <- convertReduce scrut
@@ -495,14 +478,9 @@ convertReduce xx
         x'     <- convertCase xx sX (pats' `zip` aXs) scrutT resT
         nm     <- lift fresh
 
-        let b'  | TemporalityPure <- getTemporalityOrPure retty
-                = pre nm x'
-                | otherwise
-                = post nm x'
+        return (bs' <> post nm x', nm)
 
-        return (bs' <> b', nm)
-
- | Access a@(Annot { annAnnot = ann, annResult = retty }) accessed field <- xx
+ | Access a@(Annot { annAnnot = ann }) accessed field <- xx
  = do   -- Convert the accessed expression
         res    <- convertReduce accessed
         accT   <- convertValType ann $ annResult $ annotOfExp accessed
@@ -515,12 +493,7 @@ convertReduce xx
         access <- convertAccess a acc accT field
         nm     <- lift fresh
 
-        let b'  | TemporalityPure <- getTemporalityOrPure retty
-                = pre nm access
-                | otherwise
-                = post nm access
-
-        return (bs <> b', nm)
+        return (bs <> post nm access, nm)
 
 
  | Record (Annot { annAnnot = ann, annResult = retty }) fields <- xx
@@ -529,7 +502,6 @@ convertReduce xx
 
         let bs      = foldMap fst $ Map.elems fields'
         let acc     = CE.xVar . snd <$> Map.elems fields'
-        nm         <- lift fresh
 
         structT    <- case fieldsT of
                         T.StructT st ->
@@ -539,14 +511,9 @@ convertReduce xx
                             $ ConvertErrorInputTypeNotMap ann fieldsT
 
         let fin = CE.makeApps () (CE.xPrim $ C.PrimMinimal $ Min.PrimStruct $ Min.PrimStructConstruct structT) acc
+        nm         <- lift fresh
 
-
-        let b'  | TemporalityPure <- getTemporalityOrPure retty
-                = pre nm fin
-                | otherwise
-                = post nm fin
-
-        return (bs <> b', nm)
+        return (bs <> post nm fin, nm)
 
  -- It's not a variable or a nested query,
  -- so it must be an application of a non-primitive

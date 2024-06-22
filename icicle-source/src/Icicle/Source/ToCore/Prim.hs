@@ -46,7 +46,7 @@ convertPrim
         -> Type n
         -> [(C.Exp () n, Type n)]
         -> ConvertM a n (C.Exp () n)
-convertPrim p ann resT xts = go p
+convertPrim p ann primTy xts = go p
  where
   args       = fmap fst xts
   applies p' = CE.makeApps () p' args
@@ -68,7 +68,7 @@ convertPrim p ann resT xts = go p
 
   -- Literals
   go (Lit (LitInt i))
-   | (_, _, DoubleT) <- decomposeT resT
+   | (_, _, DoubleT) <- decomposeT primTy
    = return $ CE.XValue () T.DoubleT (V.VDouble $ fromIntegral i)
    | otherwise
    = return $ CE.constI i
@@ -83,7 +83,7 @@ convertPrim p ann resT xts = go p
   go (PrimCon ConSome)
    = primmin <$> (Min.PrimConst <$> (Min.PrimConstSome <$> t1 1))
   go (PrimCon ConNone)
-   = flip (CE.XValue ()) V.VNone <$> convertValType ann resT
+   = flip (CE.XValue ()) V.VNone <$> convertValType ann primTy
   go (PrimCon ConTuple)
    | [(_,a),(_,b)] <- xts
    = do a' <- convertValType ann a
@@ -97,23 +97,25 @@ convertPrim p ann resT xts = go p
   go (PrimCon ConFalse)
    = return $ CE.XValue () T.BoolT $ V.VBool False
   go (PrimCon ConLeft)
-   | (_, _, SumT a b) <- decomposeT resT
+   | TypeArrow _ resT <- primTy
+   , (_, _, SumT a b) <- decomposeT resT
    = do a' <- convertValType ann a
         b' <- convertValType ann b
         return $ primmin $ Min.PrimConst $ Min.PrimConstLeft a' b'
    | otherwise
    = convertError
-   $ ConvertErrorPrimNoArguments ann 1 p
+   $ ConvertErrorCannotConvertTypeForPrim ann p primTy
   go (PrimCon ConRight)
-   | (_, _, SumT a b) <- decomposeT resT
+   | TypeArrow _ resT <- primTy
+   , (_, _, SumT a b) <- decomposeT resT
    = do a' <- convertValType ann a
         b' <- convertValType ann b
         return $ primmin $ Min.PrimConst $ Min.PrimConstRight a' b'
    | otherwise
    = convertError
-   $ ConvertErrorPrimNoArguments ann 1 p
+   $ ConvertErrorCannotConvertTypeForPrim ann p primTy
   go (PrimCon ConUnit)
-   = flip (CE.XValue ()) V.VUnit <$> convertValType ann resT
+   = flip (CE.XValue ()) V.VUnit <$> convertValType ann primTy
   go (PrimCon (ConError err))
    = return $ CE.XValue () T.ErrorT $ V.VError err
 
@@ -335,9 +337,11 @@ convertPrim p ann resT xts = go p
   gomath FromInteger
    = case xts of
       ((xx,_):_)
-       | (_, _, DoubleT) <- decomposeT resT
+       | TypeArrow _ resTy <- primTy
+       , (_, _, DoubleT)   <- decomposeT resTy
        -> return $ primbuiltin $ Min.PrimBuiltinMath Min.PrimBuiltinToDoubleFromInt
-       | otherwise
+       | TypeArrow _ resTy <- primTy
+       , (_, _, IntT)      <- decomposeT resTy
        -> return xx
       _
        -> convertError $ ConvertErrorPrimNoArguments ann 1 p
@@ -387,10 +391,10 @@ convertPrim p ann resT xts = go p
    | otherwise
    = convertError $ ConvertErrorPrimNoArguments ann 1 p
   gomap MapCreate
-   | Just (T.MapT tk tv) <- valTypeOfType resT
+   | Just (T.MapT tk tv) <- valTypeOfType primTy
    = return $ CE.emptyMap tk tv
    | otherwise
-   = convertError $ ConvertErrorCannotConvertType ann resT
+   = convertError $ ConvertErrorCannotConvertType ann primTy
 
   gomap MapInsert
    | ((xk, _) : (xv, _) : (xm, tm) : _) <- xts

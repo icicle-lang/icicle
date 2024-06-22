@@ -51,4 +51,3 @@ letterNames :: [String]
 letterNames
  =  fmap (\c -> [c]) ['a'..'z']
  <> concatMap (\prefix -> fmap (\c -> prefix <> [c]) ['a'..'z']) letterNames
- 
