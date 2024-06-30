@@ -90,6 +90,7 @@ data PrimArray
  | PrimArrayZip          !ValType !ValType -- ^ Zip two arrays into one
  | PrimArraySwap         !ValType          -- ^ Swap two elements
  | PrimArrayDel          !ValType          -- ^ Delete a value
+ | PrimArrayCopy         !ValType          -- ^ Delete a value
  deriving (Eq, Ord, Show, Generic)
 
 data PrimMap
@@ -170,6 +171,8 @@ typeOfPrim p
     PrimArray   (PrimArrayDel a)
      -> FunT [funOfVal (ArrayT a), funOfVal IntT] (ArrayT a)
 
+    PrimArray   (PrimArrayCopy a)
+     -> FunT [funOfVal (ArrayT a)] (ArrayT a)
 
     PrimMelt    (PrimMeltPack t)
      | ts <- meltType t
@@ -199,10 +202,11 @@ typeOfPrim p
     PrimBuf     (PrimBufRead i t)
      -> FunT [funOfVal (BufT i t)] (ArrayT t)
 
+
 -- We need to distinguish between an error and an error which is the tag in (Sum Error t)
 data MeltLogical
   = MeltRep ValType
-  | MeltTagSumError -- | MeltTagSum | MeltTagOption
+  | MeltTagSumError
   deriving Eq
 
 repOfMelt :: MeltLogical -> ValType
@@ -339,6 +343,8 @@ instance Pretty Prim where
  pretty (PrimArray (PrimArrayDel _a))
   = "Array_elem_delete#"
 
+ pretty (PrimArray (PrimArrayCopy _a))
+  = "Array_copy#"
 
  pretty (PrimMelt (PrimMeltPack _t))
   = "Melt_pack#"

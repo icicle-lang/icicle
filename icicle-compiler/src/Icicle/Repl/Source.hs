@@ -27,6 +27,7 @@ getCheckOptions = do
   else
     pure Source.optionSmallData
 
+
 getEvalContext :: Repl EvalContext
 getEvalContext = do
   s <- get

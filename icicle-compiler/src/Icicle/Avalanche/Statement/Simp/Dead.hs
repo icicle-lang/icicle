@@ -71,7 +71,7 @@ deadS us statements
      -> let (sU, sK, sS) = deadS us ss
             xU           = usageX x
         in  if   usedX n sU
-            then (deleteX n (mconcat [xU, sU]), sK, Let n x sS)
+            then (deleteX  n (mconcat [xU, sU]), sK, Let n x sS)
             else (sU, sK, sS)
     While t n nt end ss
      -- While is a bit special. We must ensure writes to the while condition are not removed,

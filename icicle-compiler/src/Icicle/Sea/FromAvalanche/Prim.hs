@@ -204,6 +204,8 @@ seaOfPrimArray p
       -> PDAlloc (prefixOfValType (ArrayT t) <> "put_immutable") Nothing
      PrimArraySwap t
       -> PDFun   (prefixOfValType (ArrayT t) <> "swap") Nothing
+     PrimArrayCopy t
+      -> PDAlloc (prefixOfValType (ArrayT t) <> "copy") Nothing
      PrimArrayDel t
       -> PDAlloc   (prefixOfValType (ArrayT t) <> "delete") Nothing
      PrimArrayZip _ _

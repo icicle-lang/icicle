@@ -111,6 +111,9 @@ constructor a_fresh statements
   primArrayDel i t a
    = xPrim (PrimArray (PrimArrayDel t)) `xApp` a `xApp` i
 
+  primArrayCopy t a
+   = xPrim (PrimArray (PrimArrayCopy t)) `xApp` a
+
   primUnpack ix t x
    = xPrim (PrimMelt (PrimMeltUnpack ix t)) `xApp` x
 
@@ -321,6 +324,12 @@ constructor a_fresh statements
    , Just tis <- withIndex tryMeltType tx
    = Just $ primPack env (ArrayT tx)
    $ fmap (\(t, ix) -> primArraySwap ix1 ix2 t (primUnpack ix (ArrayT tx) na))
+     tis
+
+   | (PrimArray (PrimArrayCopy tx), [na]) <- prima
+   , Just tis <- withIndex tryMeltType tx
+   = Just $ primPack env (ArrayT tx)
+   $ fmap (\(t, ix) -> primArrayCopy t (primUnpack ix (ArrayT tx) na))
      tis
 
    | (PrimArray (PrimArrayDel tx), [na, i]) <- prima

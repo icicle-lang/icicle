@@ -178,6 +178,11 @@ evalPrim p vs
       | otherwise
       -> primError
 
+     PrimArray (PrimArrayCopy _)
+      | [VBase (VArray arr)]  <- vs
+      -> return $ VBase $ VArray arr
+      | otherwise
+      -> primError
 
      -- XXX: is this returning values even if primitive is under applied?
      PrimMelt (PrimMeltPack t)

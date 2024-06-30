@@ -98,30 +98,6 @@ updateAcc a_fresh acc t x
  = do n'x <- freshPrefix "update_acc"
       return $ Read n'x acc t $ Write acc $ x $ XVar a_fresh n'x
 
-pushArrayAcc :: (Hashable n, Monad m, IsString n)
-             => a -> ValType -> Name n -> Flat.X a n
-             -> FreshT n m (Flat.S a n)
-pushArrayAcc a_fresh t n'acc push
- = do let t'          = ArrayT t
-          sz  arr     = arrLen t arr
-          put arr i x = arrUpd t arr i x
-
-      updateAcc a_fresh n'acc t' (\arr -> put arr (sz arr) push)
- where
-  Flat.FlatOps  {..} = Flat.flatOps a_fresh
-
--- | Immutable put
-putArrayAcc :: (Hashable n, Monad m, IsString n)
-             => a -> ValType -> Name n -> Flat.X a n -> Flat.X a n
-             -> FreshT n m (Flat.S a n)
-putArrayAcc a_fresh t n'acc idx push
- = do let t'          = ArrayT t
-          put arr i x = arrUpd t arr i x
-
-      updateAcc a_fresh n'acc t' (\arr -> put arr idx push)
- where
-  Flat.FlatOps  {..} = Flat.flatOps a_fresh
-
 -- | Mutable put
 putArrayAcc' :: (Hashable n, Monad m, IsString n)
              => a -> ValType -> Name n -> Flat.X a n -> Flat.X a n
@@ -136,7 +112,6 @@ putArrayAcc' a_fresh t n'acc idx push
 
 
 -- | Copy an array - before mutating
--- This should just be a copy, but for now we will cheat by using immutable put
 copyArrayAcc :: (Hashable n, Monad m, IsString n)
              => a -> ValType -> Name n
              -> FreshT n m (Flat.S a n)
@@ -144,13 +119,12 @@ copyArrayAcc a_fresh t n'acc
  = do n'x <- freshPrefix "copy_array"
       let x = xVar n'x
       let num = xValue IntT . VInt
-      let is_empty = relEq IntT (arrLen t x) (num 0)
-
-      let put_copy = arrUpd t x (num 0) (arrIx t x $ num 0)
+      let is_empty = relNe IntT (arrLen t x) (num 0)
+      let cpy = Write n'acc (arrCpy t x)
 
       return $ Read n'x n'acc (ArrayT t)
-             $ If is_empty mempty
-             $ Write n'acc put_copy
+             $ If is_empty cpy mempty
+
  where
   Flat.FlatOps  {..} = Flat.flatOps a_fresh
   Flat.FlatCons {..} = Flat.flatCons a_fresh
@@ -327,11 +301,6 @@ avalancheHeapSortMap
   -> FlatM a n
 avalancheHeapSortMap a_fresh tk tv n_acc_keys n_acc_vals =
   avalancheHeapSort_ a_fresh tk n_acc_keys (Just (tv, n_acc_vals))
-
-  where
-    Flat.FlatCons{..} = Flat.flatCons a_fresh
-    Flat.FlatOps {..} = Flat.flatOps  a_fresh
-
 
 avalancheHeapSort_
   :: forall a n . (Hashable n, IsString n)
@@ -601,6 +570,8 @@ avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
       n_acc_found  <- freshPrefix "map_insert_acc_bs_found"
       n_loc_keys   <- freshPrefix "map_insert_loc_keys"
       n_loc_vals   <- freshPrefix "map_insert_loc_vals"
+      n_cpy_keys   <- freshPrefix "map_insert_cpy_keys"
+      n_cpy_vals   <- freshPrefix "map_insert_cpy_vals"
       n_loc_idx    <- freshPrefix "map_insert_loc_bs_index"
       n_loc_found  <- freshPrefix "map_insert_loc_bs_found"
       n_res        <- freshPrefix "map_insert_result"
@@ -620,11 +591,13 @@ avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
 
       let readk  = readArr tk n_loc_keys n_acc_keys
           readv  = readArr tv n_loc_vals n_acc_vals
+          readk' = readArr tk n_cpy_keys n_acc_keys
+          readv' = readArr tv n_cpy_vals n_acc_vals
           readix = readBool n_loc_found n_acc_found
                  . readInt  n_loc_idx   n_acc_idx
 
-      let get_k i   = arrIx  tk v_keys i
-          get_v i   = arrIx  tv v_vals i
+      let get_k i   = arrIx  tk (xVar n_cpy_keys) i
+          get_v i   = arrIx  tv (xVar n_cpy_vals) i
 
       -- Look up the key.
       sLookup <- avalancheBinarySearch a_fresh tk key' v_keys n_acc_found n_acc_idx
@@ -632,7 +605,7 @@ avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
       -- If it exists, update.
       sUpd <- sletPrefix a_fresh "map_insert_loc_old" (get_v v_idx)
             $ \v  -> flatX' (upd `xApp'` v)
-            $ \v' -> putArrayAcc a_fresh tv n_acc_vals v_idx v'
+            $ \v' -> putArrayAcc' a_fresh tv n_acc_vals v_idx v'
 
       -- Otherwise, insert at v_idx.
       -- Start by creating a copy of the arrays so we can mutate
@@ -648,10 +621,10 @@ avalancheMapInsertUpdate a_fresh stm flatX tk tv upd ins key map
       putk    <- putArrayAcc' a_fresh tk n_acc_keys v_idx key'
       putv    <- flatX' ins
                $ putArrayAcc' a_fresh tv n_acc_vals v_idx
-      let sIns = copyk <> copyv <> move <> putk <> putv
+      let sIns = copyk <> copyv <> readk' (readv' move) <> putk <> putv
 
       let keyInMap        = relEq BoolT v_found xTrue
-      let sInsertOrUpdate = If keyInMap sUpd sIns
+      let sInsertOrUpdate = If keyInMap (copyv <> readv' sUpd) sIns
 
       stm'    <- stm v_res
       let res  = Let n_res (mapPack tk tv v_keys v_vals) stm'
@@ -689,63 +662,71 @@ avalancheMapDelete
   -> FlatM a n
 avalancheMapDelete a_fresh stm flatX tk tv key map
   = flatX' key $ \key' -> flatX' map $ \map' -> do
-      n'map'k     <- fresh
-      n'map'v     <- fresh
-      n'map'sz    <- fresh
-      let acc'map'k= Accumulator n'map'k (ArrayT tk) (mapKeys tk tv map')
-          acc'map'v= Accumulator n'map'v (ArrayT tv) (mapVals tk tv map')
+      n_acc_keys   <- freshPrefix "map_insert_acc_keys"
+      n_acc_vals   <- freshPrefix "map_insert_acc_vals"
+      n_acc_idx    <- freshPrefix "map_insert_acc_bs_index"
+      n_acc_found  <- freshPrefix "map_insert_acc_bs_found"
+      n_loc_keys   <- freshPrefix "map_insert_loc_keys"
+      n_loc_vals   <- freshPrefix "map_insert_loc_vals"
+      n_cpy_keys   <- freshPrefix "map_insert_cpy_keys"
+      n_cpy_vals   <- freshPrefix "map_insert_cpy_vals"
+      n_loc_idx    <- freshPrefix "map_insert_loc_bs_index"
+      n_loc_found  <- freshPrefix "map_insert_loc_bs_found"
+      n_res        <- freshPrefix "map_insert_result"
 
-          x'map'k  = xVar n'map'k
-          x'map'v  = xVar n'map'v
+      let v_keys  = xVar  n_loc_keys
+          v_vals  = xVar  n_loc_vals
+          v_idx   = xVar  n_loc_idx
+          v_found = xVar  n_loc_found
+          v_res   = xVar  n_res
 
-          read'k   = Read n'map'k n'map'k (ArrayT tk)
-          read'v   = Read n'map'v n'map'v (ArrayT tv)
+      let acc_idx   = Accumulator n_acc_idx    IntT        $ xValue IntT  (VInt (-1))
+          acc_found = Accumulator n_acc_found  BoolT       $ xFalse
+          acc_keys  = Accumulator n_acc_keys  (ArrayT  tk) $ mapKeys tk tv map'
+          acc_vals  = Accumulator n_acc_vals  (ArrayT  tv) $ mapVals tk tv map'
 
-          sz       = xVar n'map'sz
-          get'k i  = arrIx  tk x'map'k i
+      let readk  = readArr tk n_loc_keys n_acc_keys
+          readv  = readArr tv n_loc_vals n_acc_vals
+          readk' = readArr tk n_cpy_keys n_acc_keys
+          readv' = readArr tv n_cpy_vals n_acc_vals
+          readix = readBool n_loc_found n_acc_found
+                 . readInt  n_loc_idx   n_acc_idx
 
-          del'k i  = arrDel tk x'map'k i
-          del'v i  = arrDel tv x'map'v i
+      -- Look up the key.
+      sLookup <- avalancheBinarySearch a_fresh tk key' v_keys n_acc_found n_acc_idx
 
-          del'  i  = Block
-                    [ Write n'map'k (del'k i)
-                    , Write n'map'v (del'v i)
-                    ]
+      -- If it's found, we'll need a copy.
+      copyk   <- copyArrayAcc a_fresh tk n_acc_keys
+      copyv   <- copyArrayAcc a_fresh tv n_acc_vals
 
-      loop1       <- forReverse sz
-                   $ \i
-                  ->  (read'k
-                  <$> (read'v
-                  <$> pure (If (relEq tk (get'k i) key') (del' i) mempty)))
+      -- Perform the delete (this will also update the count)
+      let del  = Write n_acc_keys (arrDel tk (xVar n_cpy_keys) v_idx)
+              <> Write n_acc_vals (arrDel tv (xVar n_cpy_vals) v_idx)
 
-      n'map'      <- fresh
-      stm'        <- stm $ xVar n'map'
+      let sDel = copyk <> copyv <> readk' (readv' del)
 
-      let stm''    = read'k
-                   $ read'v
-                   $ Let n'map' (mapPack tk tv x'map'k x'map'v)
-                   $ stm'
+      let keyInMap        = relEq BoolT v_found xTrue
+      let sInsertOrUpdate = If keyInMap sDel mempty
 
-          ss       = InitAccumulator acc'map'k
-                   $ InitAccumulator acc'map'v
-                   $ read'k
-                   $ Let n'map'sz (arrLen tk x'map'k)
-                   ( loop1 <> stm'' )
+      stm'    <- stm v_res
+      let res  = Let n_res (mapPack tk tv v_keys v_vals) stm'
+          ss   = InitAccumulator acc_keys
+               $ InitAccumulator acc_vals
+               $ InitAccumulator acc_found
+               $ InitAccumulator acc_idx
+               $ readk . readv . readix
+               $ sLookup <> (readix (sInsertOrUpdate <> readk (readv res)))
 
       return ss
 
   where
-    flatX'
-      = flatX a_fresh
+    xTrue       = xValue BoolT (VBool True)
+    xFalse      = xValue BoolT (VBool False)
 
-    forReverse len
-      = forI_ a_fresh ForeachStepDown (xMinusOne len) (XValue a_fresh IntT (VInt (-1)))
-
-    xMinusOne m
-      = xArith Min.PrimArithMinus `xApp` m `xApp` xValue IntT (VInt 1)
-
-    Flat.FlatCons {..} = Flat.flatCons a_fresh
+    flatX'             = flatX a_fresh
     Flat.FlatOps  {..} = Flat.flatOps  a_fresh
+    Flat.FlatCons {..} = Flat.flatCons a_fresh
+
 
 --------------------------------------------------------------------------------
 

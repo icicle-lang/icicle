@@ -68,6 +68,7 @@ library
                      , semigroups                      >= 0.16       && < 0.19
                      , streaming-attoparsec
                      , stm
+                     , tardis
                      , template-haskell                >= 2.7        && < 2.21
                      , temporary                       == 1.2.*
                      , terminal-size                   == 0.3.*
@@ -108,6 +109,7 @@ library
                        Icicle.Avalanche.Statement.Simp.Eval
                        Icicle.Avalanche.Statement.Simp.ExpEnv
                        Icicle.Avalanche.Statement.Simp.Freshen
+                       Icicle.Avalanche.Statement.Simp.Linear
                        Icicle.Avalanche.Statement.Simp.Melt
                        Icicle.Avalanche.Statement.Simp.ThreshOrd
                        Icicle.Avalanche.Statement.Flatten
@@ -270,6 +272,7 @@ test-suite test
                      , exceptions
                      , filepath
                      , geniplate-mirror                >= 0.7.2      && < 0.8
+                     , lens
                      , megaparsec
                      , mtl
                      , pretty-show
@@ -308,6 +311,7 @@ test-suite test
                        Icicle.Test.Avalanche.Flatten
                        Icicle.Test.Avalanche.Melt
                        Icicle.Test.Avalanche.MeltPrim
+                       Icicle.Test.Avalanche.Simp.Linear
                        Icicle.Test.Avalanche.SimpCommutes
                        Icicle.Test.Common.Data
                        Icicle.Test.Core.Exp.Alpha

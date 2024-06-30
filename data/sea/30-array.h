@@ -247,7 +247,7 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,swap)                                      
 
 
 /*
-Immutable Delete (arr, ix)
+Mutable Delete (arr, ix)
 */
 
 #define MK_ARRAY_DELETE(t)                                                      \
@@ -258,25 +258,17 @@ static ARRAY_T(t) INLINE ARRAY_FUN(t,delete)                                    
     VALID_ARRAY(x)                                                              \
     VALID_INDEX(ix_delete, x)                                                   \
                                                                                 \
-    iint_t count      = x->count;                                               \
-    iint_t capacity   = iarray_size(count - 1);                                 \
-    size_t bytes      = ARRAY_SIZE(t, capacity);                                \
+    iint_t count = x->count;                                                    \
                                                                                 \
-    ARRAY_T(t) arr = (ARRAY_T(t))anemone_mempool_alloc(pool, bytes);            \
-                                                                                \
-    for (iint_t ix = 0; ix != ix_delete; ++ix) {                                \
-        t##_t val = ARRAY_PAYLOAD(t,x)[ix];                                     \
-        ARRAY_PAYLOAD(t,arr)[ix] = val;                                         \
-    }                                                                           \
     for (iint_t ix = ix_delete + 1; ix != count; ++ix) {                        \
         t##_t val = ARRAY_PAYLOAD(t,x)[ix];                                     \
-        ARRAY_PAYLOAD(t,arr)[ix - 1] = val;                                     \
+        ARRAY_PAYLOAD(t,x)[ix - 1] = val;                                       \
     }                                                                           \
                                                                                 \
-    arr->count = count - 1;                                                     \
+    x->count = count - 1;                                                       \
                                                                                 \
-    VALID_ARRAY(arr)                                                            \
-    return arr;                                                                 \
+    VALID_ARRAY(x)                                                              \
+    return x;                                                                   \
 }
 
 

@@ -160,7 +160,7 @@ test_immutable_copy input
 prop_array_swap_swap_eq input
   = forAll (arbitrary :: Gen Int) $ \i -> i >= 0 && i < length (inputArr input) ==>
     forAll (arbitrary :: Gen Int) $ \j -> j >= 0 && j < length (inputArr input) ==>
-    testIO $ runProp input name_swap_swap_eq $ \pool ptr -> 
+    testIO $ runProp input name_swap_swap_eq $ \pool ptr ->
       return [ argMempool pool, ptr, argInt64 (fromIntegral i), argInt64 (fromIntegral j) ]
 
 name_swap_swap_eq
@@ -181,34 +181,35 @@ test_swap_swap_eq input
     (ta, tt) = arrayType input
 
 -- y = array_copy (x)
--- z = array_immutable_delete (x, i)
--- array_eq (x, y) == true
-prop_array_delete_copy
+-- z = array_mutable_delete (x, i)
+-- array_eq (y, z) != true
+prop_array_delete_diff
   = forAll arbitrary $ \input -> not (univalue (inputType input)) ==>
     forAll arbitrary $ \i -> i >= 0 && i < length (inputArr input) ==>
-    testIO $ runProp input name_delete_copy $ \pool ptr -> 
+    testIO $ runProp input name_delete_diff $ \pool ptr -> 
       return [ argMempool pool, ptr, argInt64 (fromIntegral i) ]
 
-name_delete_copy
-  = fn "delete_copy"
+name_delete_diff
+  = fn "delete_diff"
 
-test_delete_copy t
+test_delete_diff t
   = "ibool_t "
-  <> pretty name_delete_copy
+  <> pretty name_delete_diff
   <> " (anemone_mempool_t *mempool, " <> tt <> " *xPtr, iint_t i) { "
-  <> tt <> " x = *xPtr;"
+  <> tt  <> " x = *xPtr;"
   <> tt  <> " y = " <> ta <> "_copy(mempool, x);"
   <> tt  <> " z = " <> ta <> "_delete (mempool, x, i);"
-  <> "ibool_t r = " <> ta <> "_eq(x,y);"
-  <> "return r;"
+  <> "ibool_t r = " <> ta <> "_eq(y, z);"
+  <> "return !r;"
   <> "}"
   where (ta, tt) = arrayType t
 
--- y = array_immutable_delete (x, i)
+-- y = array_copy(x)
+-- x = array_mutable_delete (x, i)
 -- y->count == x->count - 1
 prop_array_delete_len input
   = forAll arbitrary $ \i -> i >= 0 && i < length (inputArr input) ==>
-    testIO $ runProp input name_delete_len $ \pool ptr -> 
+    testIO $ runProp input name_delete_len $ \pool ptr ->
       return [ argMempool pool, ptr, argInt64 (fromIntegral i) ]
 
 name_delete_len
@@ -217,9 +218,10 @@ name_delete_len
 test_delete_len input
   = "ibool_t " <> pretty name_delete_len
   <> " (anemone_mempool_t *mempool, " <> tt <> " *xPtr, iint_t i) { "
-  <> tt <> " x = *xPtr;"
-  <> tt  <> " y = " <> ta <> "_delete (mempool, x, i);"
-  <> "ibool_t r = y->count == x->count - 1;"
+  <> tt  <> " x = *xPtr;"
+  <> tt  <> " y = " <> ta <> "_copy(mempool, x);"
+  <> ta <> "_delete (mempool, x, i);"
+  <> "ibool_t r = y->count == x->count + 1;"
   <> "return r;"
   <> "}"
   where (ta, tt) = arrayType input
@@ -269,7 +271,7 @@ seprops input = codeOfDoc $ vsep
   , test_mutable_diff input
   , test_immutable_copy input
   , test_swap_swap_eq input
-  , test_delete_copy input
+  , test_delete_diff input
   , test_delete_len input
   ])
 
