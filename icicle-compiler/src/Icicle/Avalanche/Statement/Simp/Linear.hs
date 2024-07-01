@@ -21,30 +21,36 @@ import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Common.Base (Name)
 import              Icicle.Common.Exp
 import              Icicle.Common.Type (ValType (..))
+import              Icicle.Internal.Pretty
 
 import              P hiding (empty)
 
 -- | Minimise clones of arrays.
 --
---   This pass is currently pretty naïve, and is only really designed to make
---   sure that `group` expressions don't create a new array for their maps
---   with every new data point added to the map.
+--   Icicle is a pure language, but when it gets to C, its maps and arrays
+--   are actually just C arrays.
 --
---   The idea is that if arrays are exclusively accessed in an affine manner,
---   then we don't need to clone them, and can instead act on them destructively.
+--   This means that map insert, and array sort functions have to copy the
+--   whole array to maintain pure semantics; but there are a lot of cases
+--   when this copy won't change the program results and can be removed.
 --
---   To do this, we build a graph data structure of all bindings which might
---   reference the same memory location in a future part of the program.
+--   The idea here is that when an array is exclusively accessed in an
+--   affine manner, then we don't actually need to clone it, and can
+--   instead act on them destructively.
 --
---   We also build a usage set where we track what variables are used later
---   in the program, and propagate that information backwards.
+--   This pass performs copy elision when an array is provably not accessed
+--   by a binding (which is really a pointer to the heap) which is not the
+--   result of the copy or an alias of said copy – that is, there can't be any
+--   usage of the name of the binding being copied or any other previously
+--   known reference.
+--
+--   To to this, in a forwards pass we build a graph of aliases to arrays in
+--   scope; and, lazily in a backwards pass, we build a usage map of all bindings
+--   in scope.
 --
 --   Finally, if we encounter a write which just writes a copy of an array, and
 --   no values which might share a reference are used after this, then we
 --   delete the copy, and just use the original array.
---
---   The tricky part here is that information travels in both directions, so we
---   need to not blow out our runtime.
 --
 linearise :: (Hashable n, Eq n) => Statement a n Flat.Prim -> Statement a n Flat.Prim
 linearise s =
@@ -85,46 +91,42 @@ linearise s =
       -- If it's an array, we say that it aliases the one it points to in the future.
       Read nx na t@(ArrayT {}) ss -> do
         modifyBackwardsUsedRemoveBind nx na
-        -- Modify forwards before entering the block
-        modifyForwards $
-          overwrite nx na
+        Read nx na t <$>
+          scopedGo nx na ss
 
-        Read nx na t <$> go ss
 
       --
       -- It it's not an array, we don't mind and don't declare the alias.
       Read nx na t ss -> do
         modifyBackwardsUsedRemoveBind nx na
-        Read nx na t <$> go ss
+        Read nx na t <$>
+          scopedGo' nx ss
 
       --
       -- Let bindings are a lot like reads, if it looks like a reference, then add
       -- the alias.
       Let nm x ss | Just ref <- arrayReference x -> do
         modifyBackwardsUsedRemoveBind' nm x
-        -- Modify forwards before entering the block
-        modifyForwards $
-          overwrite nm ref
-
-        Let nm x <$> go ss
+        Let nm x <$>
+          scopedGo nm ref ss
 
       Let nm x ss -> do
         modifyBackwardsUsedRemoveBind' nm x
-        Let nm x <$> go ss
+        Let nm x <$>
+          scopedGo' nm ss
 
       --
       -- Initialisation is similar again to lets and reads.
       InitAccumulator acc@(Accumulator nm (ArrayT {}) x) ss | Just ref <- arrayReference x -> do
         modifyBackwardsUsedRemoveBind' nm x
-        -- Modify forwards before entering the block
-        modifyForwards $
-          overwrite nm ref
+        InitAccumulator acc <$>
+          scopedGo nm ref ss
 
-        InitAccumulator acc <$> go ss
 
       InitAccumulator acc@(Accumulator nm _ x) ss -> do
         modifyBackwardsUsedRemoveBind' nm x
-        InitAccumulator acc <$> go ss
+        InitAccumulator acc <$>
+          scopedGo' nm ss
 
       --
       -- Here's the key judgement and rewrite.
@@ -138,16 +140,17 @@ linearise s =
         aliased <- getPast
         used    <- getFuture
 
-        -- Do we need to add a new alias for this? If there are no
-        -- further references then we don't delete the copy, then
-        -- there technically should be an alias, but, on the other
-        -- hand, it doesn't matter, because there are no aliases which
-        -- refer to anything before this address or this address so no
-        -- path can be formed; on the other hand, if we do keep the
-        -- copy, then there's no alias required, because it's a fresh
-        -- memory location. Either way, we need to make the same
-        -- decision, because if we change the sent signals here based
-        -- on them, we won't be able to fix the Tardis.
+        --
+        -- Do we need to add a new alias for this?
+        -- Sequentially, it shouldn't matter to not include this, but
+        -- for loops it's important, as we need to check what aliases
+        -- are possible in future iterations.
+        -- We can't put this in the if condition, because if we change
+        -- the subsequent calculations depending on usage from the
+        -- future, we won't fix the Tardis.
+
+        modifyForwards $
+          overwrite n ref
 
         pure $
           if hasNoFurtherReferences n ref aliased used then do
@@ -156,13 +159,13 @@ linearise s =
             Write n x
 
       --
-      -- Otherwise, if the write is a reference, then we need
+      -- If the write is a reference, then we need
       -- to know that this memory location points to the old
       -- one in subsequent items in a block.
       Write n x | Just ref <- arrayReference x -> do
         modifyBackwardsUsed' x
         modifyForwards $
-          insert n ref
+          overwrite n ref
 
         pure $ Write n x
 
@@ -176,17 +179,23 @@ linearise s =
       Block xs ->
         Block <$> traverse go xs
 
+      --
+      -- Looping constructs.
+      -- Run until a fixpoint is reached.
       While a w vt x ss -> do
         modifyBackwardsUsed' x
-        While a w vt x <$> go ss
+        While a w vt x <$>
+          fixGo ss
 
       ForeachInts t n from to ss -> do
         modifyBackwardsUsed' from
         modifyBackwardsUsed' to
-        ForeachInts t n from to <$> go ss
+        ForeachInts t n from to <$>
+          fixGo ss
 
       ForeachFacts binds vt ss -> do
-        ForeachFacts binds vt <$> go ss
+        ForeachFacts binds vt <$>
+          fixGo ss
 
       x@(Output _ _ xts) -> do
         for_ xts $
@@ -213,15 +222,58 @@ linearise s =
       modifyBackwardsUsed' =
         modifyBackwardsUsed . freevars
 
+      --
+      -- This introduces the alias for name to ref, then when it goes
+      -- out of scope, deletes this name and remakes transient aliases
+      -- as direct ones.
+      scopedGo nm ref ss = do
+        modifyForwards (overwrite nm ref)
+        sS <- go ss
+        modifyForwards (delete nm)
+        pure sS
+
+      --
+      -- This doesn't actually introduce an alias into the map,
+      -- but if this is something like array_create, then we want
+      -- to remove the reference after it goes out of scope, so that
+      -- the new value stands alone.
+      scopedGo' nm ss = do
+        sS <- go ss
+        modifyForwards (delete nm)
+        pure sS
+
+      --
+      -- Loops are a bit tricky.
+      -- It's possible to write queries where after a pass is complete
+      -- accumulators depend on other accumulators initialised before
+      -- the loop began; so we need to reach a fixpoint on both the
+      -- initial alias map and the returned alias map.
+      --
+      -- If the maps don't match, rerun with the merged alias map on
+      -- the original statements. We need to use the original ones
+      -- because the pass might have deleted some copy operations which
+      -- are actually required given the new information.
+      fixGo ss = do
+        before <- getPast
+        sS     <- go ss
+        after  <- getPast
+        let merged = merge before after
+        if before == merged then
+          pure sS
+        else do
+          sendFuture merged
+          fixGo ss
+
 
 hasNoFurtherReferences :: Ord a => a -> a -> Graph a -> Set.Set a -> Bool
 hasNoFurtherReferences acc nx aliased used =
   let
     theseAliases =
-      Set.insert nx (search [nx] aliased)
+      Set.insert nx (search (Set.singleton nx) aliased)
 
     thoseAliases =
-      search (Set.toList (Set.delete acc used)) aliased
+      search (Set.delete acc used) aliased
+
   in
     Set.disjoint
       theseAliases
@@ -259,19 +311,42 @@ newtype Graph n =
   Graph (Map.Map n (Set.Set n))
  deriving (Eq, Ord, Show)
 
+instance Pretty n => Pretty (Graph n) where
+  pretty (Graph g) =
+    vsep (pretty <$> (Map.toList (Map.map Set.toList g)))
+
 empty :: Graph n
 empty =
   Graph Map.empty
-
-insert :: Ord n => n -> n -> Graph n -> Graph n
-insert from to (Graph g) =
-  Graph $
-    Map.alter (Just . maybe (Set.singleton to) (Set.insert to)) from g
 
 overwrite :: Ord n => n -> n -> Graph n -> Graph n
 overwrite from to (Graph g) =
   Graph $
     Map.insert from (Set.singleton to) g
+
+delete :: Ord n => n -> Graph n -> Graph n
+delete from (Graph g) =
+  let
+    transient =
+      fromMaybe Set.empty $
+        Map.lookup from g
+
+    addIfPoint k xs =
+      Set.delete k $ Set.delete from $
+        if Set.member from xs then
+          Set.union transient xs
+        else
+          xs
+
+    addIfPointOrNone k xs = do
+      found <- Just $ addIfPoint k xs
+      guard (not (Set.null found))
+      return found
+
+  in
+  Graph $
+    Map.mapMaybeWithKey addIfPointOrNone $
+      Map.delete from g
 
 match :: Ord n => n -> Graph n -> (Set.Set n, Graph n)
 match n (Graph g) =
@@ -279,12 +354,12 @@ match n (Graph g) =
     Nothing -> (Set.empty, Graph g)
     Just set -> (set, Graph $ Map.delete n g)
 
-search :: Ord n => [n] -> Graph n -> Set.Set n
-search [] _ = Set.empty
+search :: Ord n => Set.Set n -> Graph n -> Set.Set n
+search ns _ | Set.null ns = Set.empty
 search ns g =
   let go (s', g') n'   = let (found', remains') = match n' g' in (Set.union s' found', remains')
       (found, remains) = foldl' go (Set.empty, g) ns
-  in Set.union found (search (Set.toList found) remains)
+  in Set.union found (search found remains)
 
 merge :: Ord n => Graph n -> Graph n -> Graph n
 merge (Graph a) (Graph b) =

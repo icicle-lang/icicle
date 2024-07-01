@@ -19,6 +19,7 @@ import           System.IO
 import           Icicle.Common.Base
 import           Icicle.Common.Exp
 import           Icicle.Common.Fresh
+import           Icicle.Internal.Pretty
 import           Icicle.Avalanche.Statement.Statement
 import qualified Icicle.Avalanche.Prim.Flat as Flat
 import qualified Icicle.Avalanche.Prim.Compounds as Flat
@@ -169,6 +170,38 @@ write_ref_out_of_scope_let_copy a_fresh = do
   Flat.FlatOps  {..} = Flat.flatOps a_fresh
   Flat.FlatCons {..} = Flat.flatCons a_fresh
 
+--
+-- On the first pass, it wouldn't need a copy; but we
+-- need one afterwards because acc1 and acc2 point to
+-- the same reference.
+write_loop :: a -> Fresh Var (Statement a Var Flat.Prim)
+write_loop a_fresh = do
+  fact   <- freshPrefix "facts"
+  acc1   <- freshPrefix "test_arr"
+  acc2   <- freshPrefix "test_arr"
+  acc3   <- freshPrefix "test_arr"
+  loc1   <- freshPrefix "loc"
+  loc2   <- freshPrefix "loc"
+  loc3   <- freshPrefix "loc"
+
+  return
+    $ initArr IntT acc1 (XValue a_fresh (ArrayT IntT) (VArray [VInt 1]))
+    $ initArr IntT acc2 (XValue a_fresh (ArrayT IntT) (VArray [VInt 2]))
+    $ initArr IntT acc3 (XValue a_fresh (ArrayT IntT) (VArray [VInt 3]))
+    $ ForeachFacts (FactBinds fact []) UnitT
+    $ readArr IntT loc1 acc1
+    $ readArr IntT loc2 acc2
+    $ readArr IntT loc3 acc3
+    $ Block [
+        Write acc3 (arrCpy IntT (xVar loc1))
+      , Write acc2 (arrCpy IntT (xVar loc2))
+      , Write acc1 (arrCpy IntT (xVar loc2))
+    ]
+
+ where
+  Flat.FlatOps  {..} = Flat.flatOps a_fresh
+  Flat.FlatCons {..} = Flat.flatCons a_fresh
+
 
 countCopies :: TransformX x => x () n Flat.Prim -> Integer
 countCopies a =
@@ -182,35 +215,40 @@ isCopy e =
     XPrim () (Flat.PrimArray (Flat.PrimArrayCopy _)) -> Const (Sum 1)
     _ -> plate isCopy e
 
+mkProp :: Integer -> (() -> Fresh Var (Statement () Var Flat.Prim)) -> Property
+mkProp expect prog
+ = withTests 1 . property $ do
+    let built  = testFresh "a" $ prog ()
+    let linear = linearise built
+    Hedgehog.annotate (show $ pretty built)
+    Hedgehog.annotate (show $ pretty linear)
+    ((=== expect) . countCopies)
+      linear
+
+
 prop_elides_copy :: Property
 prop_elides_copy
- = withTests 1 . property $ do
-     ((=== 0) . countCopies) $
-       linearise (testFresh "a" $ simple_copy_elide ())
+ = mkProp 0 simple_copy_elide
 
 prop_keeps_copy :: Property
 prop_keeps_copy
- = withTests 1 . property $ do
-     ((=== 1) . countCopies) $
-       linearise (testFresh "a" $ simple_copy_retain ())
+ = mkProp 1 simple_copy_retain
 
 prop_write_ref_copy :: Property
 prop_write_ref_copy
- = withTests 1 . property $ do
-     ((=== 1) . countCopies) $
-       linearise (testFresh "a" $ write_ref_copy ())
+ = mkProp 1 write_ref_copy
 
 prop_write_ref_in_if_copy :: Property
 prop_write_ref_in_if_copy
- = withTests 1 . property $ do
-     ((=== 2) . countCopies) $
-       linearise (testFresh "a" $ write_ref_in_if_copy ())
+ = mkProp 2 write_ref_in_if_copy
 
 prop_write_ref_out_of_scope_let_copy :: Property
 prop_write_ref_out_of_scope_let_copy
- = withTests 1 . property $ do
-     ((=== 1) . countCopies) $
-       linearise (testFresh "a" $ write_ref_out_of_scope_let_copy ())
+ = mkProp 2 write_ref_out_of_scope_let_copy
+
+prop_fact_loop :: Property
+prop_fact_loop
+ = mkProp 2 write_loop
 
 tests :: IO Bool
 tests =
