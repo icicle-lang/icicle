@@ -104,7 +104,7 @@ pass transform val
         -> do x' <- transform x
               return $ Right x'
 
-ret :: (Monad m)
+ret :: Monad m
     => Program a n p
     -> Either e (Statement a n p)
     -> m (Either e (Program a n p))
@@ -144,9 +144,11 @@ simpFlattened a_fresh opts p
          >>= pass (return . pullLets)
          >>= check1 "melt"           (melt a_fresh)
          >>= pass                    (transformX return (simpAnn a_fresh))
-         >>= traverse (fixpointEither crunch)
+         >>= traverse (fixpointEither crunch) >>= (return . join)
+         -- Linear array optimisation
+         >>= check1 "linearise"      (return . linearise)
          -- Rename reads from accumulators
-         >>= check1 "rename_reads"   (fixpoint (renameReads a_fresh)) . join
+         >>= check1 "rename_reads"   (fixpoint (renameReads a_fresh))
          -- Convert values to primitive constructors
          >>= check1 "convert_values" (return . convertValues a_fresh)
          -- Finish off with an a-normalisation
@@ -174,7 +176,7 @@ simpFlattened a_fresh opts p
    -- > let y = u
    -- and now "x" is no longer mentioned, so can be removed.
    -- Doing this straight away means a smaller program for later passes.
-   >>= check2 "crunch_dead"           (return .  dead)
+   >>= check2 "crunch_dead"           (return . dead)
    -- Kill off statements that have no observable effect (no write to accumulators, etc.)
    >>= check2 "crunch_kill_no_effect" (return . killNoEffect)
    -- Perform let-forwarding on statements, so that constant lets become free

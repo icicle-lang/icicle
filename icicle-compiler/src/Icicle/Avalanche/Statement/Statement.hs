@@ -16,6 +16,7 @@ module Icicle.Avalanche.Statement.Statement (
   , factBindsAll
   ) where
 
+import           Control.Lens (Plated (..))
 import           GHC.Generics (Generic)
 
 import           Icicle.Common.Base
@@ -128,6 +129,31 @@ instance NFData WhileType
 
 -- Transforming -------------
 
+instance Plated (Statement a n p) where
+  plate f = \case
+    If x ss es
+      -> If x <$> f ss <*> f es
+    Let n x ss
+      -> Let n x <$> f ss
+    While t n vt end ss
+      -> While t n vt end <$> f ss
+    ForeachInts t n from to ss
+      -> ForeachInts t n from to <$> f ss
+    ForeachFacts binds ty ss
+      -> ForeachFacts binds ty <$> f ss
+    Block ss
+      -> Block <$> traverse f ss
+    InitAccumulator acc ss
+      -> InitAccumulator acc <$> f ss
+    Read n acc vt ss
+      -> Read n acc vt <$> f ss
+    x @ Write {}
+      -> pure x
+    x @ Output {}
+      -> pure x
+  {-# INLINABLE plate #-}
+
+-- | Transform with a monadic effect in a top down manner
 transformUDStmt
         :: Monad m
         => (env -> Statement a n p -> m (env, Statement a n p))
@@ -139,27 +165,7 @@ transformUDStmt fun env statements
  where
   go e s
    = do  (e', s') <- fun e s
-         case s' of
-          If x ss es
-           -> If x <$> go e' ss <*> go e' es
-          Let n x ss
-           -> Let n x <$> go e' ss
-          While t n vt end ss
-           -> While t n vt end <$> go e' ss
-          ForeachInts t n from to ss
-           -> ForeachInts t n from to <$> go e' ss
-          ForeachFacts binds ty ss
-           -> ForeachFacts binds ty <$> go e' ss
-          Block ss
-           -> Block <$> mapM (go e') ss
-          InitAccumulator acc ss
-           -> InitAccumulator acc <$> go e' ss
-          Read n acc vt ss
-           -> Read n acc vt <$> go e' ss
-          Write n x
-           -> return $ Write n x
-          Output n t xs
-           -> return $ Output n t xs
+         plate (go e') s'
 {-# INLINE transformUDStmt #-}
 
 
@@ -213,11 +219,13 @@ instance TransformX Statement where
   = case stmt of
      If x ss es
       -> If <$> exps x <*> go ss <*> go es
+
      Let n x ss
       -> Let <$> names n <*> exps x <*> go ss
 
      While t n vt end ss
       -> While t <$> names n <*> pure vt <*> exps end <*> go ss
+
      ForeachInts t n from to ss
       -> ForeachInts t <$> names n <*> exps from <*> exps to <*> go ss
 
@@ -233,6 +241,7 @@ instance TransformX Statement where
 
      Read n acc vt ss
       -> Read <$> names n <*> names acc <*> pure vt <*> go ss
+
      Write n x
       -> Write <$> names n <*> exps x
 

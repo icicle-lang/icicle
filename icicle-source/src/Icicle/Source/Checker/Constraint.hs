@@ -171,13 +171,13 @@ constraintsQ env q
 
   -- Perform top-level discharge of any silly leftover Possibility or Temporality joins
   top = do
-   (q',_,cons) <- generateQ q env
+   (q',s,cons) <- generateQ q env
    case dischargeCS' dischargeC'toplevel cons of
     Left errs
      -> genHoistEither
       $ errorNoSuggestions (ErrorConstraintsNotSatisfied (annotOfQuery q) errs)
     Right (sub', cons')
-     -> let q'' = substTQ sub' q'
+     -> let q'' = substTQ (compose s sub') q'
         in  return (q'', cons')
 
 

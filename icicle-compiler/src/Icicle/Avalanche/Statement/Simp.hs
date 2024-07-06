@@ -15,6 +15,7 @@ module Icicle.Avalanche.Statement.Simp (
   , thresherWithAlpha, thresherNoAlpha
   , nestBlocks
   , dead
+  , linearise
   , killNoEffect
   , stmtFreeX, stmtFreeX'
   , freevarsStmt
@@ -22,6 +23,7 @@ module Icicle.Avalanche.Statement.Simp (
 
 import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Avalanche.Statement.Simp.Dead
+import              Icicle.Avalanche.Statement.Simp.Linear
 import              Icicle.Avalanche.Statement.Simp.ExpEnv
 import              Icicle.Avalanche.Statement.Simp.ThreshOrd
 import              Icicle.Avalanche.Prim.Flat
@@ -293,7 +295,6 @@ renameReads a_fresh statements
 
   splitWrite _ _ _
    = Nothing
-
 
 -- Substitute an expression into a statement.
 --

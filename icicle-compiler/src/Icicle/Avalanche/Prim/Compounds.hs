@@ -31,6 +31,7 @@ data FlatOps a n = FlatOps {
   , arrDel  :: ValType -> X a n -> X a n -> X a n
   , arrZip  :: ValType -> ValType
             -> X a n -> X a n -> X a n
+  , arrCpy  :: ValType -> X a n -> X a n
 
   , mapPack :: ValType -> ValType -> X a n -> X a n -> X a n
   , mapKeys :: ValType -> ValType -> X a n -> X a n
@@ -78,7 +79,8 @@ flatOps a_fresh
   arrIx   t     = p2 (PrimUnsafe  $ PrimUnsafeArrayIndex   t)
   arrNew  t     = p1 (PrimUnsafe  $ PrimUnsafeArrayCreate  t)
   arrUpd  t     = p3 (PrimArray   $ PrimArrayPutImmutable  t)
-  arrUpd' t     = p3 (PrimArray   $ PrimArrayPutMutable  t)
+  arrUpd' t     = p3 (PrimArray   $ PrimArrayPutMutable    t)
+  arrCpy  t     = p1 (PrimArray   $ PrimArrayCopy          t)
   arrDel  t     = p2 (PrimArray   $ PrimArrayDel           t)
   arrZip  k v   = p2 (PrimArray   $ PrimArrayZip           k v)
 
