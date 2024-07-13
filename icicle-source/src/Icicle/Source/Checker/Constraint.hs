@@ -536,7 +536,8 @@ generateQ qq@(Query (c:_) _) env
     -- >    ~> ( n : Element def'p def'd |- Aggregate body'p body'd )
     -- > : Aggregate body'p body'd
     LetScan ann n x
-     -> do  (x', sx, consd)  <- generateX x env
+     -> do  let env0          = removeAggregateBinds env
+            (x', sx, consd)  <- generateX x env0
             let x'typ         = annResult $ annotOfExp x'
                 x'typ'elem    = canonT $ Temporality TemporalityElement x'typ
 

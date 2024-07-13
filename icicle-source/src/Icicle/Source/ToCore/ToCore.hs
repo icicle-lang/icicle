@@ -260,8 +260,11 @@ convertQuery q
            let y'      = beta
                        ( mapExtract res CE.@~ CE.xVar n'red)
 
+           let retTy   = typeExtract res
+           let err     = CE.xValue retTy $ T.defaultOfType retTy
+
            let b'red   = sfold n'red (typeFold res) (foldZero res) k'
-           let b'ret   = sfold b'fresh (typeExtract res) y' y'
+           let b'ret   = sfold b'fresh retTy err y'
 
            (bs',n'')  <- convertQuery q'
            return (b'red <> b'ret <> bs', n'')

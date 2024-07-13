@@ -34,6 +34,7 @@ module Icicle.Source.Checker.Base (
   , bindT
   , withBind
   , purifyUsableBinds
+  , removeAggregateBinds
 
   , substE
   , substTQ
@@ -109,6 +110,7 @@ optionSmallData = CheckOptions False True
 
 defaultCheckOptions :: CheckOptions
 defaultCheckOptions = optionSmallData
+
 
 --------------------------------------------------------------------------------
 
@@ -297,6 +299,29 @@ purifyUsableBinds typ =
         Just $ ft { schemeType = canonT (Temporality TemporalityPure (schemeType ft)) }
       _ ->
         Nothing
+
+
+-- | For Let Scans
+--   Let scans reify an aggregation back into an element, but have to actually
+--   produce the aggregation themselves due to how the core is elaborated.
+--   So inside the let scan binding, we can't allow the use of pre-existing
+--   aggregations.
+removeAggregateBinds :: Eq n => GenEnv n -> GenEnv n
+removeAggregateBinds =
+  Map.map go
+    where
+
+  go ft =
+    let
+      t =
+        getTemporalityOrPure (schemeType ft)
+    in
+      ft {
+        schemeConstraints =
+          CTemporalityJoin TemporalityElement TemporalityElement t :
+            schemeConstraints ft
+      }
+
 
 substE :: Eq n => SubstT n -> GenEnv n -> GenEnv n
 substE s
