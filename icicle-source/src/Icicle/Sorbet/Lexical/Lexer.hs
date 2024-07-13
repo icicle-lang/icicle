@@ -32,14 +32,14 @@ import           Icicle.Sorbet.Position
 
 import           P hiding (exp)
 
-import           Text.Megaparsec (try, manyTill, ShowErrorComponent(..), ParseErrorBundle, MonadParsec)
+import           Text.Megaparsec (try, manyTill, ShowErrorComponent(..), ParseErrorBundle, MonadParsec, TraversableStream)
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Mega
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 import           Text.Printf (printf)
 
 type Lexer s m =
-  (MonadParsec LexerError s m, Mega.Token s ~ Char, IsString (Mega.Tokens s))
+  (MonadParsec LexerError s m, Mega.Token s ~ Char, IsString (Mega.Tokens s), TraversableStream s)
 
 type LexerBundle s =
   ParseErrorBundle s LexerError

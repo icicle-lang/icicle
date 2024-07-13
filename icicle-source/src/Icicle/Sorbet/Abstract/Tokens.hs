@@ -60,11 +60,11 @@ import           P
 
 import           Text.Megaparsec (label)
 import qualified Text.Megaparsec as Mega
-import           Text.Megaparsec (MonadParsec)
+import           Text.Megaparsec (MonadParsec, TraversableStream)
 
 
 type Parser s m =
-  (MonadParsec Void s m, Mega.Token s ~ Positioned Token, MonadFail m)
+  (MonadParsec Void s m, Mega.Token s ~ Positioned Token, MonadFail m, TraversableStream s)
 
 type ParserBundle =
   Mega.ParseErrorBundle (PositionedStream Token) Void

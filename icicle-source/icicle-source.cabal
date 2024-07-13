@@ -41,7 +41,7 @@ library
                      , file-embed                      >= 0.0.9      && < 0.0.16
                      , hashable
                      , lens
-                     , megaparsec                      >= 7.0        && < 8.0
+                     , megaparsec                      >= 9.0        && < 10
                      , mmorph                          >= 1.0
                      , parser-combinators
                      , scientific                      == 0.3.*

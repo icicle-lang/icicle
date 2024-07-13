@@ -26,12 +26,11 @@ import           Icicle.Sorbet.Position
 
 import           P
 
-import           Text.Megaparsec (try, sepBy, choice, label)
+import           Text.Megaparsec (MonadParsec, try, sepBy, choice, label)
 import qualified Text.Megaparsec as Mega
-import           Text.Megaparsec (MonadParsec)
 
 type Parser s m =
-  (MonadParsec Void s m, Mega.Token s ~ Positioned Token)
+  (MonadParsec Void s m, Mega.Token s ~ Positioned Token, Mega.TraversableStream s)
 
 pRepl :: Parser s m => m (Repl Position)
 pRepl =

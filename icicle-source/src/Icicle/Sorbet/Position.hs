@@ -33,7 +33,7 @@ import           P
 
 import           System.IO (FilePath)
 
-import           Text.Megaparsec (Stream(..), PosState (..))
+import           Text.Megaparsec (Stream(..), VisualStream (..), PosState (..), TraversableStream (..))
 import           Text.Megaparsec.Pos (SourcePos(..), mkPos, unPos)
 
 import           X.Text.Show (gshowsPrec)
@@ -115,12 +115,13 @@ instance (Pretty a, Ord a) => Stream (PositionedStream a) where
      in (x, PositionedStream str s')
 
 
+instance (Pretty a, Ord a) => VisualStream (PositionedStream a) where
   showTokens _ =
     List.intercalate " " . NonEmpty.toList . fmap (show . pretty . posTail)
 
+instance (Pretty a, Ord a) => TraversableStream (PositionedStream a) where
   reachOffset o (PosState input offset sourcePos tabWidth _) =
-    ( newSourcePos
-    , fromMaybe "" thisLine
+    ( thisLine
     , PosState
         { pstateInput = PositionedStream (streamText input) post
         , pstateOffset = max offset o
