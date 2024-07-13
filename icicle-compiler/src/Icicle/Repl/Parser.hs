@@ -156,7 +156,7 @@ pLoad = do
 
 pQuery :: Parser Command
 pQuery =
-  CommandQuery <$> Mega.someTill Mega.anySingle Mega.eol
+  CommandQuery <$> Mega.some Mega.anySingle
 
 pLet :: Parser Command
 pLet = do

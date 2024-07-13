@@ -73,10 +73,10 @@ Error
 
 ## Parse error
 
-  1:23:
+  2:1:
     |
-  1 | from salary ~> "no end
-    |                       ^
+  2 | <empty line>
+    | ^
   unexpected end of input
   expecting '"'
   

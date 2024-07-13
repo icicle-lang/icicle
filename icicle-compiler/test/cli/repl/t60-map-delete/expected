@@ -17,7 +17,7 @@ Selected psv file as input: test/cli/repl/data.psv
 
 λ Queries will be evaluated using the core evaluator.
 λ Queries will be evaluated using the C evaluator.
-λ λ Core evaluation
+λ λ | | | | | | | | | | | | Core evaluation
 ---------------
 
 homer|[ ("arm", 4) ]
@@ -27,9 +27,4 @@ C evaluation
 
 homer|[ ("arm", 4) ]
 
-λ -- fold x = map_create :
-λ --  case map_lookup location x
-λ --  | None -> map_insert location severity x
-λ --  | Some _ -> map_delete location x
-λ --  end
-λ λ 
+λ 

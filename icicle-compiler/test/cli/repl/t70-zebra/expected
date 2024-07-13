@@ -42,7 +42,7 @@ homer|{ "arm" -> [ None, None ], "torso" -> [ Some "ignore", None ] }
 marge|{ "head" -> [ Some "ignore", None ], "leg" -> [ None, None ] }
 moe|{ "ear" -> [ None ], "hair" -> [ None ] }
 
-λ λ C evaluation
+λ λ | | | | | | | | | | | | C evaluation
 ------------
 
 homer|{ Some "arm" -> Some 4.0 }

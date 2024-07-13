@@ -4,6 +4,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 module Icicle.Repl.Monad (
     Repl(..)
   , runRepl
@@ -17,9 +18,10 @@ import           Control.Monad.Catch (MonadThrow, MonadCatch, MonadMask)
 import           Control.Monad.IO.Class (MonadIO(..))
 import           Control.Monad.State (MonadState(..))
 import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Trans.Maybe (MaybeT (..))
 import           Control.Monad.Trans.State.Strict (StateT, evalStateT)
 
-import           Data.List (dropWhileEnd)
+import           Data.List (dropWhileEnd, unlines)
 import           Data.String (String)
 
 import           Icicle.Repl.Completion
@@ -72,18 +74,50 @@ getPrompt = do
   use <- getUseColor
   pure $ sgrColor use Dull Yellow "λ "
 
+
+getMultilinePrompt :: Repl String
+getMultilinePrompt = do
+  use <- getUseColor
+  pure $ sgrColor use Dull Yellow "| "
+
+
 withUserInput :: (String -> Repl ()) -> Repl ()
 withUserInput onInput =
   Haskeline.handleInterrupt (withUserInput onInput) $ do
     prompt <- getPrompt
-    minput <- Repl $ Haskeline.getInputLine prompt
+    minput <- top (Repl (Haskeline.getInputLine prompt))
     case minput of
       Nothing ->
         pure ()
       Just input
-        | let trimmed = dropWhileEnd (== ' ') input
+        | let trimmed = trim input
         , trimmed == ":quit" || trimmed == ":q"
         -> pure ()
         | otherwise
         -> do onInput input
               withUserInput onInput
+
+  where
+    trim =
+      dropWhileEnd (== ' ')
+
+    top q = runMaybeT $ do
+      l <- MaybeT q
+      if trim l == ":{" then
+        multiLineCmd q
+      else
+        return l
+
+    multiLineCmd q = do
+      collectCommand q []
+
+    getMoreInput = do
+      prompt <- getMultilinePrompt
+      Repl (Haskeline.getInputLine prompt)
+
+    collectCommand q c = do
+      l <- MaybeT getMoreInput
+      if trim l == ":}" then
+        return $ unlines (reverse c)
+      else
+        collectCommand q (l : c)

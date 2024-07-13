@@ -1,10 +1,16 @@
 :set +core-eval
 :set +c-eval
 
-from injury ~> fold x = map_create then case map_lookup (Some location) x of None then map_insert (Some location) (Some severity) x; Some _ then map_delete (Some location) x ~> x
--- fold x = map_create :
---  case map_lookup location x
---  | None -> map_insert location severity x
---  | Some _ -> map_delete location x
---  end
-
+:{
+from injury in
+  fold x =
+    map_create
+  then
+    case map_lookup (Some location) x of
+      None then
+        map_insert (Some location) (Some severity) x
+      Some _ then
+        map_delete (Some location) x
+  in
+    x
+:}
