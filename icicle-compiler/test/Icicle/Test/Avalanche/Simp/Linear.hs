@@ -216,14 +216,13 @@ isCopy e =
     _ -> plate isCopy e
 
 mkProp :: Integer -> (() -> Fresh Var (Statement () Var Flat.Prim)) -> Property
-mkProp expect prog
+mkProp expected prog
  = withTests 1 . property $ do
     let built  = testFresh "a" $ prog ()
     let linear = linearise built
     Hedgehog.annotate (show $ pretty built)
     Hedgehog.annotate (show $ pretty linear)
-    ((=== expect) . countCopies)
-      linear
+    countCopies linear === expected
 
 
 prop_elides_copy :: Property

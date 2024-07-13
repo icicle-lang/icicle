@@ -6,6 +6,7 @@
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE DoAndIfThenElse    #-}
 {-# LANGUAGE RecursiveDo        #-}
+{-# LANGUAGE RecordWildCards    #-}
 
 -- Remove copy operations on arrays which don't have shared references.
 module Icicle.Avalanche.Statement.Simp.Linear (linearise) where
@@ -14,14 +15,14 @@ import              Control.Monad.Tardis
 
 import qualified    Data.Set as Set
 import              Data.Hashable (Hashable (..))
-import qualified    Data.Map.Lazy as Map
 
 import qualified    Icicle.Avalanche.Prim.Flat as Flat
 import              Icicle.Avalanche.Statement.Statement
+import              Icicle.Avalanche.Statement.Simp.Linear.Graph (Graph)
+import qualified    Icicle.Avalanche.Statement.Simp.Linear.Graph as Graph
 import              Icicle.Common.Base (Name)
 import              Icicle.Common.Exp
 import              Icicle.Common.Type (ValType (..))
-import              Icicle.Internal.Pretty
 
 import              P hiding (empty)
 
@@ -54,7 +55,7 @@ import              P hiding (empty)
 --
 linearise :: (Hashable n, Eq n) => Statement a n Flat.Prim -> Statement a n Flat.Prim
 linearise s =
-  evalTardis (go s) (Set.empty, empty)
+  evalTardis (go s) (Set.empty, Graph.empty)
     where
 
   --
@@ -81,7 +82,7 @@ linearise s =
         used               <- getFuture
 
         modifyForwards $
-          merge tA . merge fA
+          Graph.merge tA . Graph.merge fA
 
         return $
           If x tS fS
@@ -150,7 +151,7 @@ linearise s =
         -- future, we won't fix the Tardis.
 
         modifyForwards $
-          overwrite n ref
+          Graph.overwrite n ref
 
         pure $
           if hasNoFurtherReferences n ref aliased used then do
@@ -165,7 +166,7 @@ linearise s =
       Write n x | Just ref <- arrayReference x -> do
         modifyBackwardsUsed' x
         modifyForwards $
-          overwrite n ref
+          Graph.overwrite n ref
 
         pure $ Write n x
 
@@ -227,9 +228,9 @@ linearise s =
       -- out of scope, deletes this name and remakes transient aliases
       -- as direct ones.
       scopedGo nm ref ss = do
-        modifyForwards (overwrite nm ref)
+        modifyForwards (Graph.overwrite nm ref)
         sS <- go ss
-        modifyForwards (delete nm)
+        modifyForwards (Graph.delete nm)
         pure sS
 
       --
@@ -239,7 +240,7 @@ linearise s =
       -- the new value stands alone.
       scopedGo' nm ss = do
         sS <- go ss
-        modifyForwards (delete nm)
+        modifyForwards (Graph.delete nm)
         pure sS
 
       --
@@ -257,7 +258,7 @@ linearise s =
         before <- getPast
         sS     <- go ss
         after  <- getPast
-        let merged = merge before after
+        let merged = Graph.merge before after
         if before == merged then
           pure sS
         else do
@@ -269,10 +270,10 @@ hasNoFurtherReferences :: Ord a => a -> a -> Graph a -> Set.Set a -> Bool
 hasNoFurtherReferences acc nx aliased used =
   let
     theseAliases =
-      Set.insert nx (search (Set.singleton nx) aliased)
+      Set.insert nx (Graph.search (Set.singleton nx) aliased)
 
     thoseAliases =
-      search (Set.delete acc used) aliased
+      Graph.search (Set.delete acc used) aliased
 
   in
     Set.disjoint
@@ -304,64 +305,3 @@ arrayReference x =
 
     _ ->
       Nothing
-
---
--- | Dead simple graph library for doing a search.
-newtype Graph n =
-  Graph (Map.Map n (Set.Set n))
- deriving (Eq, Ord, Show)
-
-instance Pretty n => Pretty (Graph n) where
-  pretty (Graph g) =
-    vsep (pretty <$> (Map.toList (Map.map Set.toList g)))
-
-empty :: Graph n
-empty =
-  Graph Map.empty
-
-overwrite :: Ord n => n -> n -> Graph n -> Graph n
-overwrite from to (Graph g) =
-  Graph $
-    Map.insert from (Set.singleton to) g
-
-delete :: Ord n => n -> Graph n -> Graph n
-delete from (Graph g) =
-  let
-    transient =
-      fromMaybe Set.empty $
-        Map.lookup from g
-
-    addIfPoint k xs =
-      Set.delete k $ Set.delete from $
-        if Set.member from xs then
-          Set.union transient xs
-        else
-          xs
-
-    addIfPointOrNone k xs = do
-      found <- Just $ addIfPoint k xs
-      guard (not (Set.null found))
-      return found
-
-  in
-  Graph $
-    Map.mapMaybeWithKey addIfPointOrNone $
-      Map.delete from g
-
-match :: Ord n => n -> Graph n -> (Set.Set n, Graph n)
-match n (Graph g) =
-  case Map.lookup n g of
-    Nothing -> (Set.empty, Graph g)
-    Just set -> (set, Graph $ Map.delete n g)
-
-search :: Ord n => Set.Set n -> Graph n -> Set.Set n
-search ns _ | Set.null ns = Set.empty
-search ns g =
-  let go (s', g') n'   = let (found', remains') = match n' g' in (Set.union s' found', remains')
-      (found, remains) = foldl' go (Set.empty, g) ns
-  in Set.union found (search found remains)
-
-merge :: Ord n => Graph n -> Graph n -> Graph n
-merge (Graph a) (Graph b) =
-  Graph $
-    Map.unionWith Set.union a b
