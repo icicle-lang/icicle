@@ -184,6 +184,7 @@ linearise s =
       -- Looping constructs.
       -- Run until a fixpoint is reached.
       While a w vt x ss -> do
+        modifyBackwardsUsed (Set.singleton w)
         modifyBackwardsUsed' x
         While a w vt x <$>
           fixGo ss
