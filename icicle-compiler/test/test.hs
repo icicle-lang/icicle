@@ -16,6 +16,7 @@ import qualified Icicle.Test.Core.Program.Condense
 import qualified Icicle.Test.Avalanche.EvalCommutes
 import qualified Icicle.Test.Avalanche.CheckCommutes
 import qualified Icicle.Test.Avalanche.Simp.Linear
+import qualified Icicle.Test.Avalanche.Simp.Linear.Graph
 import qualified Icicle.Test.Avalanche.SimpCommutes
 import qualified Icicle.Test.Avalanche.Flatten
 import qualified Icicle.Test.Avalanche.Melt
@@ -98,6 +99,7 @@ avalanche =
     , Icicle.Test.Avalanche.MeltPrim.tests
     , Icicle.Test.Avalanche.SimpCommutes.tests
     , Icicle.Test.Avalanche.Simp.Linear.tests
+    , Icicle.Test.Avalanche.Simp.Linear.Graph.tests
     ]
 
 core :: TestSuite
