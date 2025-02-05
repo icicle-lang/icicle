@@ -72,4 +72,82 @@ homer|[ (1989-12-17, (1500, 0))
       ]
 marge|[ (1989-12-17, (30, 0)) ]
 
+λ λ -- Latests with element let, returning an array
+λ Type
+----
+
+repl:output :
+  Aggregate (Definitely (Array (Sum ErrorT Int)))
+
+Core evaluation
+---------------
+
+homer|[ 302
+      , 402
+      , 502
+      ]
+marge|[ 2
+      , 12
+      , 22
+      ]
+
+λ λ -- Nested Latests with element let, returning an array
+λ -- Should give the same value
+λ Type
+----
+
+repl:output :
+  Aggregate (Definitely (Array (Sum ErrorT Int)))
+
+Core evaluation
+---------------
+
+homer|[ 302
+      , 402
+      , 502
+      ]
+marge|[ 2
+      , 12
+      , 22
+      ]
+
+λ λ -- Latests with let scan, returning an array
+λ Type
+----
+
+repl:output :
+  Aggregate (Definitely (Array Int))
+
+Core evaluation
+---------------
+
+homer|[ 600
+      , 1000
+      , 1500
+      ]
+marge|[ 0
+      , 10
+      , 30
+      ]
+
+λ λ -- Nested Latests let scan, returning an array
+λ -- Should give the same value
+λ Type
+----
+
+repl:output :
+  Aggregate (Definitely (Array Int))
+
+Core evaluation
+---------------
+
+homer|[ 600
+      , 1000
+      , 1500
+      ]
+marge|[ 0
+      , 10
+      , 30
+      ]
+
 λ 

@@ -131,19 +131,6 @@ convertQuery q
             let bs' = filt e' (streams bs) <> bs { streams = [] }
             return (bs', b)
 
-
-    -- Converting filters is probably the simplest conversion.
-    --
-    -- We create a fresh name for the "filter" binding we're creating,
-    -- as well as a fresh name for the lambda variable for the predicate.
-    --
-    -- Then we convert the filter expression into a predicate, and wrap it in the lambda.
-    --
-    -- We convert the rest of the query and pass through the fresh filter binding's name,
-    -- as that is what the data is operating on.
-    (FilterLet _ _ _ : _)
-     -> convertAsFold
-
     -- Windowing in Core is a standard filter, with precomputations for
     -- the edges of the windows.
     (Windowed _ newerThan olderThan : _)
@@ -192,13 +179,19 @@ convertQuery q
             (>=~) = CE.prim2 (C.PrimMinimal $ Min.PrimRelation Min.PrimRelationGe T.TimeT)
             infix 4 >=~
 
-    (Latest _ _ : _)
+    (FilterLet {} : _)
      -> convertAsFold
 
-    (GroupBy _ _ : _)
+    (Latest {} : _)
+     -> convertAsFold
+
+    (GroupBy {} : _)
      -> convertAsFold
 
     (ArrayFold {} : _)
+     -> convertAsFold
+
+    (Distinct {} : _)
      -> convertAsFold
 
     -- Convert a group fold using a Map. Very similar to Group By, with an additional
@@ -246,34 +239,57 @@ convertQuery q
     (GroupFold (Annot { annAnnot = ann }) pat _ _ : _)
      -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
-    (Distinct _ _ : _)
-     -> convertAsFold
-
     (LetScan _ (PatVariable b) def : _)
      -> do res        <- convertFold $ Query [] def
            n'red      <- lift fresh
-           b'fresh    <- convertFreshenAdd b
 
            let k'      = beta
-                       ( foldKons res CE.@~ CE.xVar n'red)
+                       ( foldKons res CE.@~ CE.xVar n'red )
 
            let y'      = beta
-                       ( mapExtract res CE.@~ CE.xVar n'red)
+                       ( mapExtract res CE.@~ CE.xVar n'red )
 
            let retTy   = typeExtract res
-           let err     = CE.xValue retTy $ T.defaultOfType retTy
+
+           input      <- convertInputName
+           inpty      <- convertInputType
+
+           let inpty'  = T.PairT retTy inpty
 
            let b'red   = sfold n'red (typeFold res) (foldZero res) k'
-           let b'ret   = sfold b'fresh retTy err y'
 
-           (bs',n'')  <- convertQuery q'
+           let xfst    = CE.xApp
+                       $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst retTy inpty
+           let xsnd    = CE.xApp
+                       $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd retTy inpty
+
+           convertModifyFeaturesMap
+             ( Map.insert b (FeatureVariable (annResult $ annotOfExp def) xfst False)
+             . Map.map (\fv -> fv { featureVariableExp = featureVariableExp fv . xsnd })
+             ) b
+
+           let pairC l r
+                = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair retTy inpty)
+                    CE.@~ l CE.@~ r
+
+           inp'fresh  <- lift fresh
+
+           let pair    = pairC y' (CE.xVar input)
+           let defT ty = CE.xValue ty (T.defaultOfType ty)
+           let pairD   = pairC (defT retTy) (defT inpty)
+           let b'ret   = sfold inp'fresh inpty' pairD pair
+
+           (bs',n'')  <- convertWithInput inp'fresh inpty' $ convertQuery q'
            return (b'red <> b'ret <> bs', n'')
+
 
     (Let _ (PatVariable b) def : _)
      -> case getTemporalityOrPure $ annResult $ annotOfExp def of
          TemporalityElement
-          -> do t' <- convertValType' $ annResult $ annotOfExp def
-                (inpstream, inpty) <- convertInput
+          -> do t'        <- convertValType' $ annResult $ annotOfExp def
+                input     <- convertInputName
+                inpty     <- convertInputType
+
                 let inpty' = T.PairT t' inpty
 
                 e'      <- convertExp def
@@ -283,12 +299,15 @@ convertQuery q
                 let xsnd = CE.xApp
                          $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' inpty
 
-                convertModifyFeaturesMap (Map.insert b (FeatureVariable (annResult $ annotOfExp def) xfst False) . Map.map (\fv -> fv { featureVariableExp = featureVariableExp fv . xsnd })) b
+                convertModifyFeaturesMap
+                  ( Map.insert b (FeatureVariable (annResult $ annotOfExp def) xfst False)
+                  . Map.map (\fv -> fv { featureVariableExp = featureVariableExp fv . xsnd })
+                  ) b
 
                 let pairC l r
                      = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
                          CE.@~ l CE.@~ r
-                let pair = pairC e' (CE.xVar inpstream)
+                let pair = pairC e' (CE.xVar input)
                 let defT ty = CE.xValue ty (T.defaultOfType ty)
                 let pairD= pairC (defT t') (defT inpty)
 

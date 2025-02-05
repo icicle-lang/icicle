@@ -330,12 +330,12 @@ convertFold q
            return $ ConvertFoldResult kons zero x' t'buf t'arr
 
      | otherwise
-     -> do n'arr <- lift fresh
-           n'acc <- lift fresh
-           n'buf <- lift fresh
-           n'e   <- lift fresh
-           n'x   <- lift fresh
-           n'a   <- lift fresh
+     -> do n'arr     <- lift fresh
+           n'acc     <- lift fresh
+           n'buf     <- lift fresh
+           n'e       <- lift fresh
+           n'x       <- lift fresh
+           n'a       <- lift fresh
 
            inp       <- convertInputName
            inpT      <- convertInputType
@@ -346,11 +346,11 @@ convertFold q
            let t'x    = typeFold res
            let t'r    = typeExtract res
 
-           let kons  = CE.xLam n'acc t'buf
-                     ( CE.pushBuf i t'e
+           let kons   = CE.xLam n'acc t'buf
+                      ( CE.pushBuf i t'e
                          CE.@~ CE.xVar n'acc
                          CE.@~ CE.xVar inp )
-           let zero  = CE.emptyBuf i t'e
+           let zero   = CE.emptyBuf i t'e
 
            -- Flip the res fold arguments so it can be use with Array_fold
            let k'    = CE.xLam n'x t'x

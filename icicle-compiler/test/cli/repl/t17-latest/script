@@ -8,3 +8,17 @@ from salary ~> group time ~> latest 2 ~> sum value
 
 -- Something complicated
 from salary ~> let sx = sum value ~> group time ~> latest 2 ~> filter value > 100 ~> (sx, sum value)
+
+-- Latests with element let, returning an array
+from salary ~> let zod = value + 2 ~> latest 3 ~> zod
+
+-- Nested Latests with element let, returning an array
+-- Should give the same value
+from salary ~> let zod = value + 2 ~> latest 4 ~> latest 3 ~> zod
+
+-- Latests with let scan, returning an array
+from salary ~> scan zod = sum value ~> latest 3 ~> zod
+
+-- Nested Latests let scan, returning an array
+-- Should give the same value
+from salary ~> scan zod = sum value ~> latest 4 ~> latest 3 ~> zod
