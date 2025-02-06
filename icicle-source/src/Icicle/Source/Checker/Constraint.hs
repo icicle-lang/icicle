@@ -589,6 +589,15 @@ generateQ qq@(Query (c:_) _) env
     = do p1       <- TypeVar <$> fresh
          return (e, requireData typ (OptionT p1))
 
+  goPat' True _ (PatCon ConTrue []) typ e
+    = do return (e, requireData typ BoolT)
+
+  goPat' True _ (PatCon ConFalse []) typ e
+    = do return (e, requireData typ BoolT)
+
+  goPat' True _ (PatCon ConUnit []) typ e
+    = do return (e, requireData typ UnitT)
+
   goPat' True ann (PatCon ConLeft [p]) typ e
     | (mt,mp,canon) <- decomposeT typ
     = do p1            <- TypeVar <$> fresh

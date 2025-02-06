@@ -100,6 +100,9 @@ desugarLets cc
     Let _ PatDefault _
       -> return []
 
+    Let _ (PatCon ConUnit _) _
+      -> return []
+
     Let a (PatCon ConTuple [apat, bpat]) x
       -> do n        <- fresh
             let nbind = Let a (PatVariable n) x
@@ -171,6 +174,9 @@ desugarLets cc
            return $
              LetScan a n' x : concat lets
 
+    FilterLet _ PatDefault _
+      -> return []
+
     FilterLet a (PatCon ConRight [arg]) x
       -> do n        <- fresh
             i        <- fresh
@@ -227,6 +233,16 @@ desugarLets cc
                 varn  = (Var ann n)
               return $ Case ann varn [(tup, Var ann (which b))]
 
+    FilterLet a (PatCon ConTrue []) x
+      -> desugarLets $ Filter a x
+
+    FilterLet a (PatCon ConFalse []) x
+      -> do let not' = Prim a $ Op $ LogicalUnary Not
+            desugarLets $ Filter a (App a not' x)
+
+    FilterLet _ (PatCon ConUnit []) _
+      -> return []
+
     FilterLet a (PatRecord fields) x
       -> do n        <- fresh
             let nbind = Let a (PatVariable n) x
@@ -235,8 +251,8 @@ desugarLets cc
             ccs      <- mapM desugarLets (nbind : bound)
             return $ concat ccs
 
-    FilterLet a simpleBinding x
-      -> do desugarLets $ Let a simpleBinding x
+    FilterLet a (PatVariable n) x
+      -> do desugarLets $ Let a (PatVariable n) x
 
     x -> return [x]
 

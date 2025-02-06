@@ -158,7 +158,7 @@ convertExpQ q
             -- the scan can't be used. Just ignore it.
             convertExpQ $ Query cs $ final q
 
-    (ArrayFold ann  (PatVariable v) x:_)
+    (ArrayFold ann (PatVariable v) x:_)
      -> do  tv       <- getArrayFoldType (annAnnot ann) x
             x'       <- convertExp x
 
