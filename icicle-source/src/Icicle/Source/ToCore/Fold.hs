@@ -31,6 +31,7 @@ import           Icicle.Source.Type
 import           P
 
 import           Control.Monad.Trans.Class
+import           Control.Lens                   (_2, _3, (^.), to)
 import           Data.List                      (zip, replicate)
 import           Data.Hashable                  (Hashable)
 import qualified Data.Map                       as Map
@@ -291,6 +292,7 @@ convertFold q
             e'         <- convertExp scrut
             o't'e      <- convertValType' $ annResult $ annotOfExp scrut
             let T.OptionT t'e = o't'e
+            convertAddElementRepack b b' t'e
             prev       <- lift fresh
             n'unit     <- lift fresh
             let t'res   = typeFold res
@@ -339,24 +341,58 @@ convertFold q
 
            inp       <- convertInputName
            inpT      <- convertInputType
-           let t'e    = inpT
-           let t'buf  = T.BufT i t'e
 
-           res       <- convertWithInputName n'e $ convertFold q'
+           -- Find all the Element binds have been declared.
+           -- These come from Element Lets, Filter Lets, and Let Scans.
+           repacks   <- convertElementRepacks
+
+           -- Build the Packing expression and type for these binds as well
+           -- as the input.
+           (p, t'e)  <- pairConstruct
+                          (CE.xVar inp : fmap (^. _2 . to CE.xVar) repacks)
+                          (inpT : fmap (^. _3) repacks)
+
+           -- Within a new scope, with renamed input, build up the bindings
+           -- for all the Elements we have to repack, and add them to the
+           -- environment before converting the remaining fold
+           (pk, res) <- convertWithInputName n'e $ do
+                          refreshed <- for repacks $  \(nm, _,  typ) -> do
+                            nm'fresh            <- lift fresh
+                            convertAddElementRepack nm nm'fresh typ
+                            convertFreshenAddAs nm nm'fresh
+                            return nm'fresh
+
+                          res <- convertFold q'
+                          return (refreshed, res)
+
            let t'x    = typeFold res
            let t'r    = typeExtract res
+           let t'buf  = T.BufT i t'e
 
-           let kons   = CE.xLam n'acc t'buf
+           let kons   = CE.xLam n'acc (t'buf)
                       ( CE.pushBuf i t'e
                          CE.@~ CE.xVar n'acc
-                         CE.@~ CE.xVar inp )
+                         CE.@~ p )
            let zero   = CE.emptyBuf i t'e
 
            -- Flip the res fold arguments so it can be use with Array_fold
-           let k'    = CE.xLam n'x t'x
-                     $ CE.xLam n'e t'e
-                     $ beta
-                     ( foldKons res CE.@~ CE.xVar n'x )
+           -- Then grab the packed inputs and create our lambdas
+           k'        <- fmap (CE.xLam n'x t'x)
+                      $ flip pairDestruct (inpT : fmap (^. _3) repacks) $ \(ns : moar) -> do
+
+              -- Bind the destructed expressions to the expected names.
+              -- All of these will be either simple variables or values, so should forward.
+              let destructor fin = foldr (uncurry CE.xLet) fin (zip pk moar)
+
+              return . destructor $
+                CE.xLet n'e ns $
+                  beta ( foldKons res CE.@~ CE.xVar n'x )
+
+
+          --  let k'    = CE.xLam n'x t'x
+          --            $ CE.xLam n'e t'e
+          --            $ beta
+          --            ( foldKons res CE.@~ CE.xVar n'x )
 
            -- Apply the res fold
            let x'    = CE.xLet n'arr
@@ -654,7 +690,7 @@ convertFold q
             n'   <- lift fresh
             t'   <- convertValType' $ annResult $ annotOfExp def
             let res = ConvertFoldResult (CE.xLam n' t' def') def' (CE.xLam n' t' def') t' t'
-            convertAsLet ann p res
+            convertAsLet ann False p res
 
      | TemporalityElement  <- getTemporalityOrPure $ annResult $ annotOfExp def
      -> do  def' <- convertExp def
@@ -662,11 +698,11 @@ convertFold q
             t'   <- convertValType' $ annResult $ annotOfExp def
             let err = CE.xValue t' $ T.defaultOfType t'
             let res = ConvertFoldResult (CE.xLam n' t' def') err (CE.xLam n' t' $ CE.xVar n') t' t'
-            convertAsLet ann p res
+            convertAsLet ann True p res
 
      | otherwise
      -> do  resb <- convertFold (Query [] def)
-            convertAsLet ann p resb
+            convertAsLet ann False p resb
 
     (LetFold (Annot { annAnnot = ann }) f@Fold{ foldType = FoldTypeFoldl, foldBind = PatVariable n } : _)
      -> do  -- Type helpers
@@ -685,7 +721,7 @@ convertFold q
             x' <- idFun tU
 
             let res = ConvertFoldResult k' z x' tU tU
-            convertAsLet ann (foldBind f) res
+            convertAsLet ann False (foldBind f) res
 
     (LetFold (Annot { annAnnot = ann }) Fold{ foldType = FoldTypeFoldl1 } : _)
      -> convertError $ ConvertErrorImpossibleFold1 ann
@@ -700,6 +736,7 @@ convertFold q
 
             (b',remains) <- convertContext $ do
               b'      <- convertFreshenAdd b
+              ()      <- convertAddElementRepack b b' (typeFold scanned)
               remains <- convertFold q'
               return (b', remains)
 
@@ -743,21 +780,23 @@ convertFold q
   -- Create nested pair type for storing the result of subexpressions
   pairTypes ts
    = case nonunits ts of
-      (t:ts') -> foldl T.PairT t ts'
+      (t:ts') -> foldl' T.PairT t ts'
       []      -> T.UnitT
 
-  -- Create nested pairs of arguments
+  -- Create left associative nested pairs of arguments.
+  -- Unit types are omitted at this level, we don't want
+  -- to see a lot of garbage packed into buffers or folds.
   pairConstruct xs ts
    = let xts = filter ((/=T.UnitT).snd) $ zip xs ts
      in  return
        $ case xts of
-          ((x,t):xts')
-           -> foldl
+          (xt:xts')
+           -> foldl'
                (\(xa,ta) (x',t')
                 -> ( CE.xPrim
                         (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair ta t')
                         CE.@~ xa CE.@~ x'
-                   , T.PairT ta t')) ( x, t ) xts'
+                   , T.PairT ta t')) xt xts'
           []
            -> (CE.xValue T.UnitT VUnit, T.UnitT)
 
@@ -765,48 +804,76 @@ convertFold q
   -- Call "f" with expression for each element of the pair.
   pairDestruct f ts
    | [] <- nonunits ts
+   -- Everything is trivial
    = do n1 <- lift fresh
         f' <- f (replicate (length ts) (CE.xValue T.UnitT VUnit))
         return $ CE.xLam n1 T.UnitT f'
 
+  -- Because the pairs are left associative, we reverse the inputs
+  -- and output so we pop off each right element.
   pairDestruct f ts
-   = pairDestruct' f ts
+   = pairDestruct' (f . reverse) (reverse ts)
 
+  -- We're done, apply the transformation.
   pairDestruct' f []
    = f []
 
+  -- Unit types aren't packed up, so we don't need a lambda and
+  -- can just use a Unit Value at this position.
   pairDestruct' f (T.UnitT:ts)
    = do let f' xs = f (CE.xValue T.UnitT VUnit : xs)
         pairDestruct' f' ts
 
+  -- If there's no non-unit values, we don't need to unpack any
+  -- more pairs (this is the last one).
   pairDestruct' f (t:ts)
    | [] <- nonunits ts
    = do n1 <- lift fresh
         let f' xs = f (CE.xVar n1 : xs)
+        -- The recursion will hit only the above cases, creating
+        -- unit values, then finally applying.
         rest <- pairDestruct' f' ts
         let xx = CE.xLam n1 t rest
         return xx
 
+  -- There are multiple non-unit values remaining.
   pairDestruct' f (t:ts)
-   = do nl <- lift fresh
-        n1 <- lift fresh
+   = do nl       <- lift fresh
+        n1       <- lift fresh
+
+        -- The type on the left is the nested pairs remaining.
+        -- we need to reverse here, because we're consuming in
+        -- in reverse order.
+        let tr    = pairTypes (reverse ts)
+
+        -- Accessor for the nested pairs we still need to destruct
+        let xfst  = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst tr t) CE.@~ CE.xVar nl
+
+        -- Accessor for this element
+        let xsnd  = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd tr t) CE.@~ CE.xVar nl
+
+        -- Build the new function to apply with the last element
+        -- (we do a final reverse before the true application).
         let f' xs = f (CE.xVar n1 : xs)
-        let tr    = pairTypes ts
 
-        rest <- pairDestruct' f' ts
+        -- Recurse on the nested pairs to the left.
+        rest     <- pairDestruct' f' ts
 
-        let xfst = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t tr) CE.@~ CE.xVar nl
-        let xsnd = CE.xPrim (C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t tr) CE.@~ CE.xVar nl
-
-        let xx = CE.xLam nl (T.PairT t tr)
-               $ CE.xLet n1 xfst
-               ( rest CE.@~ xsnd )
+        -- Finally, build a lambda for the pairs, and let bind the
+        -- rightmost element before the recursive call.
+        let xx = CE.xLam nl (T.PairT tr t)
+               $ CE.xLet n1 xsnd
+               ( rest CE.@~ xfst )
 
         return xx
 
-  convertAsLet _ (PatVariable b) resb
+  convertAsLet _ isElem (PatVariable b) resb
    = convertContext
    $    do  b'     <- convertFreshenAdd b
+
+            when isElem $
+              convertAddElementRepack b b' (typeFold resb)
+
             resq   <- convertFold q'
             let tb' = typeFold resb
             let tq' = typeFold resq
@@ -817,8 +884,8 @@ convertFold q
                          return $ CE.xLet b' (foldKons resb CE.@~ xa) kp'
                 fk' s
                     = fk' s
-            k' <- pairDestruct fk' [tb', tq']
 
+            k'      <- pairDestruct fk' [tb', tq']
             (zp',_) <- pairConstruct [CE.xVar b', foldZero resq ] [tb', tq']
             let z'  = CE.xLet b' (foldZero resb) zp'
 
@@ -832,7 +899,7 @@ convertFold q
 
             return $ ConvertFoldResult k' z' x' tpair (typeExtract resq)
 
-  convertAsLet ann pat _
+  convertAsLet ann _ pat _
     = convertError
     $ ConvertErrorPatternUnconvertable ann pat
 

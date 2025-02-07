@@ -137,60 +137,60 @@ conv-3 : MaxMapSize
 
 ## Streams
 
-STREAM_FOLD conv-34 : Sum Error (Map Time (Buf 2 (Sum Error Int, Time)))
+STREAM_FOLD conv-35 : Sum Error (Map Time (Buf 2 (Sum Error Int, Time)))
   INIT:
     Right (Map [])
   KONS:
     Sum_fold#
-      (\conv-29 -> left# conv-29)
-      (\conv-26 ->
+      (\conv-30 -> left# conv-30)
+      (\conv-27 ->
         let
-          conv-25 =
+          conv-26 =
             snd# conv-0
           
-          conv-31 =
+          conv-32 =
             Map_insertOrUpdate#
-              (\conv-30 ->
-                Latest_push# conv-30 conv-0)
+              (\conv-31 ->
+                Latest_push# conv-31 conv-0)
               (Latest_push# (Buf []) conv-0)
-              conv-25
               conv-26
+              conv-27
         in
           if#
-            (\conv-32 -> right# conv-31)
-            (\conv-32 ->
+            (\conv-33 -> right# conv-32)
+            (\conv-33 ->
               Left ExceptCannotCompute)
             (lt#
-              (length# (keys# conv-31))
+              (length# (keys# conv-32))
               conv-3))
-      conv-34
+      conv-35
 
 ## Postcomputations
 
-conv-35 =
+conv-36 =
   Sum_fold#
-    (\conv-29 -> left# conv-29)
-    (\conv-26 ->
+    (\conv-30 -> left# conv-30)
+    (\conv-27 ->
       Map_fold#
-        (\conv-23 conv-25 conv-27 ->
+        (\conv-24 conv-26 conv-28 ->
           Sum_fold#
-            (\conv-29 -> left# conv-29)
-            (\conv-24 ->
+            (\conv-30 -> left# conv-30)
+            (\conv-25 ->
               Sum_fold#
-                (\conv-29 -> left# conv-29)
-                (\conv-28 ->
+                (\conv-30 -> left# conv-30)
+                (\conv-29 ->
                   right#
                     (Map_insertOrUpdate#
-                      (\conv-33 -> conv-28)
-                      conv-28
-                      conv-25
-                      conv-24))
+                      (\conv-34 -> conv-29)
+                      conv-29
+                      conv-26
+                      conv-25))
                 (let
                   conv-4 =
-                    Latest_read# conv-27
+                    Latest_read# conv-28
                 in
                   Array_fold#
-                    (\conv-8 conv-7 ->
+                    (\conv-8 conv-22 ->
                       Sum_fold#
                         (\reify-0-conv-11 ->
                           left# reify-0-conv-11)
@@ -204,18 +204,18 @@ conv-35 =
                                   reify-1-conv-12
                                   reify-3-conv-14))
                             conv-8)
-                        (fst# conv-7))
+                        (fst# conv-22))
                     (Right 0)
                     conv-4))
-            conv-23)
+            conv-24)
         (Right (Map []))
-        conv-26)
-    conv-34
+        conv-27)
+    conv-35
 
 ## Returning
 
 repl:output =
-  conv-35
+  conv-36
 
 Core type
 ---------

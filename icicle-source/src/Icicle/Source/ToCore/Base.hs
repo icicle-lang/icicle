@@ -27,6 +27,8 @@ module Icicle.Source.ToCore.Base (
   , convertValType
   , convertFunctionArgType
   , convertContext
+  , convertAddElementRepack
+  , convertElementRepacks
 
   , pre, filt, sfold, post
   , programOfBinds
@@ -220,11 +222,19 @@ data ConvertState n
  , csMaxMapSize   :: Name n
  , csFeatures     :: FeatureContext () n
  , csFreshen      :: Map.Map (Name n) (Name n)
+
+ -- | Bindings which are TemporalityElement, and will
+ --   need to be packed into the buffer when doing a
+ --   latest query.
+ --   Unfortunately, at this time the top level uses
+ --   a different mechanism (packing into the input)
+ --   but it works out the same in the end.
+ , csFoldRepacks  :: Map.Map (Name n) (Name n, ValType)
  }
 
 convertInput :: ConvertM a n (Name n, ValType)
 convertInput
- = (,) <$> (csInputName <$> get) <*> (csInputType <$> get)
+ = ((,) <$> csInputName <*> csInputType) <$> get
 
 convertInputName :: ConvertM a n (Name n)
 convertInputName
@@ -238,7 +248,6 @@ convertFactTimeName :: ConvertM a n (Name n)
 convertFactTimeName
  = csFactTimeName <$> get
 
-
 convertDateName :: ConvertM a n (Name n)
 convertDateName
  = csDateName <$> get
@@ -251,6 +260,15 @@ convertFeatures :: ConvertM a n (FeatureContext () n)
 convertFeatures
  = csFeatures <$> get
 
+convertElementRepacks :: ConvertM a n [(Name n, Name n, ValType)]
+convertElementRepacks
+ = fmap (\(k, (v, cs)) -> (k,v,cs)).Map.toList . csFoldRepacks <$> get
+
+convertAddElementRepack :: Eq n => Name n -> Name n -> ValType -> ConvertM a n ()
+convertAddElementRepack from to valType
+ = do   o <- get
+        put (o { csFoldRepacks = Map.insert from (to, valType) (csFoldRepacks o) })
+        return ()
 
 convertWithInputName :: Name n -> ConvertM a n r -> ConvertM a n r
 convertWithInputName n c

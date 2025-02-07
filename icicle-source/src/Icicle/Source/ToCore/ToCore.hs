@@ -48,9 +48,9 @@ import                  P
 import                  Control.Monad.Morph
 import                  Control.Monad.Trans.State.Lazy
 
+import                  Data.Hashable (Hashable)
 import                  Data.List (zip, unzip)
 import qualified        Data.Map as Map
-import                  Data.Hashable (Hashable)
 
 
 -- | Convert a top-level Query to Core.
@@ -88,7 +88,7 @@ convertQueryTop feats qt
                   Just t' -> return t'
         let inpTy'dated = T.PairT inpTy T.TimeT
 
-        let convState = ConvertState inp inpTy'dated facttime now maxMapSize fs Map.empty
+        let convState = ConvertState inp inpTy'dated facttime now maxMapSize fs Map.empty Map.empty
         let env       = Map.insert facttime (T.funOfVal   T.TimeT)
                       $ Map.insert inp      (T.funOfVal $ T.PairT inpTy T.TimeT) Map.empty
 
@@ -118,20 +118,15 @@ convertQuery q
 
     -- Converting filters is probably the simplest conversion.
     --
-    -- We create a fresh name for the "filter" binding we're creating,
-    -- as well as a fresh name for the lambda variable for the predicate.
-    --
-    -- Then we convert the filter expression into a predicate, and wrap it in the lambda.
-    --
-    -- We convert the rest of the query and pass through the fresh filter binding's name,
-    -- as that is what the data is operating on.
+    -- We convert the query as per usual, but then repack its
+    -- streams into a Core stream filter.
     (Filter _ e : _)
      -> do  e'      <- convertExp e
             (bs, b) <- convertQuery q'
             let bs' = filt e' (streams bs) <> bs { streams = [] }
             return (bs', b)
 
-    -- Windowing in Core is a standard filter, with precomputations for
+    -- Windowing in Core is a standard filter, with pre-computations for
     -- the edges of the windows.
     (Windowed _ newerThan olderThan : _)
      -> do  (bs, b)   <- convertQuery q'
