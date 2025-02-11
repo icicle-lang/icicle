@@ -111,7 +111,7 @@ marge|[ 2
       , 22
       ]
 
-λ λ -- Latests with let scan, returning an array
+λ λ -- Latests with let scan, returning an array.
 λ Type
 ----
 
@@ -130,8 +130,6 @@ marge|[ 0
       , 30
       ]
 
-λ λ -- Nested Latests let scan, returning an array
-λ -- Should give the same value
 λ Type
 ----
 
@@ -148,6 +146,188 @@ homer|[ 600
 marge|[ 0
       , 10
       , 30
+      ]
+
+λ Type
+----
+
+repl:output :
+  Aggregate (Definitely (Array Int))
+
+Core evaluation
+---------------
+
+homer|[ 600
+      , 1000
+      , 1500
+      ]
+marge|[ 0
+      , 10
+      , 30
+      ]
+
+λ Type
+----
+
+repl:output :
+  Aggregate (Definitely (Array Int))
+
+Core evaluation
+---------------
+
+homer|[ 600
+      , 1000
+      , 1500
+      ]
+marge|[ 0
+      , 10
+      , 30
+      ]
+
+λ λ -- Latests with filter lets, returning an array
+λ Type
+----
+
+repl:output :
+  Aggregate (Possibly (Array (Sum ErrorT Int)))
+
+Core evaluation
+---------------
+
+homer|[ 301
+      , 401
+      , 501
+      ]
+marge|[ 1
+      , 11
+      , 21
+      ]
+
+λ Type
+----
+
+repl:output :
+  Aggregate (Possibly (Array (Sum ErrorT Int)))
+
+Core evaluation
+---------------
+
+homer|[ 301
+      , 401
+      , 501
+      ]
+marge|[ 1
+      , 11
+      , 21
+      ]
+
+λ Type
+----
+
+repl:output :
+  Aggregate (Possibly (Array (Sum ErrorT Int)))
+
+Core evaluation
+---------------
+
+homer|[ 301
+      , 401
+      , 501
+      ]
+marge|[ 1
+      , 11
+      , 21
+      ]
+
+λ Type
+----
+
+repl:output :
+  Aggregate (Possibly (Array (Sum ErrorT Int)))
+
+Core evaluation
+---------------
+
+homer|[ 301
+      , 401
+      , 501
+      ]
+marge|[ 1
+      , 11
+      , 21
+      ]
+
+λ λ -- Latests with lets, returning an array.
+λ Type
+----
+
+repl:output :
+  Aggregate (Definitely (Array (Sum ErrorT Int)))
+
+Core evaluation
+---------------
+
+homer|[ 301
+      , 401
+      , 501
+      ]
+marge|[ 1
+      , 11
+      , 21
+      ]
+
+λ Type
+----
+
+repl:output :
+  Aggregate (Definitely (Array (Sum ErrorT Int)))
+
+Core evaluation
+---------------
+
+homer|[ 301
+      , 401
+      , 501
+      ]
+marge|[ 1
+      , 11
+      , 21
+      ]
+
+λ Type
+----
+
+repl:output :
+  Aggregate (Definitely (Array (Sum ErrorT Int)))
+
+Core evaluation
+---------------
+
+homer|[ 301
+      , 401
+      , 501
+      ]
+marge|[ 1
+      , 11
+      , 21
+      ]
+
+λ Type
+----
+
+repl:output :
+  Aggregate (Definitely (Array (Sum ErrorT Int)))
+
+Core evaluation
+---------------
+
+homer|[ 301
+      , 401
+      , 501
+      ]
+marge|[ 1
+      , 11
+      , 21
       ]
 
 λ 

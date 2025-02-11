@@ -16,9 +16,20 @@ from salary ~> let zod = value + 2 ~> latest 3 ~> zod
 -- Should give the same value
 from salary ~> let zod = value + 2 ~> latest 4 ~> latest 3 ~> zod
 
--- Latests with let scan, returning an array
+-- Latests with let scan, returning an array.
 from salary ~> scan zod = sum value ~> latest 3 ~> zod
-
--- Nested Latests let scan, returning an array
--- Should give the same value
 from salary ~> scan zod = sum value ~> latest 4 ~> latest 3 ~> zod
+from salary ~> latest 10 ~> scan zod = sum value ~> latest 3 ~> zod
+from salary ~> latest 10 ~> scan zod = sum value ~> latest 4 ~> latest 3 ~> zod
+
+-- Latests with filter lets, returning an array
+from salary ~> filter let Some zod = Some (value + 1) ~> latest 3 ~> zod
+from salary ~> filter let Some zod = Some (value + 1) ~> latest 4 ~> latest 3 ~> zod
+from salary ~> latest 4 ~> filter let Some zod = Some (value + 1) ~> latest 3 ~> zod
+from salary ~> latest 4 ~> filter let Some zod = Some (value + 1) ~> latest 4 ~> latest 3 ~> zod
+
+-- Latests with lets, returning an array.
+from salary ~> let zod = value + 1 ~> latest 3 ~> zod
+from salary ~> let zod = value + 1 ~> latest 4 ~> latest 3 ~> zod
+from salary ~> latest 4 ~> let zod = value + 1 ~> latest 3 ~> zod
+from salary ~> latest 4 ~> let zod = value + 1 ~> latest 4 ~> latest 3 ~> zod
