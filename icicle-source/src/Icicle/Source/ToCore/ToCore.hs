@@ -234,6 +234,8 @@ convertQuery q
     (GroupFold (Annot { annAnnot = ann }) pat _ _ : _)
      -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
+    -- Create two folds. One for the scanned query, and one for
+    -- the extraction.
     (LetScan _ (PatVariable b) def : _)
      -> do res        <- convertFold $ Query [] def
            n'red      <- lift fresh
@@ -244,79 +246,43 @@ convertQuery q
            let y'      = beta
                        ( mapExtract res CE.@~ CE.xVar n'red )
 
-           let retTy   = typeExtract res
-
-           input      <- convertInputName
-           inpty      <- convertInputType
-
-           let inpty'  = T.PairT retTy inpty
-
            let b'red   = sfold n'red (typeFold res) (foldZero res) k'
 
-           let xfst    = CE.xApp
-                       $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst retTy inpty
-           let xsnd    = CE.xApp
-                       $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd retTy inpty
+           let retTy   = typeExtract res
+           let def'y   = CE.xValue retTy (T.defaultOfType retTy)
+           b'         <- convertFreshenAdd b
+           let b'ret   = sfold b' retTy def'y y'
 
-           convertModifyFeaturesMap
-             ( Map.insert b (FeatureVariable (annResult $ annotOfExp def) xfst False)
-             . Map.map (\fv -> fv { featureVariableExp = featureVariableExp fv . xsnd })
-             ) b
+           -- Inform that this needs to be packed into buffers
+           -- if we run a 'latest'.
+           (bs',n'')  <- convertContext $ do
+             convertAddElementRepack b b' retTy
+             convertQuery q'
 
-           let pairC l r
-                = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair retTy inpty)
-                    CE.@~ l CE.@~ r
-
-           inp'fresh  <- lift fresh
-
-           let pair    = pairC y' (CE.xVar input)
-           let defT ty = CE.xValue ty (T.defaultOfType ty)
-           let pairD   = pairC (defT retTy) (defT inpty)
-           let b'ret   = sfold inp'fresh inpty' pairD pair
-
-           (bs',n'')  <- convertWithInput inp'fresh inpty' $ convertQuery q'
            return (b'red <> b'ret <> bs', n'')
 
 
     (Let _ (PatVariable b) def : _)
      -> case getTemporalityOrPure $ annResult $ annotOfExp def of
          TemporalityElement
-          -> do t'        <- convertValType' $ annResult $ annotOfExp def
-                input     <- convertInputName
-                inpty     <- convertInputType
+          -> do t'         <- convertValType' $ annResult $ annotOfExp def
+                e'         <- convertExp def
+                let def't   = CE.xValue t' (T.defaultOfType t')
+                b'         <- convertFreshenAdd b
+                let bs      = sfold b' t' def't e'
 
-                let inpty' = T.PairT t' inpty
-
-                e'      <- convertExp def
-
-                let xfst = CE.xApp
-                         $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairFst t' inpty
-                let xsnd = CE.xApp
-                         $ CE.xPrim $ C.PrimMinimal $ Min.PrimPair $ Min.PrimPairSnd t' inpty
-
-                convertModifyFeaturesMap
-                  ( Map.insert b (FeatureVariable (annResult $ annotOfExp def) xfst False)
-                  . Map.map (\fv -> fv { featureVariableExp = featureVariableExp fv . xsnd })
-                  ) b
-
-                let pairC l r
-                     = (CE.xPrim $ C.PrimMinimal $ Min.PrimConst $ Min.PrimConstPair t' inpty)
-                         CE.@~ l CE.@~ r
-                let pair = pairC e' (CE.xVar input)
-                let defT ty = CE.xValue ty (T.defaultOfType ty)
-                let pairD= pairC (defT t') (defT inpty)
-
-
-                n'r     <- lift fresh
-                let bs   = sfold n'r inpty' pairD pair
-                (bs', n'') <- convertWithInput n'r inpty' $ convertQuery q'
+                -- Inform that this needs to be packed into buffers
+                -- if we run a 'latest'.
+                (bs', n'') <- convertContext $ do
+                  convertAddElementRepack b b' t'
+                  convertQuery q'
 
                 return (bs <> bs', n'')
 
          TemporalityPure
-          -> do e'      <- convertExp def
-                b'      <- convertFreshenAdd b
-                let bs   = pre b' e'
+          -> do e'        <- convertExp def
+                b'        <- convertFreshenAdd b
+                let bs     = pre b' e'
                 (bs', n') <- convertQuery q'
                 return (bs <> bs', n')
 
