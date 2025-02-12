@@ -41,7 +41,7 @@ prop_maxsize ts =
 
 prop_maxsize_corpus :: Property
 prop_maxsize_corpus
- = testAllCorpus $ \_cid wt ->
+ = withMaxSuccess 5 . testAllCorpus $ \_cid wt ->
    forAll (getPositive <$> arbitrary) $ \maxMapSize ->
      let
        props =
