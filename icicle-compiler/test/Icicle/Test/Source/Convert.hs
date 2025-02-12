@@ -188,6 +188,7 @@ hasContext f query =
   getAny $ execWriter $
     transformQ notingTransform query
 
+
 hasExpr :: (Exp a n -> Bool) -> Query a n -> Bool
 hasExpr f query =
   let

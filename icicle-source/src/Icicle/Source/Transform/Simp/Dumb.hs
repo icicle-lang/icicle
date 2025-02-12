@@ -19,22 +19,14 @@ import           P
 
 
 dumbSimpTransform
-  :: (Eq n)
+  :: Eq n
   => Transform Identity () a n
 dumbSimpTransform
- = Transform
- { transformExp     = tranx
- , transformPat     = tranp
- , transformContext = tranc
- , transformState   = ()
- }
+ = idTransform { transformExp = tranx }
+
  where
   tranx _ x
    = return ((), simpDumbX x)
-  tranp _ p
-   = return ((), p)
-  tranc _ c
-   = return ((), simpDumbC c)
 
 
 simpDumbQT :: Eq n => QueryTop a n -> QueryTop a n
@@ -44,26 +36,6 @@ simpDumbQT qt
 simpDumbQ :: Eq n => Query a n -> Query a n
 simpDumbQ qq
  = runIdentity $ transformQ dumbSimpTransform qq
-
-simpDumbC :: Eq n => Context a n -> Context a n
-simpDumbC cc
- = case cc of
-    GroupBy   a   x   -> GroupBy   a     $ simpDumbX x
-    Distinct  a   x   -> Distinct  a     $ simpDumbX x
-    Filter    a   x   -> Filter    a     $ simpDumbX x
-    FilterLet a n x   -> FilterLet a n   $ simpDumbX x
-    Let       a n x   -> Let       a n   $ simpDumbX x
-    LetScan   a n x   -> LetScan   a n   $ simpDumbX x
-    LetFold   a   f   -> LetFold   a     $ simpDumbF f
-    ArrayFold a v x   -> ArrayFold a v   $ simpDumbX x
-    GroupFold a k v x -> GroupFold a k v $ simpDumbX x
-    Windowed{}        -> cc
-    Latest{}          -> cc
-
-simpDumbF :: Eq n => Fold Query a n -> Fold Query a n
-simpDumbF ff
- = ff { foldInit = simpDumbX (foldInit ff)
-      , foldWork = simpDumbX (foldWork ff) }
 
 simpDumbX :: Eq n => Exp a n -> Exp a n
 simpDumbX = simpDumbCases . simpDumbLets
