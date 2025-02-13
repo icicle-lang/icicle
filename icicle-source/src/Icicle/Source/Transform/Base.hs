@@ -96,22 +96,9 @@ transformC t cc
         -> do x' <- transformX t x
               return (s, GroupFold a k v x')
        ArrayFold a v x
-        -- Note: same as group fold
+        -- Note: same as Group fold.
         -> do x' <- transformX t x
               return (s, ArrayFold a v x')
-       Distinct a x
-        -> do x' <- goX x
-              return (s, Distinct a x')
-       Filter a x
-        -> do x' <- goX x
-              return (s, Filter a x')
-       FilterLet a n x -- TODO check
-        -> do x' <- transformX t x
-              return (s, FilterLet a n x')
-       LetFold a f
-        -> do  i' <- goX $ foldInit f
-               w' <- goX $ foldWork f
-               return (s, LetFold a (f { foldInit = i', foldWork = w' }))
        Let a n x
         -- Note: see above. Let bindings are non-recursive, so
         --       we need to inline only subsequent declarations,
@@ -119,8 +106,25 @@ transformC t cc
         -> do  x' <- transformX t x
                return (s, Let a n x')
        LetScan a n x
-        -> do  x' <- goX x
+        -- Note: see Let bindings.
+        -> do  x' <- transformX t x
                return (s, LetScan a n x')
+       FilterLet a n x
+        -- Note: see Let bindings.
+        -> do x' <- transformX t x
+              return (s, FilterLet a n x')
+       LetFold a f
+        -- Note: see above. Let folds bind their variables
+        --       in their worker functions only.
+        -> do  i' <- transformX t $ foldInit f
+               w' <-          goX $ foldWork f
+               return (s, LetFold a (f { foldInit = i', foldWork = w' }))
+       Distinct a x
+        -> do x' <- goX x
+              return (s, Distinct a x')
+       Filter a x
+        -> do x' <- goX x
+              return (s, Filter a x')
 
 transformX
     :: (Monad m)

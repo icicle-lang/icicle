@@ -73,12 +73,19 @@ inlineTransform _ funs0
 
    | Let _ pat _ <- c
    = return (foldl (flip Map.delete) funs (snd $ allvarsP pat), c)
+   | LetScan _ pat _ <- c
+   = return (foldl (flip Map.delete) funs (snd $ allvarsP pat), c)
+   | FilterLet _ pat _ <- c
+   = return (foldl (flip Map.delete) funs (snd $ allvarsP pat), c)
    | LetFold _ (Fold pat _ _ _) <- c
+   = return (foldl (flip Map.delete) funs (snd $ allvarsP pat), c)
+   | ArrayFold _ pat _ <- c
    = return (foldl (flip Map.delete) funs (snd $ allvarsP pat), c)
    | GroupFold _ k v _ <- c
    = return (foldl (flip Map.delete) funs (snd $ allvarsP (PatCon ConTuple [k, v])), c)
    | otherwise
    = return (funs, c)
+
 
 inlineQT :: (Hashable n, Eq n)
         => InlineOption
