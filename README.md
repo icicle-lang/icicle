@@ -128,7 +128,7 @@ Data Processing
 Data processing in Ivory (and similar data stores) is heavily
 parallelized. This places restrictions on how data is processed
 and how expressions can relate to each other - in most cases
-these restrictions are simplifying to the desigin of icicle.
+these restrictions are simplifying to the design of icicle.
 
 The basic invariants are:
 
@@ -149,7 +149,7 @@ Expressions
 -----------
 
 Icicle supports a wide variety of expressions, and queries which
-can be computed in an event soucing or streaming manner should be
+can be computed in an event sourcing or streaming manner should be
 computable in Icicle.
 
 The best place to get a feel for expressions is the [ambling]

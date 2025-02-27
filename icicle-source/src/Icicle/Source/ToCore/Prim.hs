@@ -398,6 +398,19 @@ convertPrim p ann primTy xts = go p
 
   gomap MapInsert
    | ((xk, _) : (xv, _) : (xm, tm) : _) <- xts
+   , TemporalityPure <- getTemporalityOrPure tm
+   = case valTypeOfType tm of
+       Just mapT@(T.MapT tk tv)
+         -> do inserted  <- primInsertNoCheck tk tv xm xk xv
+               n         <- lift F.fresh
+               return $ CE.makeLets () [ (n, inserted) ]
+                      $ apps (C.PrimMinimal $ Min.PrimConst $ Min.PrimConstRight T.ErrorT mapT) [ CE.xVar n ]
+           where
+            apps f xs = CE.makeApps () (CE.XPrim () f) xs
+       _ -> convertError $ ConvertErrorCannotConvertType ann tm
+
+  gomap MapInsert
+   | ((xk, _) : (xv, _) : (xm, tm) : _) <- xts
    = case valTypeOfType tm of
        Just (T.MapT tk tv)
          -> primInsert tk tv xm xk xv
