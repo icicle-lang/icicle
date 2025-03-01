@@ -18,8 +18,6 @@ module Icicle.Source.ToCore.Base (
   , convertWithInputName
   , convertError
   , convertFeatures
-  , convertModifyFeatures
-  , convertModifyFeaturesMap
   , convertFreshenAdd
   , convertFreshenAddAs
   , convertFreshenLookup
@@ -291,29 +289,6 @@ convertContext with
         r <- with
         put o
         return r
-
-convertModifyFeatures
-        :: (FeatureContext () n -> FeatureContext () n)
-        -> ConvertM a n ()
-convertModifyFeatures f
- = do   o <- get
-        put (o { csFeatures = f $ csFeatures o })
-
--- | When adding a variable binding, you need to modify the existing things, and then add something new.
--- The variable you're adding also needs to be cleared from any other environments, for shadowing to work
-convertModifyFeaturesMap
-        :: Eq n
-        => (Map.Map (Name n) (FeatureVariable () n) -> Map.Map (Name n) (FeatureVariable () n))
-        -> Name n
-        -> ConvertM a n ()
-convertModifyFeaturesMap f clearName
- = do   o <- get
-        let fs = csFeatures o
-        let fv = featureContextVariables fs
-        put (o { csFeatures = fs { featureContextVariables = f fv }
-               -- Remove this from the freshen environment as the features map version shadows it
-               , csFreshen  = Map.delete clearName $ csFreshen o })
-
 
 convertFreshenAdd :: (Hashable n, Eq n) => Name n -> ConvertM a n (Name n)
 convertFreshenAdd prefix
