@@ -1,21 +1,8 @@
 -- | Converting Source to Core.
 --
--- This is all very rough around the edges at the moment.
--- Some fundamental things are missing, like dealing with optional values:
--- the "newest v" aggregate returns a "Maybe v", but we actually want to implicitly
--- unbox that.
--- So, for example,
+--   This is the main entry point for this conversion, setting up
+--   the conversion state and handling top level evaluations.
 --
--- > let x = newest value ~> x * 5
---
--- here, "x" should be bound to a simple "Int", but the outer query should return
--- a "Maybe Int".
---
--- However, some things like filtering, grouping, latest and simple aggregates do work.
---
--- (This is why there are no property tests yet.)
---
-
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternGuards     #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -64,7 +51,7 @@ import qualified        Data.Map as Map
 --
 -- "Elem" computations must be worker functions on filters, maps, and so on.
 --
--- "AggU" or "Group" computations can be reductions on streams, or postcomputations.
+-- "Aggregate" computations can be reductions on streams, or postcomputations.
 --
 convertQueryTop :: (Hashable n, Eq n)
                 => Features () n (InputKey (Annot a n) n)
@@ -101,10 +88,15 @@ convertQueryTop feats qt
 
 
 -- | Convert a Query to Core
--- This takes the name of the input stream, the element types of the input,
--- and the query to transform.
--- It returns a list of program bindings, as well as the name of the binding
--- that is being "returned" in the program - essentially the last added binding.
+--
+--   This takes the name of the input stream, the element types of the input,
+--   and the query to transform.
+--   It returns a list of program bindings, as well as the name of the binding
+--   that is being "returned" in the program - essentially the last added binding.
+--
+--   Results using convertAsFold should always give identical results, but
+--   performing some elaboration here allows for better query fusion and sub
+--   expression elimination; as well as just making queries easier to read.
 --
 convertQuery :: (Hashable n, Eq n)
              => Query (Annot a n) n
@@ -234,8 +226,12 @@ convertQuery q
     (GroupFold (Annot { annAnnot = ann }) pat _ _ : _)
      -> convertError $ ConvertErrorPatternUnconvertable ann pat
 
-    -- Create two folds. One for the scanned query, and one for
-    -- the extraction.
+    -- Let Scans introduce two Core folds before compiling the
+    -- rest of the query.
+    --
+    -- The first is the normal folding aggregation for the bound
+    -- subquery; the second contains the final extraction step,
+    -- running at every query iteration.
     (LetScan _ (PatVariable b) def : _)
      -> do res        <- convertFold $ Query [] def
            n'red      <- lift fresh
