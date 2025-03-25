@@ -16,6 +16,7 @@ module Icicle.Avalanche.Statement.Simp.Linear.Graph (
   delete,
   merge,
   search,
+  insert,
 )
 
 where
@@ -46,6 +47,8 @@ empty :: Graph n
 empty =
   Graph Map.empty Map.empty
 
+-- | Insert an edge into a graph, removing existing
+--   out edges from the node if they exist.
 overwrite :: Ord n => n -> n -> Graph n -> Graph n
 overwrite from to (Graph forwards backwards) =
   let
@@ -81,6 +84,16 @@ overwrite from to (Graph forwards backwards) =
     , graphBackwards =
         Map.alter (Just . maybe (Set.singleton from) (Set.insert from)) to trimmedBackwards
     }
+
+
+-- | Insert an edge into a graph without removing
+--   already existing edges from the graph.
+insert :: Ord n => n -> n -> Graph n -> Graph n
+insert from to into =
+  merge
+    (overwrite from to empty)
+    into
+
 
 -- | Delete a node and stitch up its edges such that
 --   nodes which were transitively connected through

@@ -18,24 +18,50 @@ import qualified Hedgehog.Internal.Range as Range
 prop_tidies_reverse :: Property
 prop_tidies_reverse = withTests 1 . property $ do
   let
-    a2b2c =
-      Graph.overwrite 'a' 'b' $
-        Graph.overwrite 'b' 'c' Graph.empty
-    a2b2d =
-      Graph.overwrite 'a' 'b' $
-        Graph.overwrite 'b' 'd' Graph.empty
     combined =
-      Graph.merge a2b2c a2b2d
+      Graph.insert 'a' 'b' $
+      Graph.insert 'b' 'c' $
+      Graph.insert 'b' 'd' Graph.empty
 
-    trashed =
-      Graph.delete 'b' combined
+    expected =
+      Graph.insert 'a' 'c' $
+      Graph.insert 'a' 'd' Graph.empty
 
-    recreated =
-      Graph.merge
-        (Graph.overwrite 'a' 'c' Graph.empty)
-        (Graph.overwrite 'a' 'd' Graph.empty)
+  Graph.delete 'b' combined === expected
 
-  trashed === recreated
+
+prop_tidies_reverse_source :: Property
+prop_tidies_reverse_source = withTests 1 . property $ do
+  let
+    combined =
+      Graph.insert 'a' 'b' $
+      Graph.insert 'b' 'c' $
+      Graph.insert 'x' 'b' Graph.empty
+
+    expected =
+      Graph.insert 'a' 'c' $
+      Graph.insert 'x' 'c' Graph.empty
+
+  Graph.delete 'b' combined === expected
+
+
+prop_cross_products :: Property
+prop_cross_products = withTests 1 . property $ do
+  let
+    combined =
+      Graph.insert 'a' 'x' $
+      Graph.insert 'b' 'x' $
+      Graph.insert 'x' 'c' $
+      Graph.insert 'x' 'd' Graph.empty
+
+    expected =
+      Graph.insert 'a' 'c' $
+      Graph.insert 'a' 'd' $
+      Graph.insert 'b' 'c' $
+      Graph.insert 'b' 'd' Graph.empty
+
+  Graph.delete 'x' combined === expected
+
 
 prop_add_remove_source :: Property
 prop_add_remove_source = withTests 1 . property $ do
@@ -55,6 +81,17 @@ prop_add_remove_dest = withTests 1 . property $ do
 
   trashed === Graph.empty
 
+
+prop_overwrite_removes_dangling :: Property
+prop_overwrite_removes_dangling = withTests 1 . property $ do
+  let
+    trashed =
+      Graph.overwrite 'a' 'c' $
+        Graph.overwrite 'a' 'b' Graph.empty
+
+  trashed === Graph.overwrite 'a' 'c' Graph.empty
+
+
 prop_overwrite_removes_evidence :: Property
 prop_overwrite_removes_evidence = property $ do
   xs     <- forAll $ Gen.list (Range.constant 0 20) $ (,) <$> Gen.digit <*> Gen.digit
@@ -64,11 +101,9 @@ prop_overwrite_removes_evidence = property $ do
 
   let
     initial =
-      foldr (uncurry Graph.overwrite) Graph.empty xs
+      foldr (uncurry Graph.insert) Graph.empty xs
     toBlat =
       Graph.overwrite start endTwo initial
-
-  annotateShow toBlat
 
   Graph.overwrite start endOne toBlat === Graph.overwrite start endOne initial
 
