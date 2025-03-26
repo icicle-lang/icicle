@@ -137,7 +137,7 @@ linearise s =
       -- the array we are copying, then we don't need to actually
       -- copy it and can instead use it directly.
       Write n x | Just (Flat.PrimArray (Flat.PrimArrayCopy _), [XVar a ref]) <- takePrimApps x -> do
-        modifyBackwardsUsed' x
+        modifyBackwardsUsedRemoveBind' n x
         aliased <- getPast
         used    <- getFuture
 
@@ -164,14 +164,14 @@ linearise s =
       -- to know that this memory location points to the old
       -- one in subsequent items in a block.
       Write n x | Just ref <- arrayReference x -> do
-        modifyBackwardsUsed' x
+        modifyBackwardsUsedRemoveBind' n x
         modifyForwards $
           Graph.overwrite n ref
 
         pure $ Write n x
 
       Write n x -> do
-        modifyBackwardsUsed' x
+        modifyBackwardsUsedRemoveBind' n x
         pure $ Write n x
 
       --
@@ -271,7 +271,7 @@ hasNoFurtherReferences :: Ord a => a -> a -> Graph a -> Set.Set a -> Bool
 hasNoFurtherReferences acc nx aliased used =
   let
     theseAliases =
-      Set.insert nx (Graph.search (Set.singleton nx) aliased)
+      Graph.search (Set.singleton nx) aliased
 
     thoseAliases =
       Graph.search (Set.delete acc used) aliased

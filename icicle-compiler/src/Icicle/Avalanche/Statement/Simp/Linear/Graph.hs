@@ -142,7 +142,7 @@ match n g =
     Just set -> (set, Map.delete n g)
 
 search :: Ord n => Set.Set n -> Graph n -> Set.Set n
-search ns (Graph g _) = searchInternal ns g
+search ns (Graph g _) = Set.union ns (searchInternal ns g)
 
 searchInternal :: Ord n => Set.Set n -> Map.Map n (Set.Set n) -> Set.Set n
 searchInternal ns _ | Set.null ns = Set.empty
