@@ -37,5 +37,5 @@ simpAnn
   -> Fresh n (Exp (Ann a n) n p)
 simpAnn a_fresh xx
   = anormalAllVars a_fresh
-  $ beta 
+  $ beta
   $ allvarsExp xx

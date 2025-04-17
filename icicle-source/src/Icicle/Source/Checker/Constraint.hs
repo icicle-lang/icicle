@@ -678,12 +678,12 @@ generateX
   -> GenEnv n
   -> Gen a n (Exp'C a n, SubstT n, GenConstraintSet a n)
 generateX =
-  generateX' False
+  generateX' BanArrow
 
 -- | Generate constraints for expression
 generateX'
   :: (Hashable n, Eq n, Pretty n)
-  => Bool
+  => AllowArrows
   -> Exp a n
   -> GenEnv n
   -> Gen a n (Exp'C a n, SubstT n, GenConstraintSet a n)
@@ -806,7 +806,7 @@ generateX' canUseFunctions x env
     --  (x : Pure Int) + (y : Element Int) : Element Int
     -- here the y is unboxed, then the result is reboxed.
     App a f arg
-     -> do (f',   fSubst,   fCons)   <- generateX' True f   env
+     -> do (f',   fSubst,   fCons)   <- generateX' AllowArrows f   env
            (arg', argSubst, argCons) <- generateX arg env
            let getT                   = annResult . annotOfExp
            (resT, resC)              <- appType a x (getT f') (fCons <> argCons) (getT arg')
@@ -891,10 +891,19 @@ generateX' canUseFunctions x env
     <*>                  (TypeVar <$> fresh))
 
 
--- | Icicle is not a functional language and we don't permit expressions which are
---   functions anywhere apart from an application which is then being applied.
-ensureSaturated :: Bool -> Exp a n -> (Exp'C a n, SubstT n, GenConstraintSet a n) -> Gen a n (Exp'C a n, SubstT n, GenConstraintSet a n)
-ensureSaturated True _ pass = do
+-- | Icicle is not a functional language and we don't permit function expressions
+--   to be returned from most expressions – the biggest exception is when we're
+--   applying a function to arguments, the left sides will be partially applied
+--   until the whole expression is saturated.
+--
+--   This stops lambdas from being required after inlining; which means we don't
+--   ever need to lambda lift or create closures in our generated C code.
+data AllowArrows
+  = BanArrow
+  | AllowArrows
+
+ensureSaturated :: AllowArrows -> Exp a n -> (Exp'C a n, SubstT n, GenConstraintSet a n) -> Gen a n (Exp'C a n, SubstT n, GenConstraintSet a n)
+ensureSaturated AllowArrows _ pass = do
   pure pass
 
 ensureSaturated _ base pass@(q, _, _) = do
@@ -1031,9 +1040,8 @@ generatePattern ann =
 mapAccumLM :: (Traversable t, Monad m) => (a -> s -> m (b, s)) -> s -> t a -> m (t b, s)
 mapAccumLM f a xs = State.runStateT (mapM (State.StateT . f) xs) a
 
-
 appType
- :: (Hashable n)
+ :: Hashable n
  => a
  -> Exp a n
  -> Type n
@@ -1041,32 +1049,50 @@ appType
  -> Type n
  -> Gen a n (Type n, GenConstraintSet a n)
 appType ann errExp funT cons actT
-  | let (tmpF,posF,datF) = decomposeT $ canonT funT
+  | let (tmpF,posF,datF) = decomposeT funT
   , TypeArrow expT resT <- datF
   = do
-    let (tmpR,posR,datR) = decomposeT $ canonT resT
-    let (tmpE,posE,datE) = decomposeT $ canonT expT
-    let (tmpA,posA,datA) = decomposeT $ canonT actT
+    let (tmpR,posR,datR) = decomposeT resT
+    let (tmpE,posE,datE) = decomposeT expT
+    let (tmpA,posA,datA) = decomposeT actT
     let consD            = require ann (CEquals datE datA)
 
-    -- Join function result and partial results.
-    (tmpR',  consT)      <- checkTemp (purely tmpE) (purely tmpA) (purely tmpR)
-    (tmpR'', consT')     <- checkTemp Nothing (purely tmpR') (purely tmpF)
+    --
+    -- Join temporalities of the function and arguments.
+    --
+    -- First, push the function's modality through into
+    -- the argument and return. We use our Join operator
+    -- to do this, as we want to join pure modes.
+    --
+    --   M (a -> b) --> (M a -> M b)
+    --
+    (tmpE',  consT'e)   <- checkTemp Nothing (purely tmpF) (purely tmpE)
+    (tmpR',  consT'r)   <- checkTemp Nothing (purely tmpF) (purely tmpR)
+    (tmpR'', consT)     <- checkTemp (purely tmpE') (purely tmpA) (purely tmpR')
 
-    -- Prevent aggregate functions returning element arrows from being applied.
-    (_, consTX)          <- checkTemp Nothing (purely tmpF) (purely tmpE)
-    (posR',  consP)      <- checkPoss (definitely posE) (definitely posA) (definitely posR)
-    (posR'', consP')     <- checkPoss Nothing (definitely posR') (definitely posF)
+    --
+    -- The discharge for possibilities has a special case
+    -- so that possible modalities are pushed onto results
+    -- but don't constrain the arguments, so we just
+    -- want this case
+    --
+    --   M (a -> b) --> (a -> M b)
+    --
+    -- which works because all modes can successfully join
+    -- for possibilities.
+    --
+    (posR', consP'r)    <- checkPoss Nothing (definitely posF) (definitely posR)
+    (posR'', consP)     <- checkPoss (definitely posE) (definitely posA) (definitely posR')
 
     let t = recomposeT (tmpR'', posR'', datR)
-    return (t, concat [cons, consD, consT, consT', consP, consP', consTX])
+    return (t, concat [cons, consD, consT, consT'e, consT'r, consP, consP'r])
 
-  | let (tmpF,posF,datF) = decomposeT $ canonT funT
-  , TypeVar _        <- datF
-  = do expT          <- freshType
-       resT          <- freshType
-       let funT'      = recomposeT (tmpF, posF, TypeArrow expT resT)
-       let funCons    = require ann (CEquals funT funT')
+  | let (tmpF,posF,datF) = decomposeT funT
+  , TypeVar _           <- datF
+  = do expT             <- freshType
+       resT             <- freshType
+       let funT'         = recomposeT (tmpF, posF, TypeArrow expT resT)
+       let funCons       = require ann (CEquals funT funT')
        -- Rerun with a type arrow requirement.
        appType ann errExp funT' (cons <> funCons) actT
 
@@ -1075,16 +1101,27 @@ appType ann errExp funT cons actT
   $ errorNoSuggestions (ErrorFunctionWrongArgs ann errExp (Forall [] [] funT) [actT])
 
  where
-  checkTemp = check' TemporalityPure       CTemporalityJoin
-  checkPoss = check' PossibilityDefinitely CPossibilityJoin
+  checkTemp = check' CTemporalityJoin
+  checkPoss = check' CPossibilityJoin
 
-  check' pureMode joinMode modE modA modR
+  --
+  -- Join the expected, actual, and return modalities
+  check' joinMode modE modA modR
+
+   --
+   -- If the modality of the argument passed is pure,
+   -- we just return the result modality.
    | Nothing <- modA
    = return (modR, [])
    | Just _  <- modA
    , Nothing <- modE
    , Nothing <- modR
    = return (modA, [])
+
+   --
+   -- If we have no expectations, but return a modality and
+   -- also pass one, the actual and return modalities must
+   -- join, and we get the join result (least upper bound).
    | Just a' <- modA
    , Nothing <- modE
    , Just r' <- modR
@@ -1092,9 +1129,14 @@ appType ann errExp funT cons actT
         let j = joinMode r'' a' r'
         return (Just r'', require ann j)
 
-   | otherwise
+   --
+   -- Otherwise, we have both expectation and actual modalities.
+   -- We ensure that these join; but return the given result of
+   -- the function.
+   | Just a' <- modA
+   , Just e' <- modE
    = do ignore <- TypeVar <$> fresh
-        let j = joinMode ignore (maybe pureMode id modE) (maybe pureMode id modA)
+        let j = joinMode ignore e' a'
         return (modR, require ann j)
 
   freshType
@@ -1102,6 +1144,8 @@ appType ann errExp funT cons actT
     <*> (Possibility <$> (TypeVar <$> fresh)
     <*>                  (TypeVar <$> fresh))
 
+  --
+  -- Unboxing of pure modalities.
   purely (Just TemporalityPure) = Nothing
   purely tmp = tmp
 
