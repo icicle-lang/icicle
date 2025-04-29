@@ -17,6 +17,7 @@ module Icicle.Source.Type.Compounds (
   , getPossibilityOrDefinitely
 
   , anyArrows
+  , takeArrows
   ) where
 
 
@@ -219,3 +220,18 @@ wrapN go f ts
    in case tmp of
        Nothing -> Nothing
        Just tmp' -> f tmp' args
+
+
+takeArrows :: Type n -> ([Type n], Type n)
+takeArrows fun =
+  let
+    go typ = case typ of
+      TypeArrow a res ->
+        let
+          (as, res') = go res
+        in
+          (a : as, res')
+      _ ->
+        ([], typ)
+  in
+    go fun

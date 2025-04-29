@@ -689,7 +689,7 @@ generateX'
   -> Gen a n (Exp'C a n, SubstT n, GenConstraintSet a n)
 generateX' canUseFunctions x env
  =   discharge annotOfExp substTX
- =<< ensureSaturated canUseFunctions x
+ =<< ensureSaturated canUseFunctions env
  =<< case x of
     -- Variables can be values or functions
     -- We just need to look them up in the environment.
@@ -809,7 +809,7 @@ generateX' canUseFunctions x env
      -> do (f',   fSubst,   fCons)   <- generateX' AllowArrows f   env
            (arg', argSubst, argCons) <- generateX arg env
            let getT                   = annResult . annotOfExp
-           (resT, resC)              <- appType a x (getT f') (fCons <> argCons) (getT arg')
+           (resT, resC)              <- appType a x env (getT f') (fCons <> argCons) (getT arg')
            let x' = annotate resC resT
                   $ \a' -> App a' f' arg'
 
@@ -902,19 +902,22 @@ data AllowArrows
   = BanArrow
   | AllowArrows
 
-ensureSaturated :: AllowArrows -> Exp a n -> (Exp'C a n, SubstT n, GenConstraintSet a n) -> Gen a n (Exp'C a n, SubstT n, GenConstraintSet a n)
+ensureSaturated :: (Hashable n, Eq n) => AllowArrows -> GenEnv n -> (Exp'C a n, SubstT n, GenConstraintSet a n) -> Gen a n (Exp'C a n, SubstT n, GenConstraintSet a n)
 ensureSaturated AllowArrows _ pass = do
   pure pass
 
-ensureSaturated _ base pass@(q, _, _) = do
-  let ann         = annotOfExp q
-  let (_, _, dat) = decomposeT $ annResult ann
-  let getType     = annResult . annotOfExp
-  let (fun, args) = takeApps q
+ensureSaturated _ env pass@(q, _, _) = do
+  let ann             = annotOfExp q
+  let (_, _, dat)     = decomposeT $ annResult ann
+
   case dat of
-    TypeArrow {} ->
+    TypeArrow {} -> do
+      let base            = reannot annAnnot q
+      let (fun, args)     = takeApps q
+      scheme             <- schemeFor env (reannot annAnnot fun)
+
       genHoistEither $
-        errorNoSuggestions (ErrorFunctionWrongArgs (annAnnot ann) base (Forall [] [] (getType fun)) (getType <$> args))
+        errorNoSuggestions (ErrorFunctionTooFewArgs (annAnnot ann) base scheme (annResult . annotOfExp <$> args))
 
     _ ->
       pure pass
@@ -1040,15 +1043,23 @@ generatePattern ann =
 mapAccumLM :: (Traversable t, Monad m) => (a -> s -> m (b, s)) -> s -> t a -> m (t b, s)
 mapAccumLM f a xs = State.runStateT (mapM (State.StateT . f) xs) a
 
+
+-- | Determine the type of a function application.
+--
+--   The meat of Icicle's application rule, which handles pushing
+--   of modalities through function types (arguments and results)
+--   and ensures, via constraints, that modalities are respected.
+--
 appType
- :: Hashable n
+ :: (Eq n, Hashable n)
  => a
  -> Exp a n
+ -> GenEnv n
  -> Type n
  -> GenConstraintSet a n
  -> Type n
  -> Gen a n (Type n, GenConstraintSet a n)
-appType ann errExp funT cons actT
+appType ann errExp env funT cons actT
   | let (tmpF,posF,datF) = decomposeT funT
   , TypeArrow expT resT <- datF
   = do
@@ -1058,7 +1069,7 @@ appType ann errExp funT cons actT
     let consD            = require ann (CEquals datE datA)
 
     --
-    -- Join temporalities of the function and arguments.
+    -- Join temporalities of the function to its parts.
     --
     -- First, push the function's modality through into
     -- the argument and return. We use our Join operator
@@ -1087,6 +1098,12 @@ appType ann errExp funT cons actT
     let t = recomposeT (tmpR'', posR'', datR)
     return (t, concat [cons, consD, consT, consT'e, consT'r, consP, consP'r])
 
+  --
+  -- If the data is a type variable, we can summon a fresh function type, then apply
+  -- an equality contraint. For Icicle, this isn't strictly necessary, as we're not
+  -- a fully functional language; but as the type system evolves this will become more
+  -- important.
+  --
   | let (tmpF,posF,datF) = decomposeT funT
   , TypeVar _           <- datF
   = do expT             <- freshType
@@ -1094,11 +1111,13 @@ appType ann errExp funT cons actT
        let funT'         = recomposeT (tmpF, posF, TypeArrow expT resT)
        let funCons       = require ann (CEquals funT funT')
        -- Rerun with a type arrow requirement.
-       appType ann errExp funT' (cons <> funCons) actT
+       appType ann errExp env funT' (cons <> funCons) actT
 
   | otherwise
-  = genHoistEither
-  $ errorNoSuggestions (ErrorFunctionWrongArgs ann errExp (Forall [] [] funT) [actT])
+  = do let (fun, _)        = takeApps errExp
+       scheme             <- schemeFor env fun
+       genHoistEither $
+        errorNoSuggestions (ErrorFunctionTooManyArgs ann errExp scheme)
 
  where
   checkTemp = check' CTemporalityJoin
@@ -1151,3 +1170,21 @@ appType ann errExp funT cons actT
 
   definitely (Just PossibilityDefinitely) = Nothing
   definitely pos = pos
+
+
+-- | Lookup the type Scheme for a function (either a primitive
+--   or a bound name.
+schemeFor :: (Hashable n, Eq n)
+          => GenEnv n
+          -> Exp a n
+          -> Gen a n (Scheme n)
+schemeFor env fun
+  | Prim a p <- fun
+  = fst' <$> primLookup a p
+  | Var a n  <- fun
+  = fst' <$> lookup a n env
+  | otherwise
+  = genHoistEither
+  $ errorNoSuggestions (ErrorApplicationNotFunction (annotOfExp fun) fun)
+ where
+  fst' (scheme, _, _) = scheme

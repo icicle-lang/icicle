@@ -2,6 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE RankNTypes #-}
 module Icicle.Source.Checker.Error (
     CheckError(..)
@@ -41,7 +42,8 @@ data ErrorInfo a n
  = ErrorNoSuchVariable a (Name n)
  | ErrorNoSuchInput a UnresolvedInputId
  | ErrorContextNotAllowedHere  a (Context a n)
- | ErrorFunctionWrongArgs      a (Exp a n) (Scheme n) [Type n]
+ | ErrorFunctionTooManyArgs    a (Exp a n) (Scheme n)
+ | ErrorFunctionTooFewArgs     a (Exp a n) (Scheme n) [Type n]
  | ErrorSchemesMatchError      a (Scheme n) (Scheme n)
  | ErrorApplicationNotFunction a (Exp a n)
  | ErrorConstraintsNotSatisfied a [(a, DischargeError n)]
@@ -69,7 +71,9 @@ annotOfError (CheckError e _)
      -> a
     ErrorContextNotAllowedHere  a _
      -> a
-    ErrorFunctionWrongArgs      a _ _ _
+    ErrorFunctionTooManyArgs      a _ _
+     -> a
+    ErrorFunctionTooFewArgs      a _ _ _
      -> a
     ErrorSchemesMatchError      a _ _
      -> a
@@ -155,13 +159,26 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
         , "Context: " <> inp c
         ]
 
-    ErrorFunctionWrongArgs a x f tys ->
+    ErrorFunctionTooManyArgs a x scheme | let expects = schemeExpects scheme ->
       vsep [
-          "Function applied to wrong number of arguments at" <+> pretty a
+          "Function applied to too many arguments at" <+> pretty a
+        , mempty
+        , "Expression:      " <> inp x
+        , "Function type:   " <> inp (prettyFunFromStrings scheme)
+        , mempty
+        , "The function" <+> inp (justFun x) <+> "only expects" <+> pretty expects <+> arguments expects <> "."
+        ]
+
+    ErrorFunctionTooFewArgs a x scheme tys | let expects = schemeExpects scheme ->
+      vsep [
+          "Function applied to too few arguments at" <+> pretty a
         , mempty
         , "Expression:     " <> inp x
-        , "Function type:  " <> inp (prettyFunFromStrings f)
+        , "Function type:  " <> inp (prettyFunFromStrings scheme)
         , "Argument types: " <> inp tys
+        , mempty
+        , "The function" <+> inp (justFun x) <+> "expects" <+> pretty expects  <+> arguments expects <>
+          ", but has been supplied" <+> underSupplied (length tys) <> "."
         ]
 
     ErrorSchemesMatchError a x f ->
@@ -273,6 +290,10 @@ instance (IsString n, Pretty a, Pretty n, Hashable n, Eq n) => Pretty (ErrorInfo
         ]
    where
     inp x = align (pretty x)
+    justFun = fst . takeApps
+    schemeExpects = length . fst . takeArrows . schemeType
+    arguments num = if num == 1 then "argument" else "arguments"
+    underSupplied num = if num == 0 then "none" else "only" <+> pretty num
 
 instance (IsString n, Pretty n, Hashable n, Eq n) => Pretty (ErrorSuggestion a n) where
   pretty = \case
