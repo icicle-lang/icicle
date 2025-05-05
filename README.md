@@ -40,18 +40,25 @@ Motivation
 ----------
 
 When performing a data engineering and machine learning tasks, one has many
-options for creating features. Languages like R can provide expressivity,
-but they don't scale well to the gigabyte, terabyte, or petabyte level; SQL
-can be applied for machine learning features, but is clunky to write, can
-fail at runtime, its hard to protect against label leakage, and its runtime
-order is hard to quantify, especially at the terabyte and petabyte levels.
+options for creating features. Languages like R provide an extremely expressive
+environment, but they don't scale well to the gigabyte, terabyte, or petabyte
+level, and can't guarantee a lack of runtime issues or type errors.
 
-Icicle is a total programming language designed to provide O(n) runtime for
+Likewise, SQL can be applied for machine learning features, but is clunky to write
+when we need to compose and extract hundreds of features, and it makes time
+travelling queries (what did a customer look like at a particular past date),
+and label leakage prevention extremely challenging.
+
+Icicle is a total programming language designed to provide `O(n)` runtime for
 all feature queries, while providing a pleasant environment for data
 scientists and engineers to write expressive features.
 
-Examples
---------
+Type System
+-----------
+
+Icicle achieves its goals by using a distinctive, modal type system which
+guarantees that all queries must be computable within a single pass.
+
 
 The simplest examples and counter-examples one may consider are `mean` and
 `variance`. First up, one could write `mean` as:
@@ -61,10 +68,9 @@ mean : Element Double -> Aggregate Double
 mean v = sum v / count v
 ```
 
-This is fine<sup>[1](#stability)</sup>, and one can be sure that Icicle will
-fuse the sum and count queries such that the data will only be visited once.
-For calculating the variance and standard deviation, one might naïvely try
-this:
+This is fine, and one can be sure that Icicle will fuse the sum and count
+queries such that the data will only be visited once. For calculating the
+variance and standard deviation, one might naïvely try this:
 
 ```haskell
 variance : Element Double -> Aggregate Double
@@ -79,56 +85,46 @@ variance v =
 
 But clearly, this has a massive problem. The data must be traversed twice
 to calculate this query: first to calculate the mean, and then to calculate
-the sum of squares differences. In Icicle, this version of variance is a type
+the sum of differences squared. In Icicle, this version of variance is a type
 error, and we instead provide Welford's numerically stable streaming
 calculation for variances.
-
-Context
--------
-
-Icicle is designed for, but not dependent on, the
-[ivory](https://speakerdeck.com/ambiata/ivory-concepts)
-data-store. While parts of this document uses the terms of ivory,
-the problems being addressed are not unique to ivory, and one can adapt
-these ideas to different contexts. For an idea of what ivory does, see
-
- - [https://speakerdeck.com/ambiata/ivory-concepts](https://speakerdeck.com/ambiata/ivory-concepts)
-
- - [https://speakerdeck.com/ambiata/ivory-a-data-store-for-data-science](https://speakerdeck.com/ambiata/ivory-a-data-store-for-data-science)
-
- - [https://speakerdeck.com/ambiata/ivory-data-modelling](https://speakerdeck.com/ambiata/ivory-data-modelling)
-
- - [https://github.com/ambiata/ivory](https://github.com/ambiata/ivory) *(internal Ambiata only)*
 
 
 Facts & Values
 --------------
 
-Facts are (typed) values, keyed along three dimensions:
+Icicle is designed for use with a Fact store – a database which store time
+ordered events for an entity.
 
- - Entity, this would be typically thought to represent the primary key of
-   a row in a traditional data base.
+Facts are (richly typed) values, keyed along three dimensions:
+
+ - The entity, this would be typically thought to represent the primary
+   key of a row in a traditional data base, and could be something like
+   a customer;
 
  - Attribute, this would be typically thought to represent the name of
-   a column in a traditional data base.
+   a column in a traditional data base. It's the kind of event that is
+   being stored (a demographics change or a transaction for example);
+   and
 
- - Time, this represents when a fact is valid at. Different types of
+ - Time, this represents when a fact is valid. Different types of
    facts may interpret this in different ways (for example for a state
-   like value, this would indicate a fact is valid from time (t) until
-   the next fact with the same entity / attribute and a more resent
-   time dimension. There is no analog in traditional data bases, but
+   like value, this would indicate a fact is valid from the time until
+   the next fact with the same entity / attribute offers a more recent
+   value. There is no analog in traditional data bases, but
    this is more common in immutable or append-only data stores.
 
-Values themselves are structured, and may be primitives, structs,
-or lists of values.
+Values themselves are strongle typed, and may be primitives, structs,
+lists of values, or rust style enums (sum types).
+
 
 Data Processing
 ---------------
 
-Data processing in Ivory (and similar data stores) is heavily
-parallelized. This places restrictions on how data is processed
-and how expressions can relate to each other - in most cases
-these restrictions are simplifying to the design of icicle.
+Data processing for Icicle is heavily parallelized. This places
+restrictions on how data is processed and how expressions can
+relate to each other - in most cases these restrictions are
+simplifying to the design of icicle.
 
 The basic invariants are:
 
@@ -143,6 +139,11 @@ The basic invariants are:
 
  - A batch is _guaranteed_ to have _all_ facts for a given
    entity / attribute.
+
+When processing data within a streaming engine (such as an
+Icicle Kafka consumer), we can relax the last constraints by
+storing incremental values, so that we can resume the computation
+as more data arrives.
 
 
 Expressions
@@ -164,8 +165,5 @@ C programs operating on flattened data structures. A great introduction
 to Icicle's optimisations is a talk by one of its authors, Jacob Stanley:
 [Icicle: The Highs and Lows of Optimising DSLs].
 
-<a name="stability">1</a>: Actually, this isn't numerically stable, in the
-  icicle prelude, we use a more robust version.
-
   [ambling]: https://github.com/ambiata/icicle/blob/master/doc/user/ambling.md
-  [Icicle: The Highs and Lows of Optimising DSLs]: https://www.youtube.com/watch?v=ZuCRgghVR1Q
+  [Icicle: The Highs and Lows of Optimising DSLs]: http://cufp.org/2016/the-highs-and-lows-of-optimising-dsls.html
