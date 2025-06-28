@@ -23,13 +23,15 @@ module Icicle.Encoding (
 import           Anemone.Pretty (renderDouble)
 
 import           Data.Attoparsec.ByteString
-import           Data.Text              as T
-import           Data.Text.Read         as T
-import           Data.Text.Encoding     as T
+import qualified Data.Text              as T
+import qualified Data.Text.Read         as T
+import qualified Data.Text.Encoding     as T
 import qualified Data.Aeson             as A
+import qualified Data.Aeson.Parser      as A
+import qualified Data.Aeson.Key         as Key
+import qualified Data.Aeson.KeyMap      as KeyMap
 import qualified Data.Scientific        as S
 import qualified Data.ByteString.Lazy   as BS
-import qualified Data.HashMap.Strict    as HM
 import qualified Data.Map               as Map
 import qualified Data.Vector            as V
 import           Data.Set (Set)
@@ -218,7 +220,7 @@ parseValue e tombstone t
    = DecodeErrorBadInput t e
 
   parsed
-   = parseOnly A.json
+   = parseOnly A.value
    $ T.encodeUtf8 t
 
 -- | Attempt to decode value from JSON
@@ -282,7 +284,7 @@ valueOfJSON e v
   getStructField obj field
    = case field of
       StructField Mandatory attr enc
-       | Just val <- getField obj attr
+       | Just val  <- getField obj attr
        -> do    v' <- valueOfJSON enc val
                 return [(attr, v')]
        | otherwise
@@ -296,7 +298,7 @@ valueOfJSON e v
        -> return []
 
   getField obj attr
-   = HM.lookup attr obj
+   = KeyMap.lookup (Key.fromText attr) obj
 
 -- Render as json. This is as close to Ivory output as
 -- is possible. "No Value" or "Tombstoned" values are
@@ -321,7 +323,7 @@ jsonOfValue t val
     TimeValue    v
      -> A.String $ renderTime v
     StructValue (Struct sfs)
-     -> A.Object $ P.foldl insert HM.empty sfs
+     -> A.Object $ P.foldl insert KeyMap.empty sfs
     ListValue (List l)
      -> A.Array  $ V.fromList $ fmap (jsonOfValue t) l
     Tombstone
@@ -332,9 +334,9 @@ jsonOfValue t val
      -> A.Array $ V.fromList $ fmap (jsonOfValue t . uncurry PairValue) kvs
  where
   insert hm (attr,v)
-   = HM.insert attr (jsonOfValue t v) hm
+   = KeyMap.insert (Key.fromText attr) (jsonOfValue t v) hm
   pair k v
-   = HM.singleton (renderValue t k) (jsonOfValue t v)
+   = KeyMap.singleton (Key.fromText (renderValue t k)) (jsonOfValue t v)
 
 
 -- | Perform read, only succeed if all input is used

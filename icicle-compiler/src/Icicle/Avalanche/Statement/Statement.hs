@@ -32,9 +32,10 @@ import           P
 
 -- | Part of a loop
 data Statement a n p
- -- Branches
+
  -- | An IF for filters
  = If !(Exp a n p) (Statement a n p) (Statement a n p)
+
  -- | Local binding, so the name better be unique
  | Let {-# UNPACK #-} !(Name n) !(Exp a n p) (Statement a n p)
 
@@ -147,9 +148,9 @@ instance Plated (Statement a n p) where
       -> InitAccumulator acc <$> f ss
     Read n acc vt ss
       -> Read n acc vt <$> f ss
-    x @ Write {}
+    x@Write {}
       -> pure x
-    x @ Output {}
+    x@Output {}
       -> pure x
   {-# INLINABLE plate #-}
 

@@ -29,15 +29,15 @@ simp = S.simp
 --
 simpProgram :: (Hashable n, Eq n) => a -> Program a n -> Fresh n (Program a n)
 simpProgram a_fresh p
-  = do pres <- forall simp       (precomps  p)
-       poss <- forall simp       (postcomps p)
+  = do pres <- forAll simp       (precomps  p)
+       poss <- forAll simp       (postcomps p)
        ss   <- mapM (simpStream a_fresh) (streams   p)
-       rets <- forall simp       (returns   p)
+       rets <- forAll simp       (returns   p)
        return p { precomps  = pres
                 , streams   = ss
                 , postcomps = poss
                 , returns   = rets }
-  where forall f = traverse (traverse (f a_fresh))
+  where forAll f = traverse (traverse (f a_fresh))
 
 
 -- | Simp the exps in stream

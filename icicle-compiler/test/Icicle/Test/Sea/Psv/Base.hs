@@ -11,6 +11,9 @@ module Icicle.Test.Sea.Psv.Base where
 import           Control.Monad.IO.Class (liftIO)
 import           Control.Monad.Morph (hoist)
 
+import           Control.Monad.Trans.Either (left)
+import           Control.Monad.Trans.Either (EitherT, hoistEither, firstEitherT, bracketEitherT', runEitherT)
+
 import qualified Data.ByteString.Lazy as L
 import qualified Data.List as List
 import           Data.List.NonEmpty (NonEmpty(..))
@@ -45,9 +48,6 @@ import           System.IO
 
 import           Test.QuickCheck (Gen, Property, property, counterexample)
 import           Test.QuickCheck.Property (succeeded, failed)
-
-import           X.Control.Monad.Trans.Either (left)
-import           X.Control.Monad.Trans.Either (EitherT, hoistEither, firstEitherT, bracketEitherT', runEitherT)
 
 
 optExpectSuccess :: InputAllowDupTime -> TestOpts

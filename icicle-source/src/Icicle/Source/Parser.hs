@@ -21,7 +21,8 @@ import Icicle.Data.Name
 
 import Icicle.Internal.Pretty
 
-import Data.Text
+import           Data.Text (Text)
+import qualified Data.Text as Text
 
 import P
 

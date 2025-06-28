@@ -99,12 +99,12 @@ prop_languages_eval =
 
 mkFacts :: WellTyped -> [D.AsAt D.Fact]
 mkFacts wt =
-  concat . catMaybes . fmap mkAsAt . Map.toList $ wtInputs wt
+  concat . mapMaybe mkAsAt . Map.toList $ wtInputs wt
   where
     mkAsAt (ent, as) =
       for as $ \a ->
-        D.AsAt
-          <$> (D.Fact ent [inputname|input|] <$> factFromTopCoreValue (D.atFact a))
+        D.AsAt . D.Fact ent [inputname|input|]
+          <$> factFromTopCoreValue (D.atFact a)
           <*> pure (D.atTime a)
 
 dummySourceVar :: P.QueryTyped Source.Var

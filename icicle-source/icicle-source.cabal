@@ -30,31 +30,32 @@ library
                      , ambiata-p
                      , ambiata-x-show
                      , array
-                     , attoparsec                      >= 0.12       && < 0.14
-                     , aeson                           >= 0.8        && < 1.5
-                     , ansi-terminal                   == 0.6.*
-                     , bifunctors                      >= 4.2        && < 5.6
-                     , bytestring                      == 0.10.*
+                     , attoparsec
+                     , aeson
+                     , attoparsec-aeson
+                     , ansi-terminal
+                     , bifunctors
+                     , bytestring
                      , containers                      >= 0.5.9
-                     , filepath                        >= 1.3        && < 1.5
+                     , filepath
                      , directory
-                     , file-embed                      >= 0.0.9      && < 0.0.16
+                     , file-embed
                      , hashable
                      , lens
                      , megaparsec                      >= 9.0        && < 10
                      , mmorph                          >= 1.0
                      , parser-combinators
-                     , scientific                      == 0.3.*
-                     , semigroups                      >= 0.16       && < 0.20
-                     , unordered-containers            == 0.2.*
-                     , text                            == 1.2.*
+                     , scientific
+                     , semigroups
+                     , unordered-containers
+                     , text
                      , these
-                     , thyme                           >= 0.4        && < 0.5
+                     , thyme
                      , time                            >= 1.5        && < 1.10
-                     , time-locale-compat              == 0.1.*
-                     , transformers                    >= 0.3        && < 0.6
+                     , time-locale-compat
+                     , transformers
                      , transformers-either
-                     , validation                      >= 1          && < 1.2
+                     , validation
                      , vector
 
   ghc-options:

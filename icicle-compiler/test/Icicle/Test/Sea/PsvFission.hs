@@ -33,8 +33,8 @@ import           P
 
 import           Test.QuickCheck (forAll, discard)
 
-import           X.Control.Monad.Trans.Either (EitherT, runEitherT, hoistEither)
-import           X.Control.Monad.Trans.Either (bracketEitherT', firstEitherT, left)
+import           Control.Monad.Trans.Either (EitherT, runEitherT, hoistEither)
+import           Control.Monad.Trans.Either (bracketEitherT', firstEitherT, left)
 
 import           Disorder.Core.IO
 

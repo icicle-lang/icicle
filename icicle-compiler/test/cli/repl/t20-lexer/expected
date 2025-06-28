@@ -50,22 +50,20 @@ Error
   
   Suggested bindings are:
   
-    exp :
-         Double
-      -> Possibly Double
-    
-    tan : Double -> Possibly Double
-    
-    max :
-         Element a
-      -> Aggregate (Possibly a)
-    
     mean :
          Num a
       => Element a
       -> Aggregate (Possibly Double)
     
-    box : Sum ErrorT a -> Possibly a
+    max :
+         Element a
+      -> Aggregate (Possibly a)
+    
+    exp : Double -> Possibly Double
+    
+    tan : Double -> Possibly Double
+    
+    seq : a -> b -> b
 
 λ λ -- Expect a parse error on unterminated string
 λ Error

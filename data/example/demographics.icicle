@@ -1,6 +1,8 @@
 module Demographics where
 
 input age : Int
+input salary : Int
+input gender : String
 
 feature is_adult =
   from age

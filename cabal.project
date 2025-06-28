@@ -1,33 +1,111 @@
 packages: icicle-core/
           icicle-source/
           icicle-compiler/
-          lib/disorder.hs/disorder-aeson
-          lib/disorder.hs/disorder-core
-          lib/disorder.hs/disorder-corpus
-          lib/disorder.hs/disorder-jack
-          lib/piano/
-          lib/jetski/
-          lib/anemone/
-          lib/zebra/zebra-cli/
-          lib/zebra/zebra-core/
-          lib/zebra/zebra-core/test/
-          lib/viking/
-          lib/snapper/
-          lib/x/x-optparse/
-          lib/x/x-bytestring/
-          lib/x/x-attoparsec/
-          lib/x/x-exception/
-          lib/x/x-vector/
-          lib/x/x-templatehaskell/
-          lib/x/x-show/
-          lib/x/x-aeson/
-          lib/x/x-file-embed/
-          lib/p/
           icicle-data/
+
+tests: true
 
 constraints:
   cabal > 2
 
-package icicle
-  tests: True
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/viking.git
+    tag: c3a273266c232212ad8d89db125282d03b5297a1
 
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/anemone.git
+    tag: 59fa938366193f672a1b02159eef94c06c7bb748
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/snapper.git
+    tag: 3bea7e3ca523bd855c5f64b1238c6e5c6685a362
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/p.git
+    tag: 617e5dc2887f3e99d67b29c799fa406f106fdbc6
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/x.git
+    tag: de0db7714a1971a4ece4576728b780f32ecd4581
+    subdir: x-attoparsec
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/x.git
+    tag: de0db7714a1971a4ece4576728b780f32ecd4581
+    subdir: x-templatehaskell
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/x.git
+    tag: de0db7714a1971a4ece4576728b780f32ecd4581
+    subdir: x-file-embed
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/x.git
+    tag: de0db7714a1971a4ece4576728b780f32ecd4581
+    subdir: x-show
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/x.git
+    tag: de0db7714a1971a4ece4576728b780f32ecd4581
+    subdir: x-bytestring
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/x.git
+    tag: de0db7714a1971a4ece4576728b780f32ecd4581
+    subdir: x-optparse
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/x.git
+    tag: de0db7714a1971a4ece4576728b780f32ecd4581
+    subdir: x-vector
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/piano.git
+    tag: c476edfc6322d882591241b818707bbb7fe4ea01
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/jetski.git
+    tag: d1e0151b83fe287839dc3565ab2b0d8f0cb54509
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/zebra.git
+    tag: d4f56bb2125f4aed7f6d44e51236c8b49ee9795e
+    subdir: zebra-core
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/zebra.git
+    tag: d4f56bb2125f4aed7f6d44e51236c8b49ee9795e
+    subdir: zebra-core/test
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/disorder.git
+    tag: 750fccfba8c80c9829c87a963f8caa0ac297e071
+    subdir: disorder-core
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/disorder.git
+    tag: 750fccfba8c80c9829c87a963f8caa0ac297e071
+    subdir: disorder-corpus
+
+source-repository-package
+    type: git
+    location: https://github.com/icicle-lang/disorder.git
+    tag: 750fccfba8c80c9829c87a963f8caa0ac297e071
+    subdir: disorder-jack

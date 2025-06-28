@@ -40,13 +40,13 @@ import qualified Anemone.Pretty as Anemone
 
 import           Data.Aeson ((.=), (.:))
 import qualified Data.Aeson as Aeson
-import qualified Data.Aeson.Encode.Pretty as Aeson
-import           Data.Aeson.Internal ((<?>))
-import qualified Data.Aeson.Internal as Aeson
-import qualified Data.Aeson.Parser as Aeson
 import qualified Data.Aeson.Types as Aeson
+import qualified Data.Aeson.Encode.Pretty as Aeson
+import qualified Data.Aeson.Parser as Aeson
+import           Data.Aeson.Types ((<?>))
+import qualified Data.Aeson.Key as Key
+import qualified Data.Aeson.KeyMap as KeyMap
 import qualified Data.ByteString.Lazy as Lazy
-import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
 import           Data.List.NonEmpty (NonEmpty(..))
 import           Data.Map (Map)
@@ -152,7 +152,7 @@ ppInt =
 pUnit :: Aeson.Value -> Aeson.Parser ()
 pUnit =
   Aeson.withObject "Unit (i.e. {})" $ \o ->
-    if HashMap.null o then
+    if KeyMap.null o then
       pure ()
     else
       fail $
@@ -161,16 +161,16 @@ pUnit =
 
 ppUnit :: Aeson.Value
 ppUnit =
-  Aeson.Object HashMap.empty
+  Aeson.Object KeyMap.empty
 
 pEnum :: String -> (Text -> Maybe (Aeson.Value -> Aeson.Parser a)) -> Aeson.Value -> Aeson.Parser a
 pEnum expected mkParser =
   Aeson.withObject expected $ \o ->
-    case HashMap.toList o of
+    case KeyMap.toList o of
       [(name, value)] -> do
-        case mkParser name of
+        case mkParser (Key.toText name) of
           Nothing ->
-            fail (expected <> ": unknown variant: " <> Text.unpack name) <?> Aeson.Key name
+            fail (expected <> ": unknown variant: " <> Key.toString name) <?> Aeson.Key name
           Just parser ->
             parser value <?> Aeson.Key name
       [] ->
@@ -179,13 +179,13 @@ pEnum expected mkParser =
       kvs ->
         fail $
           "Expected " <> expected <> " but found an object with more than one member." <>
-          "\n  " <> List.intercalate ", " (fmap (Text.unpack . fst) kvs)
+          "\n  " <> List.intercalate ", " (fmap (Key.toString . fst) kvs)
 
 ppEnum :: Text -> Aeson.Value -> Aeson.Value
 ppEnum name value =
   Aeson.object [
-      name .= value
-    ]
+    Key.fromText name .= value
+  ]
 
 pVector :: String -> (Aeson.Value -> Aeson.Parser a) -> Aeson.Value -> Aeson.Parser (Boxed.Vector a)
 pVector expected pValue =
@@ -220,21 +220,21 @@ ppNonEmpty :: (a -> Aeson.Value) -> NonEmpty a -> Aeson.Value
 ppNonEmpty ppValue =
   ppList ppValue . toList
 
-pMap :: Ord k => String -> (Text -> Maybe k) -> (Aeson.Value -> Aeson.Parser v) -> Aeson.Value -> Aeson.Parser (Map k v)
+pMap :: Ord k => String -> (Aeson.Key -> Maybe k) -> (Aeson.Value -> Aeson.Parser v) -> Aeson.Value -> Aeson.Parser (Map k v)
 pMap expected parseKey pValue =
   let
     parse (k0, v0) =
       case parseKey k0 of
         Nothing ->
-          fail ("failed to parse key of map: " <> Text.unpack k0) <?> Aeson.Key k0
+          fail ("failed to parse key of map: " <> Key.toString k0) <?> Aeson.Key k0
         Just k -> do
-          v <- pValue v0 <?> Aeson.Key k0
+          v <- pValue v0 <?> Aeson.Key  k0
           pure (k, v)
   in
     Aeson.withObject expected $
-      fmap Map.fromList . traverse parse . HashMap.toList
+      fmap Map.fromList . traverse parse . KeyMap.toList
 
-ppMap :: (k -> Text) -> (v -> Aeson.Value) -> Map k v -> Aeson.Value
+ppMap :: (k -> Aeson.Key) -> (v -> Aeson.Value) -> Map k v -> Aeson.Value
 ppMap renderKey ppValue =
   let
     keyed (k, v) =
@@ -243,20 +243,20 @@ ppMap renderKey ppValue =
   in
     Aeson.object . fmap keyed . Map.toList
 
-withKey :: Text -> Aeson.Object -> (Aeson.Value -> Aeson.Parser a) -> Aeson.Parser a
+withKey :: Aeson.Key -> Aeson.Object -> (Aeson.Value -> Aeson.Parser a) -> Aeson.Parser a
 withKey key o p = do
   x <- o .: key
   p x <?> Aeson.Key key
 
-expectKey :: (Eq a, Show a) => Text -> Text -> Aeson.Object -> (Aeson.Value -> Aeson.Parser a) -> a -> Aeson.Parser ()
+expectKey :: (Eq a, Show a) => Aeson.Key -> Aeson.Key -> Aeson.Object -> (Aeson.Value -> Aeson.Parser a) -> a -> Aeson.Parser ()
 expectKey prefix key0 o p expected = do
   x <- withKey key0 o p
   unless (x == expected) . fail $
     let
       key =
-        if Text.null prefix then
+        if Text.null (Key.toText prefix) then
           key0
         else
           prefix <> "/" <> key0
     in
-      "Expected " <> Text.unpack key <> " to be <" <> show expected <> "> but was <" <> show x <> ">"
+      "Expected " <> Key.toString key <> " to be <" <> show expected <> "> but was <" <> show x <> ">"

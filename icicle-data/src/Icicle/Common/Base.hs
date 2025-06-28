@@ -35,11 +35,11 @@ data Name n = Name {
   , nameBase ::                !(NameBase n)
   } deriving (Show, Generic)
 
-instance Hashable (Name n) where
+instance Eq n => Hashable (Name n) where
   hash           (Name h _) = h
   hashWithSalt s (Name h _) = hashWithSalt s h
 
-instance Eq n => Eq  (Name n) where
+instance Eq n => Eq (Name n) where
   (==) x y = (nameHash x == nameHash y) && (nameBase x == nameBase y)
 
 instance Eq n => Ord (Name n) where

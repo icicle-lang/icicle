@@ -16,18 +16,24 @@ jobs:
     strategy:
       matrix:
         include:
-          - cabal: "3.8.1"
-            ghc: "8.8.4"
+          - cabal: "3.12"
+            ghc: "9.12.2"
+            os: ubuntu-22.04-arm
+          - cabal: "3.12"
+            ghc: "9.12.2"
             os: ubuntu-latest
-          - cabal: "3.8.1"
-            ghc: "8.10.7"
+          - cabal: "3.12"
+            ghc: "9.10.1"
+            os: ubuntu-latest
+          - cabal: "3.12"
+            ghc: "9.6.7"
             os: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
-    - uses: haskell/actions/setup@v2
+    - uses: haskell-actions/setup@v2
       id: setup-haskell-cabal
       name: Setup Haskell
       with:
@@ -36,7 +42,7 @@ jobs:
 
     - name: Freeze
       run: |
-        cabal configure
+        cabal configure --enable-tests --enable-benchmarks --test-show-details=direct
         cabal freeze
     - uses: actions/cache@v4
       name: Cache ~/.cabal/store
@@ -49,4 +55,4 @@ jobs:
         cabal build all
     - name: Test
       run: |
-        cabal test icicle
+        cabal test all

@@ -49,6 +49,7 @@ module Icicle.Sea.Header (
 import           Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Types as Aeson
+import qualified Data.Aeson.Key as Key
 import qualified Data.List as List
 import           Data.String (IsString)
 import qualified Data.Text as Text
@@ -103,11 +104,11 @@ ppFingerprint =
 
 pStructType :: Aeson.Value -> Aeson.Parser StructType
 pStructType =
-  fmap StructType . pMap "StructType" (pure . StructField) pValType
+  fmap StructType . pMap "StructType" (pure . StructField . Key.toText) pValType
 
 ppStructType :: StructType -> Aeson.Value
 ppStructType =
-  ppMap nameOfStructField ppValType . getStructType
+  ppMap (Key.fromText . nameOfStructField) ppValType . getStructType
 
 pValType :: Aeson.Value -> Aeson.Parser ValType
 pValType =

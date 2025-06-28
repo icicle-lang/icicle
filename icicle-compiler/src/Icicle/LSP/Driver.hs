@@ -14,9 +14,9 @@ module Icicle.LSP.Driver (
 import           Control.Exception
 
 import           Data.Aeson
+import qualified Data.Aeson.KeyMap as KeyMap
 import           Data.IORef
 import qualified Data.Map as Map
-import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Vector as Vector
 
 import           Icicle.LSP.Interface
@@ -166,11 +166,11 @@ lspInitialized state req
   -- A file was opened.
   | "textDocument/didOpen"    <- reqMethod req
   , Just (Object jParams)     <- reqParams req
-  , Just (Object jDoc)        <- HashMap.lookup "textDocument" jParams
-  , Just (String sUri)        <- HashMap.lookup "uri" jDoc
-  , Just (String sLanguageId) <- HashMap.lookup "languageId" jDoc
-  , Just (Number iVersion)    <- HashMap.lookup "version" jDoc
-  , Just (String sText)       <- HashMap.lookup "text" jDoc
+  , Just (Object jDoc)        <- KeyMap.lookup "textDocument" jParams
+  , Just (String sUri)        <- KeyMap.lookup "uri" jDoc
+  , Just (String sLanguageId) <- KeyMap.lookup "languageId" jDoc
+  , Just (Number iVersion)    <- KeyMap.lookup "version" jDoc
+  , Just (String sText)       <- KeyMap.lookup "text" jDoc
   = do
         lspLog state "* DidOpen"
         lspLog state $ "  sUri:         " <> show sUri
@@ -184,12 +184,12 @@ lspInitialized state req
   -- A file was changed.
   | "textDocument/didChange"  <- reqMethod req
   , Just (Object jParams)     <- reqParams req
-  , Just (Object jDoc)        <- HashMap.lookup "textDocument" jParams
-  , Just (String sUri)        <- HashMap.lookup "uri" jDoc
-  , Just (Number iVersion)    <- HashMap.lookup "version" jDoc
-  , Just (Array jChangeArr)   <- HashMap.lookup "contentChanges" jParams
+  , Just (Object jDoc)        <- KeyMap.lookup "textDocument" jParams
+  , Just (String sUri)        <- KeyMap.lookup "uri" jDoc
+  , Just (Number iVersion)    <- KeyMap.lookup "version" jDoc
+  , Just (Array jChangeArr)   <- KeyMap.lookup "contentChanges" jParams
   , [Object jChange]          <- Vector.toList jChangeArr
-  , Just (String sText)       <- HashMap.lookup "text" jChange
+  , Just (String sText)       <- KeyMap.lookup "text" jChange
   = do
         lspLog state "* DidChange"
         lspLog state $ "  sUri:         " <> show sUri
@@ -202,8 +202,8 @@ lspInitialized state req
   -- A file was closed.
   | "textDocument/didClose" <- reqMethod req
   , Just (Object jParams)   <- reqParams req
-  , Just (Object jDoc)      <- HashMap.lookup "textDocument" jParams
-  , Just (String sUri)      <- HashMap.lookup "uri" jDoc
+  , Just (Object jDoc)      <- KeyMap.lookup "textDocument" jParams
+  , Just (String sUri)      <- KeyMap.lookup "uri" jDoc
   = do
         lspLog state "* DidClose"
         lspLog state $ "  sUri:         " <> show sUri
@@ -218,9 +218,9 @@ lspInitialized state req
   -- the new definitions.
   | "textDocument/didSave"  <- reqMethod req
   , Just (Object jParams)   <- reqParams req
-  , Just (Object jDoc)      <- HashMap.lookup "textDocument" jParams
-  , Just (String sUri)      <- HashMap.lookup "uri" jDoc
-  , Just (Number iVersion)  <- HashMap.lookup "version" jDoc
+  , Just (Object jDoc)      <- KeyMap.lookup "textDocument" jParams
+  , Just (String sUri)      <- KeyMap.lookup "uri" jDoc
+  , Just (Number iVersion)  <- KeyMap.lookup "version" jDoc
   = do  lspLog state "* DidSave"
         lspLog state $ "  sUri:         " <> show sUri
         lspLog state $ "  iVersion:     " <> show iVersion
@@ -233,11 +233,11 @@ lspInitialized state req
   | "textDocument/hover"    <- reqMethod req
   , Just (Object jParams)   <- reqParams req
   , Just jrid               <- reqId     req
-  , Just (Object jDoc)      <- HashMap.lookup "textDocument" jParams
-  , Just (String sUri)      <- HashMap.lookup "uri" jDoc
-  , Just (Object jPos)      <- HashMap.lookup "position" jParams
-  , Just (Number pLine)     <- HashMap.lookup "line" jPos
-  , Just (Number pChar)     <- HashMap.lookup "character" jPos
+  , Just (Object jDoc)      <- KeyMap.lookup "textDocument" jParams
+  , Just (String sUri)      <- KeyMap.lookup "uri" jDoc
+  , Just (Object jPos)      <- KeyMap.lookup "position" jParams
+  , Just (Number pLine)     <- KeyMap.lookup "line" jPos
+  , Just (Number pChar)     <- KeyMap.lookup "character" jPos
   = do  lspLog state "* Hover"
         Task.hover state sUri jrid (round pLine) (round pChar)
         lspLoop state

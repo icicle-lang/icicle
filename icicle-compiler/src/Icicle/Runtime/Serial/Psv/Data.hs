@@ -15,6 +15,7 @@ module Icicle.Runtime.Serial.Psv.Data (
 import qualified Anemone.Pretty as Anemone
 
 import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.Key as Key
 import qualified Data.ByteString as ByteString
 import           Data.ByteString.Builder (Builder)
 import qualified Data.ByteString.Builder as Builder
@@ -153,7 +154,7 @@ ppValue schema value =
     Logical.Struct xs0
       | Schema.Struct sxs0 <- schema
       , Cons.length xs0 == Cons.length sxs0
-      -> let takeField (Field name s) x = (name,) <$> ppValue s x
+      -> let takeField (Field name s) x = (Key.fromText name,) <$> ppValue s x
          in  Aeson.object . Cons.toList <$> Cons.zipWithM takeField sxs0 xs0
 
     Logical.String x

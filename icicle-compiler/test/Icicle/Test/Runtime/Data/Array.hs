@@ -20,6 +20,7 @@ import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.Vector.Storable as Storable
+import           Data.Functor.Identity (Identity (..))
 
 import           Disorder.Corpus (muppets)
 
@@ -238,8 +239,11 @@ data NullArray (v :: * -> *) =
   NullArray
   deriving (Eq, Show)
 
-instance HTraversable NullArray where
-  htraverse _ NullArray =
+instance FunctorB NullArray where
+  bmap f = runIdentity . btraverse (Identity . f)
+
+instance TraversableB NullArray where
+  btraverse _ NullArray =
     pure NullArray
 
 nullArray :: (MonadGen n, MonadReader Mempool m) => Command n m State
@@ -267,8 +271,12 @@ data NewArray (v :: * -> *) =
   NewArray ArrayLength
   deriving (Eq, Show)
 
-instance HTraversable NewArray where
-  htraverse _ (NewArray x) =
+
+instance FunctorB NewArray where
+  bmap f = runIdentity . btraverse (Identity . f)
+
+instance TraversableB NewArray where
+  btraverse _ (NewArray x) =
     pure (NewArray x)
 
 newArray :: (MonadGen n, MonadReader Mempool m, MonadIO m) => Command n m State
@@ -297,9 +305,13 @@ data ReadArray v =
   ReadArray ArrayIndex (Var Array v)
   deriving (Eq, Show)
 
-instance HTraversable ReadArray where
-  htraverse f (ReadArray ix xs) =
-    ReadArray ix <$> htraverse f xs
+
+instance FunctorB ReadArray where
+  bmap f = runIdentity . btraverse (Identity . f)
+
+instance TraversableB ReadArray where
+  btraverse f (ReadArray ix xs) =
+    ReadArray ix <$> btraverse f xs
 
 readList :: ArrayIndex -> Maybe StateArray -> Maybe Int64
 readList ix = \case
@@ -345,9 +357,13 @@ data WriteArray v =
   WriteArray ArrayIndex Int64 (Var Array v)
   deriving (Eq, Show)
 
-instance HTraversable WriteArray where
-  htraverse f (WriteArray ix x array) =
-    WriteArray ix x <$> htraverse f array
+instance FunctorB WriteArray where
+  bmap f = runIdentity . btraverse (Identity . f)
+
+instance TraversableB WriteArray where
+  btraverse f (WriteArray ix x array) =
+    WriteArray ix x <$> btraverse f array
+
 
 writeList :: ArrayIndex -> Int64 -> StateArray -> StateArray
 writeList ix0 x = \case
@@ -406,9 +422,12 @@ data GrowArray v =
   GrowArray ArrayLength (Var Array v)
   deriving (Eq, Show)
 
-instance HTraversable GrowArray where
-  htraverse f (GrowArray len array) =
-    GrowArray len <$> htraverse f array
+instance FunctorB GrowArray where
+  bmap f = runIdentity . btraverse (Identity . f)
+
+instance TraversableB GrowArray where
+  btraverse f (GrowArray len array) =
+    GrowArray len <$> btraverse f array
 
 growList :: ArrayLength -> StateArray -> StateArray
 growList len = \case
