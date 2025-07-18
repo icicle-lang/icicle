@@ -7,7 +7,7 @@ module Icicle.Test.Gen.Data.Name (
   , genOutputId
   ) where
 
-import           Disorder.Corpus (cooking, waters, boats)
+import           Hedgehog.Corpus (cooking, waters, boats)
 
 import           Hedgehog
 import qualified Hedgehog.Gen as Gen

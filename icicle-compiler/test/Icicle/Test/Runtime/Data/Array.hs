@@ -22,7 +22,7 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Vector.Storable as Storable
 import           Data.Functor.Identity (Identity (..))
 
-import           Disorder.Corpus (muppets)
+import           Hedgehog.Corpus (muppets)
 
 import           Foreign.C.String (peekCString)
 

@@ -8,40 +8,35 @@ import           Icicle.Sorbet.Lexical.Lexer
 import           Icicle.Sorbet.Lexical.Syntax
 import           Icicle.Sorbet.Position
 
-import           Icicle.Test.Arbitrary.Run
-import           Icicle.Test.Sorbet.Lexical.Jack
+import           Icicle.Test.Sorbet.Lexical.Gen
 
 import qualified Data.Text as T
 
-import           Disorder.Jack (gamble, counterexample, listOf)
+import           Hedgehog
+import qualified Hedgehog.Gen as Gen
+import qualified Hedgehog.Range as Range
 
 import           P
 
 import           System.IO (IO)
 
 import qualified Text.Megaparsec as Mega
-import           Text.Show.Pretty (ppShow)
 
 
+prop_lexer_roundtrip :: Property
 prop_lexer_roundtrip =
-  gamble (listOf jToken) $ \tokens0 ->
+  property $ do
+    tokens <- forAll (Gen.list (Range.linear 1 100) jToken)
     let
-      code =
-        T.unwords $ fmap renderToken tokens0
+      render =
+        T.unwords . fmap renderToken
 
-      tokens =
-        fmap (fmap posTail) $
-        Mega.parse lexProgram "qc.icicle" code
-    in
-      counterexample "" .
-      counterexample "=== Original ===" .
-      counterexample (ppShow tokens0) .
-      counterexample "" .
-      counterexample "=== Roundtrip ===" .
-      counterexample (either Mega.errorBundlePretty ppShow tokens) $
-        Right tokens0 == tokens
+      parse =
+        fmap (fmap posTail) .
+          Mega.parse lexProgram "qc.icicle"
 
-return []
+    tripping tokens render parse
+
 tests :: IO Bool
 tests =
-  $checkAllWith TestRunMore (checkArgsSized 100)
+  checkParallel $$(discover)

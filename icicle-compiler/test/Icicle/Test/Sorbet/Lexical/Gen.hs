@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Icicle.Test.Sorbet.Lexical.Jack (
+module Icicle.Test.Sorbet.Lexical.Gen (
     jToken
   , jInteger
   , jRational
@@ -30,10 +30,10 @@ import qualified Data.Set as Set
 import qualified Data.Text as T
 import           Data.Thyme (Day, YearMonthDay(..), gregorianValid)
 
-import           Disorder.Core.Gen (genValidUtf8, shrinkValidUtf8)
-import           Disorder.Jack (Jack, mkJack)
-import           Disorder.Jack (choose, chooseChar, oneOf, frequency, elements, listOf)
-import           Disorder.Jack (suchThat, justOf, arbitrary, sized)
+import           Hedgehog (Gen)
+import qualified Hedgehog.Gen as Gen
+import qualified Hedgehog.Gen.QuickCheck as Gen
+import qualified Hedgehog.Range as Range
 
 import           Icicle.Sorbet.Lexical.Syntax
 
@@ -42,9 +42,9 @@ import           P
 import           Test.QuickCheck.Instances ()
 
 
-jToken :: Jack Token
+jToken :: Gen Token
 jToken =
-  oneOf [
+  Gen.choice [
       pure Tok_LParen
     , pure Tok_RParen
     , pure Tok_LBrace
@@ -89,100 +89,102 @@ jToken =
     , Tok_Date <$> jDate
     ]
 
-jInteger :: Jack Integer
+jInteger :: Gen Integer
 jInteger =
-  abs <$> arbitrary
+  abs <$> Gen.arbitrary
 
-jRational :: Jack Scientific
+jRational :: Gen Scientific
 jRational =
   scientific
     <$> maxSized 99999999999999999
-    <*> arbitrary
+    <*> Gen.arbitrary
 
-maxSized :: Double -> Jack Integer
+maxSized :: Double -> Gen Integer
 maxSized x_max =
-  sized $ \n ->
+  Gen.sized $ \n ->
     let
       pct = fromIntegral n / 100.0
     in
-      choose (0, round . exp $ log x_max * pct)
+      Gen.integral (Range.linear 0 (round . exp $ log x_max * pct))
 
-jString :: Jack Text
+jString :: Gen Text
 jString =
-  mkJack shrinkValidUtf8 genValidUtf8
+  Gen.text
+    (Range.linear 0 100)
+    Gen.unicode
 
-jDate :: Jack Day
+jDate :: Gen Day
 jDate =
-  justOf $ fmap gregorianValid jYearMonthDay
+  Gen.just $ fmap gregorianValid jYearMonthDay
 
-jYearMonthDay :: Jack YearMonthDay
+jYearMonthDay :: Gen YearMonthDay
 jYearMonthDay =
   YearMonthDay
-    <$> choose (0, 9999)
-    <*> choose (1, 12)
-    <*> choose (1, 31)
+    <$> Gen.integral (Range.constant 0 9999)
+    <*> Gen.integral (Range.constant 1 12)
+    <*> Gen.integral (Range.constant 1 31)
 
-jVarId :: Jack Text
+jVarId :: Gen Text
 jVarId =
   jHeadTail jVarIdHead jIdTail
 
-jConId :: Jack Text
+jConId :: Gen Text
 jConId =
   jHeadTail jConIdHead jIdTail
 
-jVarIdHead :: Jack Char
+jVarIdHead :: Gen Char
 jVarIdHead =
-  frequency [
-      (26, chooseChar ('a', 'z'))
+  Gen.frequency [
+      (26, Gen.lower)
     , (1, pure '_')
     ]
 
-jConIdHead :: Jack Char
+jConIdHead :: Gen Char
 jConIdHead =
-  frequency [
-      (26, chooseChar ('A', 'Z'))
-    ]
+  Gen.upper
 
-jIdTail :: Jack Char
+jIdTail :: Gen Char
 jIdTail =
-  frequency [
-      (26, chooseChar ('a', 'z'))
-    , (26, chooseChar ('A', 'Z'))
-    , (10, chooseChar ('0', '9'))
+  Gen.frequency [
+      (26, Gen.lower)
+    , (26, Gen.upper)
+    , (10, Gen.digit)
     , (1, pure '_')
     , (1, pure '\'')
     ]
 
-jVarOp :: Jack Text
+jVarOp :: Gen Text
 jVarOp =
   jHeadTail jVarOpHead jOpTail
 
-jConOp :: Jack Text
+jConOp :: Gen Text
 jConOp =
   jHeadTail jConOpHead jOpTail
 
-jVarOpHead :: Jack Char
+jVarOpHead :: Gen Char
 jVarOpHead =
-  elements ("!#$%&*+./<=>?@\\^-~|" :: [Char])
+  Gen.element ("!#$%&*+./<=>?@\\^-~|" :: [Char])
 
-jConOpHead :: Jack Char
+jConOpHead :: Gen Char
 jConOpHead =
   pure ':'
 
-jOpTail :: Jack Char
+jOpTail :: Gen Char
 jOpTail =
-  elements (":!#$%&*+./<=>?@\\^-~|" :: [Char])
+  Gen.element (":!#$%&*+./<=>?@\\^-~|" :: [Char])
 
-jHeadTail :: Jack Char -> Jack Char -> Jack Text
+jHeadTail :: Gen Char -> Gen Char -> Gen Text
 jHeadTail jHead jTail =
   notReserved . fmap T.pack $
-    (:) <$> jHead <*> listOf jTail
+    (:) <$> jHead <*> Gen.list (Range.linear 0 10) jTail
 
-notReserved :: Jack Text -> Jack Text
+notReserved :: Gen Text -> Gen Text
 notReserved j =
-  suchThat j $ \txt ->
-    not (Set.member txt reserved) &&
-    not ("--" `T.isPrefixOf` txt) -- operators can't start with comment
+   j >>= \txt -> do
+    guard $
+      not (Set.member txt reserved) &&
+      not ("--" `T.isPrefixOf` txt) -- operators can't start with comment
+    pure txt
 
 reserved :: Set Text
 reserved =

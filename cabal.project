@@ -97,15 +97,3 @@ source-repository-package
     location: https://github.com/icicle-lang/disorder.git
     tag: 750fccfba8c80c9829c87a963f8caa0ac297e071
     subdir: disorder-core
-
-source-repository-package
-    type: git
-    location: https://github.com/icicle-lang/disorder.git
-    tag: 750fccfba8c80c9829c87a963f8caa0ac297e071
-    subdir: disorder-corpus
-
-source-repository-package
-    type: git
-    location: https://github.com/icicle-lang/disorder.git
-    tag: 750fccfba8c80c9829c87a963f8caa0ac297e071
-    subdir: disorder-jack

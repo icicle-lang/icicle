@@ -11,7 +11,7 @@ import qualified Hedgehog.Range as Range
 
 import P
 
-import           Disorder.Corpus
+import           Hedgehog.Corpus
 import qualified Data.Map   as Map
 
 genDerivedTypeTop :: ValType -> Gen ValType

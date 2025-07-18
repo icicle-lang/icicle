@@ -23,7 +23,7 @@ import           Icicle.Data.Time
 import           Icicle.Test.Arbitrary.Base
 import           Icicle.Test.Arbitrary.Run as Run
 
-import           Disorder.Corpus
+import           Hedgehog.Corpus
 
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()

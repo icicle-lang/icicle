@@ -13,7 +13,7 @@ import           Icicle.Core.Exp.Prim
 import           Icicle.Common.Base
 import           Icicle.Common.Type
 import           Icicle.Common.Exp
-import           Disorder.Corpus
+import           Hedgehog.Corpus
 import           Icicle.Test.Arbitrary.Data ()
 import           Icicle.Core.Exp.Combinators
 import           Icicle.Core.Stream
