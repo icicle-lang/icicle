@@ -85,18 +85,14 @@ instance Monad m => Monad (FixT m) where
         (res',prog') <- runFixT $! q res
         return (res', eitherProgress prog prog')
 
- return a = FixT $ return (a, NoProgress)
+ return = pure
 
 instance Monad m => Functor (FixT m) where
- fmap f p
-  = p >>= (return . f)
+ fmap = liftM
 
 instance Monad m => Applicative (FixT m) where
- pure = return
- (<*>) f x
-  = do !f' <- f
-       !x' <- x
-       return $! f' x'
+ pure a = FixT $ return (a, NoProgress)
+ (<*>) = ap
 
 instance MonadTrans FixT where
  lift m

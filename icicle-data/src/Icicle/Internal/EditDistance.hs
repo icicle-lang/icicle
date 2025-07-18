@@ -1,4 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# OPTIONS_GHC -Wno-unrecognised-warning-flags #-}
+{-# OPTIONS_GHC -Wno-x-partial #-}
 module Icicle.Internal.EditDistance (
     editDistance
   ) where
