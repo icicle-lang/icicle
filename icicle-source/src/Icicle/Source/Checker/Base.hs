@@ -82,7 +82,7 @@ data Invariants
  , allowWindows :: Bool
  , allowGroupFolds :: Bool
  -- | Unimplemented in Core: let-scans inside folds, groups, lets
- , allowLetScan    :: Bool
+ , allowLetScans   :: Bool
  }
 
 -- | Initial environment at top-level, not inside a group, and allowing contexts
