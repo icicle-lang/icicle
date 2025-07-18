@@ -53,7 +53,7 @@ import           System.Directory (getTemporaryDirectory, removeDirectoryRecursi
 import           System.IO
 import           System.IO.Temp (createTempDirectory)
 
-import           Disorder.Corpus
+import           Hedgehog.Corpus
 
 import           Test.QuickCheck (Gen, Arbitrary(..), Positive(..), elements, suchThat)
 

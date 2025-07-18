@@ -1,11 +1,14 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Icicle.Test.Sea.Header where
 
-import           Disorder.Corpus
-import           Disorder.Jack
+import           Hedgehog.Corpus
+import           Hedgehog
+import qualified Hedgehog.Gen as Gen
+import qualified Hedgehog.Range as Range
 
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map.Strict as Map
@@ -24,34 +27,33 @@ import qualified Prelude as Savage
 
 import           System.IO (IO)
 
-
-genFingerprint :: Jack Fingerprint
+genFingerprint :: Gen Fingerprint
 genFingerprint =
   Fingerprint
-    <$> elements muppets
+    <$> Gen.element muppets
 
-genInputId :: Jack InputId
+genInputId :: Gen InputId
 genInputId =
-  justOf . fmap parseInputId $
+  Gen.just . fmap parseInputId $
     (\ns n -> ns <> ":" <> n)
-      <$> elements colours
-      <*> elements simpsons
+      <$> Gen.element colours
+      <*> Gen.element simpsons
 
-genOutputId :: Jack OutputId
+genOutputId :: Gen OutputId
 genOutputId =
-  justOf . fmap parseOutputId $
+  Gen.just . fmap parseOutputId $
     (\ns n -> ns <> ":" <> n)
-      <$> elements weather
-      <*> elements cooking
+      <$> Gen.element weather
+      <*> Gen.element cooking
 
-genStructField :: Jack StructField
+genStructField :: Gen StructField
 genStructField =
   StructField
-    <$> elements viruses
+    <$> Gen.element viruses
 
-genValType :: Jack ValType
+genValType :: Gen ValType
 genValType =
-  oneOfRec [
+  Gen.recursive Gen.choice [
       pure BoolT
     , pure TimeT
     , pure DoubleT
@@ -66,59 +68,60 @@ genValType =
     , PairT <$> genValType <*> genValType
     , SumT <$> genValType <*> genValType
     , StructT . StructType . Map.fromList
-        <$> listOfN 0 10 ((,) <$> genStructField <*> genValType)
-    , BufT <$> choose (1, 100) <*> genValType
+        <$> Gen.list (Range.linear 1 5) ((,) <$> genStructField <*> genValType)
+    , BufT <$> Gen.integral (Range.linear 1 100) <*> genValType
     ]
 
-genMeltedType :: Jack MeltedType
+genMeltedType :: Gen MeltedType
 genMeltedType = do
   vtype <- genValType
   pure $
     MeltedType vtype (meltType vtype)
 
-genClusterId :: Jack ClusterId
+genClusterId :: Gen ClusterId
 genClusterId =
   ClusterId
-    <$> choose (0, 10000)
+    <$> Gen.integral (Range.linear 1 10000)
 
-genKernelIndex :: Jack KernelIndex
+genKernelIndex :: Gen KernelIndex
 genKernelIndex =
   KernelIndex
-    <$> choose (0, 10000)
+    <$> Gen.integral (Range.linear 1 10000)
 
-genKernelId :: Jack KernelId
+genKernelId :: Gen KernelId
 genKernelId =
   KernelId
     <$> genClusterId
     <*> genKernelIndex
 
-genSeaName :: Jack SeaName
+genSeaName :: Gen SeaName
 genSeaName =
-  fmap mangle $
-    elements (southpark :: [Text])
+  mangle <$>
+    Gen.element (southpark :: [Text])
 
-genKernel :: Jack Kernel
+genKernel :: Gen (Kernel ())
 genKernel =
   Kernel
     <$> genKernelId
-    <*> listOfN 0 5 ((,) <$> genSeaName <*> genValType)
-    <*> listOfN 0 5 ((,) <$> genOutputId <*> genMeltedType)
+    <*> Gen.list (Range.linear 1 5) ((,) <$> genOutputId <*> genMeltedType)
+    <*> pure ()
 
-genCluster :: Jack Cluster
+genCluster :: Gen (Cluster () ())
 genCluster =
   Cluster
     <$> genClusterId
     <*> genInputId
     <*> genValType
-    <*> listOfN 0 5 ((,) <$> genSeaName <*> genValType)
+    <*> Gen.list (Range.linear 1 5) ((,) <$> genSeaName <*> genValType)
     <*> genSeaName
-    <*> (NonEmpty.fromList <$> listOfN 1 10 genKernel)
+    <*> (NonEmpty.fromList <$> Gen.list (Range.linear 1 10) genKernel)
+    <*> pure ()
 
-genHeader :: Jack Header
+genHeader :: Gen Header
 genHeader =
   Header
     <$> genFingerprint
-    <*> listOfN 0 5 genCluster
+    <*> Gen.list (Range.linear 1 5) genCluster
 
 snippet :: Text
 snippet =
@@ -145,10 +148,11 @@ parseHeaderX x = do
 
 prop_header_roundtrip :: Property
 prop_header_roundtrip =
-  gamble genHeader $
-    tripping renderHeaderX parseHeaderX
+  property $ do
+    tokens <- forAll genHeader
+    tripping tokens renderHeaderX parseHeaderX
 
-return []
+
 tests :: IO Bool
 tests =
-  $quickCheckAll
+  checkParallel $$(discover)

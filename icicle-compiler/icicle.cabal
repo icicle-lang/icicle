@@ -257,8 +257,6 @@ test-suite test
                      , icicle-core
                      , icicle
                      , ambiata-disorder-core
-                     , ambiata-disorder-corpus
-                     , ambiata-disorder-jack
                      , ambiata-p
                      , ambiata-jetski
                      , ambiata-x-file-embed
@@ -279,6 +277,7 @@ test-suite test
                      , pretty-show
                      , hashable
                      , hedgehog                        >= 1.1      && < 1.6
+                     , hedgehog-corpus
                      , hedgehog-quickcheck
                      , unordered-containers
                      , QuickCheck
@@ -345,6 +344,7 @@ test-suite test
                        Icicle.Test.Runtime.Evaluator
                        Icicle.Test.Runtime.Serial.Psv.Schema
                        Icicle.Test.Runtime.Serial.Zebra
+                       Icicle.Test.Sea.Header
                        Icicle.Test.Sea.Name
                        Icicle.Test.Sea.Text
                        Icicle.Test.Sea.Utils
@@ -352,7 +352,7 @@ test-suite test
                        Icicle.Test.Source.Convert
                        Icicle.Test.Source.MaxMapSize
                        Icicle.Test.Source.Progress
-                       Icicle.Test.Sorbet.Lexical.Jack
+                       Icicle.Test.Sorbet.Lexical.Gen
                        Icicle.Test.Sorbet.Lexical.Lexer
                        Icicle.Test.Sorbet.PrettyParse
 
@@ -376,7 +376,6 @@ test-suite test-io
                      , icicle-core
                      , icicle
                      , ambiata-disorder-core
-                     , ambiata-disorder-corpus
                      , ambiata-p
                      , containers
                      , hashable

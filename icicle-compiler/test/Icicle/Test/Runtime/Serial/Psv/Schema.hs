@@ -2,9 +2,10 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module Icicle.Test.Runtime.Serial.Psv.Schema where
 
-import           Disorder.Corpus (muppets, boats, viruses)
-import           Disorder.Jack (Property, Jack, quickCheckAll, tripping, gamble)
-import           Disorder.Jack (elements, listOfN, listOf, oneOfRec, sized)
+import           Hedgehog.Corpus (muppets, boats, viruses)
+import           Hedgehog
+import qualified Hedgehog.Gen as Gen
+import qualified Hedgehog.Range as Range
 
 import           Icicle.Runtime.Serial.Psv.Schema
 
@@ -12,10 +13,9 @@ import           P
 
 import           System.IO (IO)
 
-
-genPrimitive :: Jack PsvPrimitive
+genPrimitive :: Gen PsvPrimitive
 genPrimitive =
-  elements [
+  Gen.element [
       PsvBoolean
     , PsvInt
     , PsvDouble
@@ -23,50 +23,52 @@ genPrimitive =
     , PsvDate
     ]
 
-genStructField :: Jack PsvStructField
+genStructField :: Gen PsvStructField
 genStructField =
   PsvStructField
-    <$> elements muppets
+    <$> Gen.element muppets
     <*> genEncoding
 
-genEncoding :: Jack PsvEncoding
+genEncoding :: Gen PsvEncoding
 genEncoding =
-  oneOfRec [
+  Gen.recursive Gen.choice [
       PsvPrimitive <$> genPrimitive
     ] [
-      PsvStruct <$> sized (\n -> listOfN 0 (n `div` 5) genStructField)
+      PsvStruct <$> Gen.list (Range.linear 0 20) genStructField
     , PsvList <$> genEncoding
     , PsvPair <$> genEncoding <*> genEncoding
     ]
 
-genColumn :: Jack PsvColumn
+genColumn :: Gen PsvColumn
 genColumn =
   PsvColumn
-    <$> elements boats
+    <$> Gen.element boats
     <*> genEncoding
 
-genMissingValue :: Jack PsvMissingValue
+genMissingValue :: Gen PsvMissingValue
 genMissingValue =
   PsvMissingValue
-    <$> elements viruses
+    <$> Gen.element viruses
 
-genSchema :: Jack PsvSchema
+genSchema :: Gen PsvSchema
 genSchema =
   PsvSchema
     <$> genMissingValue
-    <*> listOf genColumn
+    <*> Gen.list (Range.linear 0 20) genColumn
 
 prop_psv_pretty_schema_roundtrip :: Property
 prop_psv_pretty_schema_roundtrip =
-  gamble genSchema $
-    tripping renderPrettyPsvSchema parsePsvSchema
+  property $ do
+    x <- forAll genSchema
+    tripping x renderPrettyPsvSchema parsePsvSchema
 
 prop_psv_compact_schema_roundtrip :: Property
 prop_psv_compact_schema_roundtrip =
-  gamble genSchema $
-    tripping renderCompactPsvSchema parsePsvSchema
+  property $ do
+    x <- forAll genSchema
+    tripping x renderCompactPsvSchema parsePsvSchema
 
-return []
+
 tests :: IO Bool
 tests =
-  $quickCheckAll
+  checkParallel $$(discover)

@@ -9,7 +9,7 @@ import           Icicle.Data.Time
 import           Icicle.Common.Base
 import           Icicle.Common.Eval
 import           Icicle.Common.Type
-import           Disorder.Corpus
+import           Hedgehog.Corpus
 import           Icicle.Test.Arbitrary.Data ()
 
 

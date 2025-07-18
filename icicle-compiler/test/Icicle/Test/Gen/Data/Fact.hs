@@ -6,7 +6,7 @@ module Icicle.Test.Gen.Data.Fact (
 
 import qualified Data.Map.Strict as Map
 
-import           Disorder.Corpus (colours)
+import           Hedgehog.Corpus (colours)
 
 import           Hedgehog
 import qualified Hedgehog.Gen as Gen

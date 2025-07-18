@@ -12,7 +12,7 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Vector as Boxed
 import qualified Data.Vector.Storable as Storable
 
-import           Disorder.Corpus
+import           Hedgehog.Corpus
 
 import           Hedgehog
 import qualified Hedgehog.Gen as Gen

@@ -11,7 +11,7 @@ import qualified Data.List as List
 
 import           Control.Monad.Trans.Either
 
-import           Disorder.Corpus
+import           Hedgehog.Corpus
 
 import           Foreign
 

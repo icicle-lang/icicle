@@ -40,7 +40,7 @@ import           Icicle.Test.Arbitrary.Core (testFresh)
 import qualified Icicle.Test.Gen.Core.Type as CoreGen
 import qualified Test.QuickCheck.Hedgehog as Qc
 
-import           Disorder.Corpus
+import           Hedgehog.Corpus
 
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()

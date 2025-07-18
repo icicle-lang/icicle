@@ -67,7 +67,7 @@ prop_roundtrip_zebra_chord_output =
     x <- forAll (genOutput genChordKey)
     trippingBoth x encodeChordOutput decodeChordOutput
 
-return []
+
 tests :: IO Bool
 tests =
   checkParallel $$(discover)
