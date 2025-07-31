@@ -116,7 +116,7 @@ marge|[ 2
 ----
 
 repl:output :
-  Aggregate (Definitely (Array Int))
+  Aggregate (Definitely (Array (Sum ErrorT Int)))
 
 Core evaluation
 ---------------
@@ -134,7 +134,7 @@ marge|[ 0
 ----
 
 repl:output :
-  Aggregate (Definitely (Array Int))
+  Aggregate (Definitely (Array (Sum ErrorT Int)))
 
 Core evaluation
 ---------------
@@ -152,7 +152,7 @@ marge|[ 0
 ----
 
 repl:output :
-  Aggregate (Definitely (Array Int))
+  Aggregate (Definitely (Array (Sum ErrorT Int)))
 
 Core evaluation
 ---------------
@@ -170,7 +170,7 @@ marge|[ 0
 ----
 
 repl:output :
-  Aggregate (Definitely (Array Int))
+  Aggregate (Definitely (Array (Sum ErrorT Int)))
 
 Core evaluation
 ---------------
