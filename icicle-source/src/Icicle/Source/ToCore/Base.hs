@@ -224,9 +224,6 @@ data ConvertState n
  -- | Bindings which are TemporalityElement, and will
  --   need to be packed into the buffer when doing a
  --   latest query.
- --   Unfortunately, at this time the top level uses
- --   a different mechanism (packing into the input)
- --   but it works out the same in the end.
  , csFoldRepacks  :: Map.Map (Name n) (Name n, ValType)
  }
 

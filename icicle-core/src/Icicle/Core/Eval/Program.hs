@@ -106,9 +106,7 @@ eval ctx sv p
                       ret'  <- V.getBaseValue (RuntimeErrorReturnNotBaseType ret) ret
                       return (n, ret')
 
-        rets <- mapM evalReturn (P.returns p)
-
-        return rets
+        traverse evalReturn (P.returns p)
 
 
 -- | Evaluate all stream bindings, collecting up stream heap as we go

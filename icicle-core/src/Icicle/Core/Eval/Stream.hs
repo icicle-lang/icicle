@@ -28,15 +28,8 @@ import              Data.Hashable (Hashable)
 
 
 
--- | A stream value is a list of values, but also the list of cookies or bubblegum.
--- This bubblegum is used to track the flow - which values are used by the computation,
--- and specifically which values will be needed by tomorrow's or next computation.
--- For each value, we also keep its date around so it can be windowed.
---
--- We also need to know whether the stream has been windowed: if it is not windowed, any
--- reduction like sum can just start where it left off.
--- If it is windowed, we instead store the values needed to recompute, as values will drop off
--- the start of the window.
+-- | A stream value is a list of values, but we also maintain
+--   the zero value.
 data StreamValue
  = StreamValue {
      streamValues :: [BaseValue]

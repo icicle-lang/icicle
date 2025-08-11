@@ -22,12 +22,12 @@ import              Prelude (error)
 
 -- | Right-associative application
 ($~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
-($~) x y = xApp x y
+($~) = xApp
 infixr 0 $~
 
 -- | Left-associative application
 (@~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
-(@~) x y = xApp x y
+(@~) = xApp
 infixl 0 @~
 
 

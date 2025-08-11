@@ -7,7 +7,5 @@ needs : Aggregate a -> Aggregate (Possibly a)
 needs a =
   requiring 1 a
 
-
 error : Possibly a
 error = missing
-

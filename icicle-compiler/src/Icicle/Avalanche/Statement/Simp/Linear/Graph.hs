@@ -23,7 +23,7 @@ where
 
 
 import qualified    Data.Set as Set
-import qualified    Data.Map.Lazy as Map
+import qualified    Data.Map.Strict as Map
 
 import              Icicle.Internal.Pretty
 
@@ -34,14 +34,27 @@ import              P hiding (empty)
 --   outgoing and incoming edges.
 data Graph n =
   Graph {
-    graphForwards :: Map.Map n (Set.Set n)
-  , graphBackwards :: Map.Map n (Set.Set n)
+    graphForwards :: !(Map.Map n (Set.Set n))
+  , graphBackwards :: !(Map.Map n (Set.Set n))
   }
- deriving (Eq, Ord, Show)
+
+-- | The graph is symmetric, so we only need to
+--   check the forwards part to see if they're
+--   equal.
+instance Show n => Show (Graph n) where
+  show = show . graphForwards
+
+
+-- | The graph is symmetric, so we only need to
+--   check the forwards part to see if they're
+--   equal.
+instance Eq n => Eq (Graph n) where
+  (==) = (==) `on` graphForwards
 
 instance Pretty n => Pretty (Graph n) where
   pretty (Graph g _) =
-    vsep (pretty <$> (Map.toList (Map.map Set.toList g)))
+    vsep (pretty <$> Map.toList (Map.map Set.toList g))
+
 
 empty :: Graph n
 empty =
@@ -68,9 +81,9 @@ overwrite from to (Graph forwards backwards) =
         Nothing ->
           backwards
         Just set ->
-          Set.foldl' (\v k -> Map.alter removeBinds k v) backwards set
+          Set.foldl' (flip (Map.alter removeBinds)) backwards set
   in
-  if (from == to) then
+  if from == to then
     Graph {
       graphForwards =
         Map.delete from forwards
@@ -89,10 +102,9 @@ overwrite from to (Graph forwards backwards) =
 -- | Insert an edge into a graph without removing
 --   already existing edges from the graph.
 insert :: Ord n => n -> n -> Graph n -> Graph n
-insert from to into =
+insert from to =
   merge
     (overwrite from to empty)
-    into
 
 
 -- | Delete a node and stitch up its edges such that

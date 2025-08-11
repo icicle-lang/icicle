@@ -16,6 +16,8 @@ import              Control.Monad.Tardis
 import qualified    Data.Set as Set
 import              Data.Hashable (Hashable (..))
 
+import              GHC.Conc (par, pseq)
+
 import qualified    Icicle.Avalanche.Prim.Flat as Flat
 import              Icicle.Avalanche.Statement.Statement
 import              Icicle.Avalanche.Statement.Simp.Linear.Graph (Graph)
@@ -81,8 +83,9 @@ linearise s =
         let ~(fS, (fU, fA)) = runTardis (go fs) (used, aliased)
         used               <- getFuture
 
-        modifyForwards $
-          Graph.merge tA . Graph.merge fA
+        tA `par` fA `pseq`
+          sendFuture $
+            Graph.merge tA fA
 
         return $
           If x tS fS
