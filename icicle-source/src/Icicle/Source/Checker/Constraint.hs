@@ -1077,9 +1077,9 @@ appType ann errExp env funT cons actT
     --
     --   M (a -> b) --> (M a -> M b)
     --
-    (tmpE',  consT'e)   <- checkTemp Nothing (purely tmpF) (purely tmpE)
-    (tmpR',  consT'r)   <- checkTemp Nothing (purely tmpF) (purely tmpR)
-    (tmpR'', consT)     <- checkTemp (purely tmpE') (purely tmpA) (purely tmpR')
+    (tmpE',  consT'e)   <- checkTemp Nothing tmpF tmpE
+    (tmpR',  consT'r)   <- checkTemp Nothing tmpF tmpR
+    (tmpR'', consT)     <- checkTemp tmpE' tmpA tmpR'
 
     --
     -- The discharge for possibilities has a special case
@@ -1092,18 +1092,18 @@ appType ann errExp env funT cons actT
     -- which works because all modes can successfully join
     -- for possibilities.
     --
-    (posR', consP'r)    <- checkPoss Nothing (definitely posF) (definitely posR)
-    (posR'', consP)     <- checkPoss (definitely posE) (definitely posA) (definitely posR')
+    (posR', consP'r)    <- checkPoss Nothing posF posR
+    (posR'', consP)     <- checkPoss posE posA posR'
 
     let t = recomposeT (tmpR'', posR'', datR)
     return (t, concat [cons, consD, consT, consT'e, consT'r, consP, consP'r])
 
   --
-  -- If the data is a type variable, we can summon a fresh function type, then apply
-  -- an equality contraint. For Icicle, this isn't strictly necessary, as we're not
-  -- a fully functional language; but as the type system evolves this will become more
-  -- important.
-  --
+  -- If the data is a type variable, we can summon a fresh
+  -- function type, then apply an equality contraint. For
+  -- Icicle, this isn't strictly necessary, as we're not
+  -- a fully functional language; but as the type system
+  -- evolves this will become more important.
   | let (tmpF,posF,datF) = decomposeT funT
   , TypeVar _           <- datF
   = do expT             <- freshType
@@ -1120,12 +1120,12 @@ appType ann errExp env funT cons actT
         errorNoSuggestions (ErrorFunctionTooManyArgs ann errExp scheme)
 
  where
-  checkTemp = check' CTemporalityJoin
-  checkPoss = check' CPossibilityJoin
+  checkTemp = check' True
+  checkPoss = check' False
 
   --
   -- Join the expected, actual, and return modalities
-  check' joinMode modE modA modR
+  check' isTemporal modE modA modR
 
    --
    -- If the modality of the argument passed is pure,
@@ -1144,32 +1144,51 @@ appType ann errExp env funT cons actT
    | Just a' <- modA
    , Nothing <- modE
    , Just r' <- modR
-   = do r''  <- TypeVar <$> fresh
-        let j = joinMode r'' a' r'
+   = do r''         <- freshTyVar
+        let joinMode = if isTemporal then CTemporalityJoin else CPossibilityJoin
+        let j        = joinMode r'' a' r'
         return (Just r'', require ann j)
 
    --
    -- Otherwise, we have both expectation and actual modalities.
-   -- We ensure that these join; but return the given result of
-   -- the function.
+   -- We must ensure that these join; but for temporalities, we
+   -- further require that we don't raise the expectation level.
+   -- This allows a function to demand a pure argument,
+   -- i.e., request the initial state of a fold.
    | Just a' <- modA
    , Just e' <- modE
-   = do ignore <- TypeVar <$> fresh
-        let j = joinMode ignore e' a'
+   , isTemporal
+   = do let j = CTemporalityJoin e' e' a'
         return (modR, require ann j)
 
+   --
+   -- For possibility, we currently preclude demanding definite
+   -- modes. This means that we should lub all of the supplied
+   -- modes to determine if the result is possibly.
+   | Just a' <- modA
+   , Just e' <- modE
+   , Just r' <- modR
+   = do r0    <- freshTyVar
+        r1    <- freshTyVar
+        let j  = CPossibilityJoin r0 e' a'
+        let j' = CPossibilityJoin r1 r0 r'
+        return (Just r1, require ann j <> require ann j')
+
+   --
+   -- Simpler case of the above guard where there is not a
+   -- declared return mode for the function.
+   | Just a' <- modA
+   , Just e' <- modE
+   = do r0    <- freshTyVar
+        let j  = CPossibilityJoin r0 e' a'
+        return (Just r0, require ann j)
+
+  freshTyVar
+    = TypeVar <$> fresh
+
   freshType
-    =    Temporality <$> (TypeVar <$> fresh)
-    <*> (Possibility <$> (TypeVar <$> fresh)
-    <*>                  (TypeVar <$> fresh))
-
-  --
-  -- Unboxing of pure modalities.
-  purely (Just TemporalityPure) = Nothing
-  purely tmp = tmp
-
-  definitely (Just PossibilityDefinitely) = Nothing
-  definitely pos = pos
+    =    Temporality <$> freshTyVar
+    <*> (Possibility <$> freshTyVar <*> freshTyVar)
 
 
 -- | Lookup the type Scheme for a function (either a primitive
