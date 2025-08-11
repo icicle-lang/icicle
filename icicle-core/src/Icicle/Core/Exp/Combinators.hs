@@ -9,16 +9,12 @@ import              Icicle.Common.Type
 import              Icicle.Core.Exp.Prim
 import qualified    Icicle.Core.Exp.Exp     as X
 import              Icicle.Common.Exp.Exp
-import              Icicle.Common.Exp.Compounds
 import qualified    Icicle.Common.Exp.Prim.Minimal as Min
 
 import              P hiding (error)
-import qualified    Data.Text   as T
-import qualified    Data.Set    as Set
 import qualified    Data.Map    as Map
 import              Data.Hashable
 
-import              Prelude (error)
 
 -- | Right-associative application
 ($~) :: X.Exp () n -> X.Exp () n -> X.Exp () n
@@ -128,36 +124,6 @@ primRound x
 primTruncate :: X.Exp () n -> X.Exp () n
 primTruncate x
  = xPrim (PrimMinimal $ Min.PrimBuiltinFun $ Min.PrimBuiltinMath Min.PrimBuiltinTruncate) @~ x
-
-lam :: ValType -> (X.Exp () Text -> X.Exp () Text) -> X.Exp () Text
-lam t f
- = let -- Try with a bad name - this won't necessarily be fresh,
-       -- but it will allow us to get the variables in the expression
-       init = f (xVar $ nameOf $ NameBase "$$$")
-       vars = allvars init
-
-       -- Look through all the numbers, and find one that isn't already
-       -- used in the expression
-       free = filter (not . flip Set.member vars)
-            $ fmap varOfInt [0..]
-
-       -- Take the head; free should be a practically infinite list.
-       -- If it is empty, that means there are at least 2^64 variables
-       -- in the expression and it isn't going to fit in memory.
-       -- In that case, we might as well die anyway.
-       v    = head_error free
-   in  xLam v t (f $ xVar v)
-
- where
-  head_error (x:_)
-   = x
-  head_error []
-   = error "Icicle/Core/Exp/Combinators.hs: lam: this is impossible; taking the head of a nearly-infinite list should not fail"
-
-  -- Convert an int to a variable name
-  varOfInt :: Int -> Name Text
-  varOfInt i
-   = nameOf $ NameMod "_" $ NameBase $ T.pack $ show i
 
 emptyBuf :: Int -> ValType -> X.Exp () n
 emptyBuf i t = xValue (BufT i t) (VBuf [])
