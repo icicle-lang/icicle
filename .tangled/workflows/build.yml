@@ -1,0 +1,18 @@
+when:
+  - event: ["push", "pull_request"]
+    branch: ["master"]
+
+engine: nixery
+
+dependencies:
+  nixpkgs:
+    - "haskell.compiler.ghc942.withPackages (pkgs: [ pkgs.cabal-install ])"
+
+steps:
+  - name: build
+    command: |
+       cabal build all
+
+  - name: test
+    command: |
+       cabal test all
