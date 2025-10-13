@@ -1,12 +1,8 @@
 {-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE PatternGuards      #-}
-{-# LANGUAGE BangPatterns       #-}
-{-# LANGUAGE TupleSections      #-}
 {-# LANGUAGE FlexibleContexts   #-}
-{-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE DoAndIfThenElse    #-}
 {-# LANGUAGE RecursiveDo        #-}
-{-# LANGUAGE RecordWildCards    #-}
 
 -- Remove copy operations on arrays which don't have shared references.
 module Icicle.Avalanche.Statement.Simp.Linear (linearise) where

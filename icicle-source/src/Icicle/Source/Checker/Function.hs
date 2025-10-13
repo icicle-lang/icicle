@@ -236,8 +236,16 @@ checkF' fun env
            | otherwise
            = t
 
-     -- Take apart temporality and possibility, remode, then put it back together
+      -- Check whether this is a higher order function, these may correlate modes, between functions
+      -- and their arguments.
+      let isHigherOrder
+           = any (anyArrows . annResult . fst) args
+
+      -- Take apart temporality and possibility, remode, then put it back together
       let fixModes t
+           | isHigherOrder
+           = t
+           | otherwise
            = let (tmp,pos,dat) = decomposeT t
              in  recomposeT (remode tmp, remode pos, dat)
 

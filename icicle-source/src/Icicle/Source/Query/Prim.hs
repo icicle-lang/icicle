@@ -53,11 +53,9 @@ primLookup' prim
      -> f0 [IntT, TimeT] TimeT
 
     Op  Dollar
-     -> do a <- Fresh.fresh
-           b <- Fresh.fresh
-           let at = TypeVar a
-           let bt = TypeVar b
-           return $ functionType [a,b] [] [TypeArrow at bt, bt] bt
+     -> do a <- freshType
+           b <- freshType
+           return $ functionType (toList (freeT a ) <> toList (freeT b)) [] [TypeArrow a b, a] b
 
     -- Literals will not be NaN or Inf
     Lit (LitInt _)
@@ -223,6 +221,11 @@ primLookup' prim
    = do n1 <- Fresh.fresh
         n2 <- Fresh.fresh
         return $ f n1 (TypeVar n1) n2 (TypeVar n2)
+
+  freshType
+    =    Temporality <$> (TypeVar <$> Fresh.fresh)
+    <*> (Possibility <$> (TypeVar <$> Fresh.fresh)
+    <*>                  (TypeVar <$> Fresh.fresh))
 
 
 -- There must be a better way.

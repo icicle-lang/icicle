@@ -46,6 +46,8 @@ inlineTransform _ funs0
  }
  where
   tranx funs x
+   | Just (Op Dollar, a, [f, y]) <- takePrimApps x
+   = return (funs, App a f y)
    | (Var _ n, args)   <- takeApps x
    , Just fun          <- Map.lookup n funs
    , (arguments, fapp) <- takeLams fun

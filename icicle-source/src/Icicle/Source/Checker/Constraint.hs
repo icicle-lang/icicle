@@ -290,7 +290,7 @@ generateQ qq@(Query (c:_) _) env
 
             let tkey = annResult $ annotOfExp x'
 
-            consT          <-  (<>) <$> requireTemporality tkey TemporalityElement
+            consT          <-  (<>) <$> requireElement tkey
                                     <*> requireAgg tval
 
             let t'  = canonT
@@ -370,7 +370,7 @@ generateQ qq@(Query (c:_) _) env
 
             let tkey = annResult $ annotOfExp x'
 
-            consT          <-  (<>) <$> requireTemporality tkey TemporalityElement
+            consT          <-  (<>) <$> requireElement tkey
                                     <*> requireAgg t'
 
             let t'' = canonT
@@ -391,7 +391,7 @@ generateQ qq@(Query (c:_) _) env
 
             let pred = annResult $ annotOfExp x'
 
-            consT          <- (<>) <$> requireTemporality pred TemporalityElement
+            consT          <- (<>) <$> requireElement pred
                                    <*> requireAgg t'
             let consd       = requireData pred BoolT
             (poss, consp)  <- requirePossibilityJoin pred t'
@@ -422,7 +422,7 @@ generateQ qq@(Query (c:_) _) env
             (env', consq)        <- goPatPartial ann n p'typ (substE sx env)
             (q',sq,tq,consr)     <- rest env'
 
-            consT                <- (<>) <$> requireTemporality scrutT TemporalityElement
+            consT                <- (<>) <$> requireElement scrutT
                                          <*> requireAgg tq
             (poss, consp)        <- requirePossibilityJoin scrutT tq
 
@@ -474,19 +474,19 @@ generateQ qq@(Query (c:_) _) env
             consf
               <- case foldType f of
                   FoldTypeFoldl1
-                   -> requireTemporality (annResult $ annotOfExp i) TemporalityElement
+                   -> requireElement (annResult $ annotOfExp i)
                   FoldTypeFoldl
-                   -> requireTemporality (annResult $ annotOfExp i) TemporalityPure
+                   -> requirePureTemp (annResult $ annotOfExp i)
 
             let (_, _,it) = decomposeT $ annResult $ annotOfExp i
             let (_,wp,wt) = decomposeT $ annResult $ annotOfExp w
-            let wp'       = maybe PossibilityDefinitely id wp
+            let wp'       = fromMaybe PossibilityDefinitely wp
 
             consT <-  (<>) <$> requireAgg t'
-                           <*> requireTemporality (annResult $ annotOfExp w) TemporalityElement
-            let conseq = concat
-                       [ require a (CEquals it wt)
-                       , require a (CPossibilityJoin iniPos wp' ip') ]
+                           <*> requireElement (annResult $ annotOfExp w)
+
+            let conseq = require a (CEquals it wt)
+                      <> require a (CPossibilityJoin iniPos wp' ip')
 
             let cons' = concat [csi, csw, consr, consf, consT, conseq, consq, consl]
 
@@ -656,6 +656,12 @@ generateQ qq@(Query (c:_) _) env
       Just tmp''
        -> return $ require a (CEquals tmp'' tmp)
 
+  requirePureTemp t
+   = requireTemporality t TemporalityPure
+
+  requireElement t
+   = requireTemporality t TemporalityElement
+
   requireAgg t
    = requireTemporality t TemporalityAggregate
 
@@ -786,8 +792,8 @@ generateX' canUseFunctions x env
 
     -- Quick hack so that dollar works, we just inline it as
     -- soon as we start type checking.
-    App _ (App _ (Prim _ (Op Dollar)) f) arg
-     -> generateX (App (annotOfExp f) f arg) env
+    -- App _ (App _ (Prim _ (Op Dollar)) f) arg
+    --  -> generateX (App (annotOfExp f) f arg) env
 
     -- Applications are a bit more complicated.
     -- If your function expects an argument with a particular temporality,
@@ -807,7 +813,7 @@ generateX' canUseFunctions x env
     -- here the y is unboxed, then the result is reboxed.
     App a f arg
      -> do (f',   fSubst,   fCons)   <- generateX' AllowArrows f   env
-           (arg', argSubst, argCons) <- generateX arg env
+           (arg', argSubst, argCons) <- generateX' AllowArrows arg env
            let getT                   = annResult . annotOfExp
            (resT, resC)              <- appType a x env (getT f') (fCons <> argCons) (getT arg')
            let x' = annotate resC resT
@@ -1108,8 +1114,10 @@ appType ann errExp env funT cons actT
   , TypeVar _           <- datF
   = do expT             <- freshType
        resT             <- freshType
-       let funT'         = recomposeT (tmpF, posF, TypeArrow expT resT)
-       let funCons       = require ann (CEquals funT funT')
+       let funT'         = TypeArrow expT resT
+       let funCons       = require ann (CEquals datF funT')
+                        <> foldMap (require ann . CEquals TemporalityPure) tmpF
+                        <> foldMap (require ann . CEquals PossibilityDefinitely) posF
        -- Rerun with a type arrow requirement.
        appType ann errExp env funT' (cons <> funCons) actT
 

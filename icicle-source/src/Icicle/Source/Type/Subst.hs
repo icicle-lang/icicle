@@ -98,6 +98,24 @@ compose s1 s2
 unifyT :: (Hashable n, Eq n) => Type n -> Type n -> Maybe (SubstT n)
 unifyT t1 t2
  = case t1 of
+    Temporality at ar
+     | Temporality bt br <- t2
+     -> compose <$> unifyT at bt <*> unifyT ar br
+     | otherwise
+     -> unifyT ar t2
+    _
+     | Temporality _ br <- t2
+     -> unifyT t1 br
+
+    Possibility at ar
+     | Possibility bt br <- t2
+     -> compose <$> unifyT at bt <*> unifyT ar br
+     | otherwise
+     -> unifyT ar t2
+    _
+     | Possibility _ br <- t2
+     -> unifyT t1 br
+
     TypeVar a
      | TypeVar b <- t2
      , a == b
@@ -167,21 +185,9 @@ unifyT t1 t2
      | otherwise
      -> Nothing
 
-    Temporality at ar
-     | Temporality bt br <- t2
-     -> compose <$> unifyT at bt <*> unifyT ar br
-     | otherwise
-     -> Nothing
-
     TemporalityPure         -> eq
     TemporalityElement      -> eq
     TemporalityAggregate    -> eq
-
-    Possibility at ar
-     | Possibility bt br <- t2
-     -> compose <$> unifyT at bt <*> unifyT ar br
-     | otherwise
-     -> Nothing
 
     PossibilityPossibly     -> eq
     PossibilityDefinitely   -> eq
