@@ -567,7 +567,10 @@ generateQ qq@(Query (c:_) _) env
   goPat' _ _ (PatVariable n) typ e
     -- A binding variable is accessible downstream
     -- so bind it and its type to the environment.
-    = return $ (bindT n typ e, [])
+    = return (bindT n typ e, [])
+
+  goPat' _ _ (PatCon ConUnit []) typ e
+    = do return (e, requireData typ UnitT)
 
   goPat' cc ann (PatCon ConTuple [a'pat,b'pat]) typ e
     | (mt,mp,canon)   <- decomposeT typ
@@ -594,9 +597,6 @@ generateQ qq@(Query (c:_) _) env
 
   goPat' True _ (PatCon ConFalse []) typ e
     = do return (e, requireData typ BoolT)
-
-  goPat' True _ (PatCon ConUnit []) typ e
-    = do return (e, requireData typ UnitT)
 
   goPat' True ann (PatCon ConLeft [p]) typ e
     | (mt,mp,canon) <- decomposeT typ

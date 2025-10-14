@@ -170,6 +170,20 @@ checkF' fun env
       -- they will end up being unified to the actual types.
       args <- traverse (lookupArg subs env') arguments
 
+      -- Helper function for the fold below.
+      -- Builds a single lambda from an argument to the result;
+      -- extracting out the type from the result for the arrow.
+      let mkLam (ann, arg) fin =
+            let
+              ann' = mapSourceType (\argT -> TypeArrow argT (annResult (annotOfExp fin))) ann
+            in
+              Lam ann' arg fin
+
+      -- The type of the function before we perform mode removal
+      -- below.
+      let funInferred
+            = foldr mkLam q args
+
       -- Find all leftover constraints
       let constrs = fmap snd cons
 
@@ -214,35 +228,37 @@ checkF' fun env
            = Set.unions
            $ fmap freeC constrs
 
-      -- Generalise any modes - temporality or possibility - that are not mentioned in constraints
+      -- Elide any modes - temporality or possibility - that are not mentioned in constraints
       let remode t
            | Just (TypeVar n) <- t
            , not $ Set.member n keepModes
            = Nothing
            | otherwise
            = t
+
      -- Take apart temporality and possibility, remode, then put it back together
-      let fixmodes t
+      let fixModes t
            = let (tmp,pos,dat) = decomposeT t
              in  recomposeT (remode tmp, remode pos, dat)
 
-      -- Fix the modes of all the argument and result types
-      let argTs = fmap (fixmodes . annResult . fst) args
+      -- Our function with skippable modes elided.
+      let funRemode
+            = reannot (mapSourceType fixModes) funInferred
 
-      let resT  = fixmodes $ annResult $ annotOfExp q
+      -- Type of our final function.
+      let funRemodeT
+            = annResult $ annotOfExp funRemode
 
       -- Find free variables in types and constraints - these have to be bound as foralls.
-      let binds = Set.toList
-                $ Set.unions
-                $ keepModes : freeT resT : fmap freeT argTs
+      let binds
+            = Set.toList
+            $ Set.union keepModes
+            $ freeT funRemodeT
 
-      let arrT  = foldr TypeArrow resT argTs
-      let lams  = foldr (uncurry Lam) q args
+      -- Build the type Scheme
+      let funT  = Forall binds constrs funRemodeT
 
-      -- Put it all together
-      let funT  = Forall binds constrs arrT
-
-      return (reannot (mapSourceType fixmodes) lams, funT)
+      return (funRemode, funT)
  where
   bindArg cx (_,n)
    = do t <- freshType
