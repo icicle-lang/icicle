@@ -236,8 +236,9 @@ checkF' fun env
            | otherwise
            = t
 
-      -- Check whether this is a higher order function, these may correlate modes, between functions
-      -- and their arguments.
+      -- Check whether this is a higher order function. A higher order function like apply
+      -- needs to align the expected and result functions passed to the function parameter
+      -- and the applied argument parameter.
       let isHigherOrder
            = any (anyArrows . annResult . fst) args
 
@@ -249,7 +250,7 @@ checkF' fun env
            = let (tmp,pos,dat) = decomposeT t
              in  recomposeT (remode tmp, remode pos, dat)
 
-      -- Our function with skippable modes elided.
+      -- Our function with irrelevant modes elided.
       let funRemode
             = reannot (mapSourceType fixModes) funInferred
 

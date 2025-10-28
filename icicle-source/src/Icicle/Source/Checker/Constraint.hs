@@ -75,19 +75,21 @@ defaults topq
    = defaultTo t IntT <> defaultTo poss PossibilityDefinitely
   -- Everything else should really be known by this stage.
   -- These shouldn't actually occur.
-  defaultOfConstraint (CEquals _ _)
+  defaultOfConstraint (CSerializable {})
    = []
-  defaultOfConstraint (CReturnOfLetTemporalities _ _ _)
+  defaultOfConstraint (CEquals {})
    = []
-  defaultOfConstraint (CDataOfLatest _ _ _ _)
+  defaultOfConstraint (CReturnOfLetTemporalities {})
    = []
-  defaultOfConstraint (CPossibilityOfLatest _ _ _)
+  defaultOfConstraint (CDataOfLatest {})
    = []
-  defaultOfConstraint (CPossibilityJoin _ _ _)
+  defaultOfConstraint (CPossibilityOfLatest {})
    = []
-  defaultOfConstraint (CTemporalityJoin _ _ _)
+  defaultOfConstraint (CPossibilityJoin {})
    = []
-  defaultOfConstraint (CHasField _ _ _)
+  defaultOfConstraint (CTemporalityJoin {})
+   = []
+  defaultOfConstraint (CHasField {})
    = []
 
   defaultTo tv tr
@@ -712,7 +714,7 @@ generateX' canUseFunctions x env
     Lam _ n body
       -> do typ              <- freshType
             let env'          = bindT n typ env
-            (q, subs, cons)  <- generateX body env'
+            (q, subs, cons)  <- generateX' canUseFunctions body env'
 
             let resT          = annResult $ annotOfExp q
             let arrT          = TypeArrow typ resT
@@ -789,11 +791,6 @@ generateX' canUseFunctions x env
               let j = joinMode  r'' a b
               return (Just r'', require ann j <> cons)
 
-
-    -- Quick hack so that dollar works, we just inline it as
-    -- soon as we start type checking.
-    -- App _ (App _ (Prim _ (Op Dollar)) f) arg
-    --  -> generateX (App (annotOfExp f) f arg) env
 
     -- Applications are a bit more complicated.
     -- If your function expects an argument with a particular temporality,
@@ -1050,6 +1047,23 @@ mapAccumLM :: (Traversable t, Monad m) => (a -> s -> m (b, s)) -> s -> t a -> m 
 mapAccumLM f a xs = State.runStateT (mapM (State.StateT . f) xs) a
 
 
+-- | Ensure we can't pass function where they're not expected.
+--
+--   Icicle can create higher order functions under with some
+--   pretty strong limitations. Effectively, we still have to
+--   be able to inline the definititions, and not create a
+--   closure.
+--
+--   This function applies to function arguments, and ensures
+--   that we can't generalize a normal var to a function.
+noClosure :: a -> Type n -> GenConstraintSet a n
+noClosure ann datTy =
+  case datTy of
+    TypeVar {} ->
+      require ann (CSerializable datTy)
+    _ ->
+      []
+
 -- | Determine the type of a function application.
 --
 --   The meat of Icicle's application rule, which handles pushing
@@ -1073,6 +1087,7 @@ appType ann errExp env funT cons actT
     let (tmpE,posE,datE) = decomposeT expT
     let (tmpA,posA,datA) = decomposeT actT
     let consD            = require ann (CEquals datE datA)
+    let consC            = noClosure ann datE
 
     --
     -- Join temporalities of the function to its parts.
@@ -1102,7 +1117,7 @@ appType ann errExp env funT cons actT
     (posR'', consP)     <- checkPoss posE posA posR'
 
     let t = recomposeT (tmpR'', posR'', datR)
-    return (t, concat [cons, consD, consT, consT'e, consT'r, consP, consP'r])
+    return (t, concat [cons, consD, consC, consT, consT'e, consT'r, consP, consP'r])
 
   --
   -- If the data is a type variable, we can summon a fresh

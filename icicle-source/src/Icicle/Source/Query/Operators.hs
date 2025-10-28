@@ -149,7 +149,7 @@ fixity o
      -> FInfix $ Infix AssocLeft 6
 
     Dollar
-        -> FInfix $ Infix AssocRight 0
+     -> FInfix $ Infix AssocRight 0
 
 
 data OpsOfSymbol

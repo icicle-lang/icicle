@@ -207,6 +207,7 @@ data Constraint n
  | CTemporalityJoin (Type n) (Type n) (Type n)
  | CReturnOfLetTemporalities (Type n) (Type n) (Type n)
  | CDataOfLatest (Type n) (Type n) (Type n) (Type n)
+ | CSerializable (Type n)
  | CPossibilityOfLatest (Type n) (Type n) (Type n)
  | CPossibilityJoin (Type n) (Type n) (Type n)
  deriving (Eq, Ord, Show, Generic)
@@ -231,6 +232,8 @@ instance TraverseType (Constraint n) n where
       -> CReturnOfLetTemporalities <$> f t1 <*> f t2 <*> f t3
     CDataOfLatest t1 t2 t3 t4
       -> CDataOfLatest <$> f t1 <*> f t2 <*> f t3 <*> f t4
+    CSerializable tq
+      -> CSerializable <$> f tq
     CPossibilityOfLatest t1 t2 t3
       -> CPossibilityOfLatest <$> f t1 <*> f t2 <*> f t3
     CPossibilityJoin t1 t2 t3
@@ -369,6 +372,9 @@ instance Pretty n => Pretty (Constraint n) where
     CDataOfLatest t tmp pos dat ->
       pretty t <+> prettyPunctuation "=:" <+>
       prettyApp hsep 0 (prettyConstructor "DataOfLatest") [tmp, pos, dat]
+
+    CSerializable t ->
+      prettyConstructor "Serializable" <+> pretty t
 
     CPossibilityOfLatest t tmp dat ->
       pretty t <+> prettyPunctuation "=:" <+>
