@@ -61,7 +61,7 @@ checkPat exp =
 
     -- Applications
     Q.App {}
-      -- Simple contructors are easy
+      -- Simple constructors are easy
       | Just (p, _, xs) <- Q.takePrimApps exp
       , Q.PrimCon con  <- p
       -> Q.PatCon con <$> traverse checkPat xs

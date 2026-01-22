@@ -49,6 +49,7 @@ data DischargeError n
  | NotANumber  (Type n)
 
  | DoesNotHaveField CT.StructField (Type n)
+ | NotSerialisable (Type n)
  | ConflictingLetTemporalities (Type n) (Type n) (Type n)
  | ConflictingJoinTemporalities (Type n) (Type n)
  deriving (Eq, Ord, Show, Generic)
@@ -64,6 +65,9 @@ instance Pretty n => Pretty (DischargeError n) where
   =  "Not a number: " <> pretty t <> line
   <> "Chances are you tried to apply some numerical computation like (+) or sum to the wrong field" <> line <>
      "or used an integer literal for a non-numeric type."
+ pretty (NotSerialisable t)
+  =  "Not a serialisable data type: " <> pretty t <> line
+  <> "Chances are this function would not be able to be inlined, and would create a closure."
  pretty (DoesNotHaveField f t)
   =  "Can't extract field `" <> pretty f <> "` from the type: " <> pretty t
  pretty (ConflictingLetTemporalities _ def body)
@@ -164,6 +168,13 @@ dischargeC c
          _
           -> return $ DischargeLeftover c
 
+    CSerializable (TypeVar _)
+     -> return $ DischargeLeftover c
+    CSerializable t@TypeArrow {}
+     -> Left   $ NotSerialisable t
+    CSerializable _
+     -> return $ DischargeSubst Map.empty
+
     CPossibilityOfLatest ret tmp pos
      -> case possibilityOfLatest tmp pos of
          Just ret'
@@ -258,6 +269,8 @@ dischargeC'toplevel cons
      -> DischargeSubst <$> discharges [(a,b), (b,c)] Map.empty
      | CPossibilityJoin a b c <- cons'
      -> DischargeSubst <$> discharges [(a,b), (b,c)] Map.empty
+     | CSerializable _ <- cons'
+     -> return $ DischargeSubst Map.empty
     dish
      -> dish
  where

@@ -98,10 +98,44 @@ compose s1 s2
 unifyT :: (Hashable n, Eq n) => Type n -> Type n -> Maybe (SubstT n)
 unifyT t1 t2
  = case t1 of
+    --
+    -- Unification over modes.
+    --
+    -- This is unusual, and not exercised in most code flows. Indeed, the
+    -- only time when these are hit is when unifying higher order functions;
+    -- and these follow a sub-typing relationship. Effectively, all higher
+    -- order functions inferred have the full type triple of both modes and
+    -- the data type. Arguments passed in however may not have the triple on
+    -- either the argument or return types. But, given that missing terms
+    -- effectively work as polymorphic terms, we can say we don't require any
+    -- substitutions to come from this.
+    --
+    -- For functions which are higher order, but have been given a type a type
+    -- which is not given a modal type, the only safe thing to do is accept
+    -- only pure functions.
+    --
+    Temporality at ar
+     | Temporality bt br <- t2
+     -> compose <$> unifyT at bt <*> unifyT ar br
+     | otherwise
+     -> unifyT ar t2
+    _
+     | Temporality bt br <- t2
+     -> compose <$> unifyT bt TemporalityPure <*> unifyT t1 br
+
+    Possibility at ar
+     | Possibility bt br <- t2
+     -> compose <$> unifyT at bt <*> unifyT ar br
+     | otherwise
+     -> unifyT ar t2
+    _
+     | Possibility bp br <- t2
+     -> compose <$> unifyT bp PossibilityDefinitely <*> unifyT t1 br
+
     TypeVar a
      | TypeVar b <- t2
      , a == b
-     -> return $ Map.empty
+     -> return Map.empty
 
     TypeVar a
      -- Occurs check.
@@ -167,21 +201,9 @@ unifyT t1 t2
      | otherwise
      -> Nothing
 
-    Temporality at ar
-     | Temporality bt br <- t2
-     -> compose <$> unifyT at bt <*> unifyT ar br
-     | otherwise
-     -> Nothing
-
     TemporalityPure         -> eq
     TemporalityElement      -> eq
     TemporalityAggregate    -> eq
-
-    Possibility at ar
-     | Possibility bt br <- t2
-     -> compose <$> unifyT at bt <*> unifyT ar br
-     | otherwise
-     -> Nothing
 
     PossibilityPossibly     -> eq
     PossibilityDefinitely   -> eq
